@@ -3,6 +3,5 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.nexus.publish)
-    implementation(libs.jreleaser.plugin)
+    implementation(libs.vanniktech.maven.publish)
 }
