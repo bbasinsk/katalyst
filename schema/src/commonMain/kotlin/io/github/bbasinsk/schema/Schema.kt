@@ -26,6 +26,7 @@ sealed interface Schema<A> {
         fun unsafeCases(): List<Case<A, *>>
     }
     sealed interface Record<A> {
+        val metadata: Metadata<A>
         fun unsafeFields(): List<Field<A, *>>
         fun unsafeConstruct(values: List<Any?>): A
     }

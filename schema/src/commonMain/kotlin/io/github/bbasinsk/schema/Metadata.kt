@@ -5,7 +5,10 @@ import kotlin.reflect.KClass
 data class Metadata<A>(
     val name: String,
     val namespace: String?
-)
+) {
+    fun qualifiedName(): String =
+        if (namespace == null) name else "$namespace.$name"
+}
 
 fun <A : Any> KClass<A>.toMetadata(): Metadata<A> =
     if (qualifiedName == null) {

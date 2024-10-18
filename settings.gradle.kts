@@ -21,4 +21,8 @@ include(":schema-json")
 include(":schema-json-kotlinx")
 include(":schema-kotlinx-datetime")
 
+include(":http")
+include(":tuple")
 include(":validation")
+
+include(":http-openapi")
