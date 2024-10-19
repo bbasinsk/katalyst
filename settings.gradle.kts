@@ -19,10 +19,12 @@ rootProject.name = "Katalyst"
 include(":schema")
 include(":schema-json")
 include(":schema-json-kotlinx")
+include(":schema-json-schema")
 include(":schema-kotlinx-datetime")
 
 include(":http")
+include(":http-ktor")
+include(":http-openapi")
+
 include(":tuple")
 include(":validation")
-
-include(":http-openapi")

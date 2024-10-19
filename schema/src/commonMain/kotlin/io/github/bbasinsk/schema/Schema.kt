@@ -5,7 +5,7 @@ import kotlin.reflect.KProperty1
 sealed interface Schema<A> {
     data object Empty : Schema<Nothing?>
     data object Bytes : Schema<ByteArray>
-    data class Lazy<A>(val schema: Companion.() -> Schema<A>) : Schema<A>
+    data class Lazy<A>(val schema: () -> Schema<A>) : Schema<A>
     data class Optional<A>(val schema: Schema<A>) : Schema<A?>
     data class Default<A>(val schema: Schema<A>, val default: A) : Schema<A>
     data class OrElse<A>(val preferred: Schema<A>, val fallback: Schema<A>) : Schema<A>
@@ -41,7 +41,7 @@ sealed interface Schema<A> {
         OrElse(this, fallback)
 
     companion object {
-        fun <A> lazy(schema: Companion.() -> Schema<A>): Schema<A> = Lazy(schema)
+        fun <A> lazy(schema: () -> Schema<A>): Schema<A> = Lazy(schema)
         fun empty(): Schema<Nothing?> = Empty
         fun byteArray(): Schema<ByteArray> = Bytes
         fun boolean(): Schema<Boolean> = Primitive(StandardPrimitive.Boolean)

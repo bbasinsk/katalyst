@@ -236,7 +236,7 @@ private fun <A> Schema<A>.asJsonContent(examples: Map<String, A>): Map<String, M
         is Schema.Default -> schema.asJsonContent(examples)
         is Schema.Empty -> mapOf()
         is Schema.Enumeration -> TODO()
-        is Schema.Lazy -> Schema.schema().asJsonContent(examples)
+        is Schema.Lazy -> schema().asJsonContent(examples)
         is Schema.Optional<*> -> TODO()
         is Schema.OrElse<*> -> TODO()
         is Schema.Primitive -> mapOf(
@@ -265,7 +265,7 @@ private fun <A> Schema<A>.asJsonContent(examples: Map<String, A>): Map<String, M
 internal fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
-        is Schema.Lazy<A> -> Schema.schema().toSchemaObject(ref)
+        is Schema.Lazy<A> -> schema().toSchemaObject(ref)
         is Schema.Bytes -> SchemaObject(type = "string", format = "byte")
         is Schema.Collection<*> -> SchemaObject(type = "array", items = itemSchema.toSchemaObject(ref))
         is Schema.Enumeration -> SchemaObject(type = "string", enum = values.map { it.toString() }, format = null)
@@ -310,7 +310,7 @@ private fun <A, B> Schema.Transform<A, B>.toSchemaObject(ref: Boolean): SchemaOb
 private fun <B> Schema<*>.useRef(f: (String) -> B): B? =
     when (this) {
         is Schema.Empty -> null
-        is Schema.Lazy<*> -> Schema.schema().useRef(f)
+        is Schema.Lazy<*> -> schema().useRef(f)
         is Schema.Bytes -> null
         is Schema.Collection<*> -> null
         is Schema.Enumeration -> null
