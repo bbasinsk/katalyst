@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.libs
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     id("module.publication")
@@ -11,7 +13,7 @@ kotlin {
             dependencies {
                 api(project(":schema"))
                 implementation(project(":validation"))
-                implementation("org.apache.avro:avro:1.11.1")
+                implementation(libs.avro)
             }
         }
         val commonTest by getting {

@@ -10,13 +10,12 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":schema-json"))
-                implementation("com.github.erosb:everit-json-schema:1.14.4")
+                implementation(libs.json.schema)
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
-
                 implementation(project(":schema-json-kotlinx"))
             }
         }

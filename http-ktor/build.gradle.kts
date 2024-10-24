@@ -3,15 +3,13 @@ plugins {
     id("module.publication")
 }
 
-val ktorVersion: String = "2.3.12"
-
 kotlin {
     jvm()
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api("io.ktor:ktor-server-core:$ktorVersion")
+                api(libs.ktor.server.core)
 
                 api(project(":http"))
                 api(project(":http-openapi"))
@@ -24,8 +22,7 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
-
-                implementation("io.ktor:ktor-server-cio:$ktorVersion")
+                implementation(libs.ktor.server.cio)
             }
         }
     }
