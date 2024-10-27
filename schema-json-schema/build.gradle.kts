@@ -12,13 +12,12 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":schema-json"))
-                implementation(libs.json.schema)
+                implementation(project(":schema-json-kotlinx"))
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
-                implementation(project(":schema-json-kotlinx"))
             }
         }
     }

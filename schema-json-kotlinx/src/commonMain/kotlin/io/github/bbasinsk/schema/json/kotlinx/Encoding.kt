@@ -67,9 +67,18 @@ private fun <V> Schema.StringMap<V>.encodeStringMap(value: Map<*, *>, json: Json
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Record<A>.encodeRecord(value: Any?, json: Json): JsonElement =
     JsonObject(
-        this.unsafeFields().associate { field ->
-            field.name to (field.schema as Schema<Any?>).encodeToJsonElement(field.extract(value as A), json)
-        }
+        this.unsafeFields().mapNotNull { field ->
+            val schema = field.schema as Schema<Any?>
+
+            val fieldValue = field.extract(value as A)
+            val encodedValue = schema.encodeToJsonElement(fieldValue, json)
+
+            if (!json.configuration.encodeDefaults && (field.schema as? Schema.Default)?.default == fieldValue) {
+                null
+            } else {
+                field.name to encodedValue
+            }
+        }.toMap()
     )
 
 @Suppress("UNCHECKED_CAST")
