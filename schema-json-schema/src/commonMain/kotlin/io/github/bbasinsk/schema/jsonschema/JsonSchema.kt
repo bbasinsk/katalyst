@@ -1,4 +1,4 @@
-package io.github.bbasinsk.schema.json.scheam
+package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.StandardPrimitive

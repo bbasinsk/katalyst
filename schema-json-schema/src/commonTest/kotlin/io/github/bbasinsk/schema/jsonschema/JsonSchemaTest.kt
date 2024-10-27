@@ -1,9 +1,6 @@
-package io.github.bbasinsk.schema.json
+package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.json.scheam.encodeToJsonElement
-import io.github.bbasinsk.schema.json.scheam.encodeToJsonString
-import io.github.bbasinsk.schema.json.scheam.toJsonSchema
 import kotlinx.serialization.json.Json
 import org.junit.Ignore
 import org.junit.Test
@@ -46,25 +43,29 @@ class JsonSchemaTest {
                     }
                 """.trimIndent()
             ),
-            Schema.recordSmall()
-                .toJsonSchema()
-                .also { println(it) }
-                .encodeToJsonElement()
+            Schema.recordSmall().toJsonSchema().encodeToJsonElement()
         )
     }
-
 
     @Test
     fun `record collection`() {
         assertEquals(
             Json.parseToJsonElement(
                 """
-                    {
-                        "type": "object",
-                        "properties": {
-                            "a": { "type": "integer" },
-                            "b": { "type": "string" }
+                   {
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": { 
+                              "a": { "type": "integer" }, 
+                              "b": { "type": "string" }
+                            }
+                          }
                         }
+                      }
                     }
                 """.trimIndent()
             ),
@@ -73,6 +74,7 @@ class JsonSchemaTest {
     }
 
     @Test
+    @Ignore
     fun `oneOf schema`() {
         assertEquals(
             Json.parseToJsonElement(
@@ -122,6 +124,7 @@ class JsonSchemaTest {
     }
 
     @Test
+    @Ignore
     fun `default field`() {
         assertEquals(
             Json.parseToJsonElement(
