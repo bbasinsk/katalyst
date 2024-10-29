@@ -138,7 +138,7 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         is Schema.Lazy -> receiveSchema(with(schema) { schema() })
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.requireNotNull(schema.primitive.parse(raw)) {
-                InvalidJson(expected = schema.primitive.javaClass.simpleName, found = raw, path = emptyList())
+                InvalidJson(expected = schema.primitive::class.simpleName.toString(), found = raw, path = emptyList())
             }
         }
 

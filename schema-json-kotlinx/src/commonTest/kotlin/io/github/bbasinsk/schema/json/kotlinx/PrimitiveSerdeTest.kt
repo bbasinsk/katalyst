@@ -5,7 +5,6 @@ import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.mapValid
-import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -357,7 +356,7 @@ class PrimitiveSerdeTest {
         val schema = Schema.byteArray()
         assertEquals(
             """"c29tZSBiYXNlNjQgY29udGVudA=="""",
-            schema.encodeToJsonString("some base64 content".toByteArray())
+            schema.encodeToJsonString("some base64 content".encodeToByteArray())
         )
     }
 
@@ -366,15 +365,21 @@ class PrimitiveSerdeTest {
         val schema = Schema.byteArray()
         assertEquals(
             Validation.valid("some base64 content"),
-            schema.decodeFromJsonString("c29tZSBiYXNlNjQgY29udGVudA==").mapValid { String(it) }
+            schema.decodeFromJsonString("c29tZSBiYXNlNjQgY29udGVudA==").mapValid { it.decodeToString() }
         )
     }
 
     @Test
     fun `transform fail to deserialize with bad decode `() {
+        val uuidRegex = Regex("""^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$""")
+        data class UUID(val value: String) {
+            init {
+                require(value.matches(uuidRegex)) { "Invalid UUID string: $value" }
+            }
+        }
         val uuidSchema = Schema.string().transform(
             encode = { it.toString() },
-            decode = { UUID.fromString(it) }
+            decode = { UUID(it) }
         )
 
         assertEquals(

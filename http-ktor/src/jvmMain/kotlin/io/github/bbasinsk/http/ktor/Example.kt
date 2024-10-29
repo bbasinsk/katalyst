@@ -1,9 +1,9 @@
 package io.github.bbasinsk.http.ktor
 
 import io.github.bbasinsk.http.Http
-import io.github.bbasinsk.http.ResponseSchema.Companion.oneOf
-import io.github.bbasinsk.http.ResponseSchema.Companion.status
 import io.github.bbasinsk.http.ResponseStatus
+import io.github.bbasinsk.http.ktor.endpoints
+import io.github.bbasinsk.http.ktor.exampleEndpoints
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
 import io.github.bbasinsk.http.responseCase
@@ -19,6 +19,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
+import kotlin.to
 
 
 data class PersonId(val value: UUID)
@@ -129,7 +130,7 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
 }
 
 fun main() {
-    embeddedServer(CIO, port = 33333) {
+    embeddedServer(io.ktor.server.cio.CIO, port = 33333) {
 
         val domainService = {
             Person(

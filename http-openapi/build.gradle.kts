@@ -1,3 +1,5 @@
+import org.gradle.kotlin.dsl.jvm
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     id("module.publication")
@@ -5,6 +7,8 @@ plugins {
 
 kotlin {
     jvm()
+    macosArm64()
+    linuxX64()
 
     sourceSets {
         val commonMain by getting {

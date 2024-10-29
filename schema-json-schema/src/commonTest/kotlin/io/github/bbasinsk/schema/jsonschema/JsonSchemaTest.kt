@@ -2,8 +2,8 @@ package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
 import kotlinx.serialization.json.Json
-import org.junit.Ignore
-import org.junit.Test
+import kotlin.test.Ignore
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class JsonSchemaTest {

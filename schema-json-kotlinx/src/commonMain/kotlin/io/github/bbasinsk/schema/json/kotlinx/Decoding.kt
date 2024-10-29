@@ -16,8 +16,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-// why is kotlin/gradle letting me import/use this?
-import java.util.Base64 // TODO: multiplatform base64?
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun <A> Schema<A>.decodeFromJsonString(str: String, json: Json = Json.Default): Validation<InvalidJson, A> =
     decodeFromJsonElement(
@@ -44,6 +44,7 @@ private fun <A> Validation.Companion.decode(
         is Schema.OrElse -> decode(schema.preferred, json, path).orElse { errors ->
             decode(schema.fallback, json, path).orElse { Invalid(errors) }
         }
+
         is Schema.Transform<A, *> -> decodeTransform(schema, json, path)
         is Schema.Collection<*> -> decodeList(schema, json, path) as Validation<InvalidJson, A>
         is Schema.StringMap<*> -> stringMap(schema, json, path) as Validation<InvalidJson, A>
@@ -56,7 +57,7 @@ private fun <A> Validation.Companion.decodePrimitive(
     json: JsonElement,
     path: List<Segment>
 ): Validation<InvalidJson, A> {
-    val error = InvalidJson(schema.primitive.javaClass.simpleName, json.toString(), path)
+    val error = InvalidJson(schema.primitive::class.simpleName.toString(), json.toString(), path)
     return if (json is JsonNull) {
         invalid(error)
     } else {
@@ -71,8 +72,9 @@ private fun Validation.Companion.decodeBytes(
     json: JsonElement,
     path: List<Segment>
 ): Validation<InvalidJson, ByteArray> =
+    @OptIn(ExperimentalEncodingApi::class)
     runCatching { json.jsonPrimitive.content }
-        .andThen { runCatching { Base64.getDecoder().decode(it) } }
+        .andThen { runCatching { Base64.decode(it) } }
         .mapInvalid { InvalidJson("base64 encoded", json.toString(), path) }
 
 private fun <A> Schema.Primitive<A>.isJsonString(): Boolean =
@@ -118,7 +120,7 @@ private fun <A> Validation.Companion.decodeEnumeration(
     path: List<Segment>
 ): Validation<InvalidJson, A> =
     runCatching { json.jsonPrimitive.content }
-        .mapInvalid { InvalidJson("JsonPrimitive", json.javaClass.simpleName, path) }
+        .mapInvalid { InvalidJson("JsonPrimitive", json::class.simpleName.toString(), path) }
         .andThen { jsonStr ->
             schema.values.find { it.toString() == jsonStr }
                 ?.let { valid(it) }
@@ -131,7 +133,7 @@ private fun <A> Validation.Companion.decodeList(
     path: List<Segment>
 ): Validation<InvalidJson, List<A>> =
     runCatching { json.jsonArray }
-        .mapInvalid { InvalidJson("JsonArray", json.javaClass.simpleName, path) }
+        .mapInvalid { InvalidJson("JsonArray", json::class.simpleName.toString(), path) }
         .andThen {
             sequence(
                 it.mapIndexed { i, json -> decode(schema.itemSchema, json, path + Segment.Index(i)) }
@@ -144,7 +146,7 @@ private fun <V> Validation.Companion.stringMap(
     path: List<Segment>
 ): Validation<InvalidJson, Map<String, V>> =
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson("JsonObject", json.javaClass.simpleName, path) }.andThen { jsonObject ->
+        .mapInvalid { InvalidJson("JsonObject", json::class.simpleName.toString(), path) }.andThen { jsonObject ->
             sequence(
                 jsonObject.entries.map { (key, value) ->
                     decode(schema.valueSchema, value, path + Segment.Field(key)).mapValid { key to it }
@@ -158,7 +160,7 @@ private fun <A> Validation.Companion.decodeRecord(
     path: List<Segment>
 ): Validation<InvalidJson, A> =
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson("JsonObject", json.javaClass.simpleName, path) }
+        .mapInvalid { InvalidJson("JsonObject", json::class.simpleName.toString(), path) }
         .andThen { jsonObject ->
             sequence(
                 schema.unsafeFields().map {
@@ -175,7 +177,7 @@ private fun <A> Validation.Companion.decodeUnion(
 ): Validation<InvalidJson, A> =
     @Suppress("UNCHECKED_CAST")
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson("JsonObject", json.javaClass.simpleName, path) }
+        .mapInvalid { InvalidJson("JsonObject", json::class.simpleName.toString(), path) }
         .andThen { decode(Schema.string(), it[schema.key] ?: JsonNull, path + Segment.Field(schema.key)) }
         .andThen { identifier ->
             requireNotNull(schema.unsafeCases().find { it.name == identifier }) {

@@ -10,7 +10,8 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
-import java.util.Base64 // TODO: multiplatform base64
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): String =
     json.encodeToString(encodeToJsonElement(value, json))
@@ -18,7 +19,9 @@ fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): Strin
 fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
-        is Schema.Bytes -> JsonPrimitive(Base64.getEncoder().encodeToString(value as ByteArray))
+        is Schema.Bytes ->
+            @OptIn(ExperimentalEncodingApi::class)
+            JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value)
         is Schema.Lazy -> schema().encodeToJsonElement(value, json)
         is Schema.Optional<*> -> encodeOptional(value, json)

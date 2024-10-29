@@ -7,6 +7,8 @@ plugins {
 
 kotlin {
     jvm()
+    macosArm64()
+    linuxX64()
 
     sourceSets {
         val commonMain by getting {
@@ -19,12 +21,13 @@ kotlin {
                 api(project(":tuple"))
 
                 implementation(project(":validation"))
+
+                implementation(libs.ktor.server.cio) // For example / main
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
-                implementation(libs.ktor.server.cio)
             }
         }
     }

@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.0.0"
+kotlin = "2.0.21"
 ktor="2.3.12"
 vanniktech-maven-publish = "0.30.0"
 

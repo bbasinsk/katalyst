@@ -1,5 +1,7 @@
 package io.github.bbasinsk.tuple
 
+import kotlin.jvm.JvmName
+
 
 data class TupleValues1<A1>(val a1: A1) {
     fun <B> applyTo(f: (A1) -> B): B = f(a1)
