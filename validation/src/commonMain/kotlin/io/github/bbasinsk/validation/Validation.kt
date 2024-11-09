@@ -488,3 +488,15 @@ fun <E, A> Validation<E, A>.getOrNull(): A? =
 
 inline fun <E, A> Validation<E, A>.filter(error: () -> E, predicate: (A) -> Boolean): Validation<E, A> =
     andThen { if (predicate(it)) this else Validation.invalid(error()) }
+
+inline fun <E, A, B> Validation<E, A>.onValid(f: (A) -> B): Validation<E, A> =
+    when (this) {
+        is Validation.Invalid -> this
+        is Validation.Valid -> this.also { f(this.value) }
+    }
+
+inline fun <E, A, F> Validation<E, A>.onInvalid(f: (List<E>) -> F): Validation<E, A> =
+    when (this) {
+        is Validation.Invalid -> this.also { f(this.errors) }
+        is Validation.Valid -> this
+    }
