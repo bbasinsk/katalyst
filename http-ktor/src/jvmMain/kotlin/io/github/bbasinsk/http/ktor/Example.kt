@@ -2,8 +2,6 @@ package io.github.bbasinsk.http.ktor
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.ResponseStatus
-import io.github.bbasinsk.http.ktor.endpoints
-import io.github.bbasinsk.http.ktor.exampleEndpoints
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
 import io.github.bbasinsk.http.responseCase
@@ -44,7 +42,7 @@ fun Schema.Companion.person(): Schema<Person> =
     )
 
 val updatePerson =
-    Http.put { Root / "person" / "update" }
+    Http.put { Root / "person" }
         .description("Update a person")
         .deprecated("some reason")
         .query { int("id").optional() }
@@ -90,7 +88,7 @@ fun Schema.Companion.badRequestSchema(): Schema<MultipleErrors.BadRequest> =
 
 fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
     handle(findPersonById) { request ->
-        val (name) = request.params.tupleValues()
+        val (name) = tupleValues(request.params)
         success(domainStuff().copy(name = name))
     }
 
@@ -99,13 +97,13 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
             .output { status(ResponseStatus.Ok) { person() } }
             .error { status(ResponseStatus.NotFound, examples = mapOf("test1" to 123)) { int() } }
     ) { request ->
-        val (personId, thing) = request.params.tupleValues()
+        val (personId, thing) = tupleValues(request.params)
         println("personId: $personId, thing: $thing")
         success(domainStuff().copy(name = personId))
     }
 
     handle(updatePerson) { request ->
-        val (id, name) = request.params.tupleValues()
+        val (id, name) = tupleValues(request.params)
         println("id: $id, name: $name")
         success(domainStuff().copy(name = request.input.name))
     }
@@ -115,12 +113,12 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
             .output { status(ResponseStatus.Ok) { person() } }
             .error { status(ResponseStatus.NotFound) { int() } }
     ) { request ->
-        val (name) = request.params.tupleValues()
+        val (name) = tupleValues(request.params)
         success(domainStuff().copy(name = name))
     }
 
     handle(multipleErrors) { req ->
-        val (name) = req.params.tupleValues()
+        val (name) = tupleValues(req.params)
         when (name) {
             "not-found" -> kotlin.error(MultipleErrors.NotFound(Random.nextInt()))
             "bad-request" -> kotlin.error(MultipleErrors.BadRequest("Bad request"))
@@ -130,7 +128,7 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
 }
 
 fun main() {
-    embeddedServer(io.ktor.server.cio.CIO, port = 33333) {
+    embeddedServer(CIO, port = 33333) {
 
         val domainService = {
             Person(
