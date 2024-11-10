@@ -38,7 +38,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), "schema-http-ktor", version.toString())
+    coordinates(group.toString(), "http-ktor", version.toString())
 
     pom {
         name = "Katalyst"
