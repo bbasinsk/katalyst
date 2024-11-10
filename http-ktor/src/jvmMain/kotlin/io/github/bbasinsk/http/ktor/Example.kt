@@ -1,6 +1,10 @@
 package io.github.bbasinsk.http.ktor
 
+import io.github.bbasinsk.http.HeaderSchema
 import io.github.bbasinsk.http.Http
+import io.github.bbasinsk.http.QuerySchema
+import io.github.bbasinsk.http.ResponseSchema.Companion.oneOf
+import io.github.bbasinsk.http.ResponseSchema.Companion.status
 import io.github.bbasinsk.http.ResponseStatus
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
@@ -45,29 +49,30 @@ val updatePerson =
     Http.put { Root / "person" }
         .description("Update a person")
         .deprecated("some reason")
-        .query { int("id").optional() }
-        .header {
-            string("name").example("asdf", "fds").example("two", "2").deprecated("some reason").description("blah blah")
-        }
-        .header { int("other").example("blah", 123).deprecated("some reason").description("blah blah") }
-        .input { person() }
-        .output { status(ResponseStatus.Ok) { person() } }
-        .error { status(ResponseStatus.NotFound) { int() } }
+        .query(QuerySchema.int("id").optional())
+        .header(
+            HeaderSchema.string("name").example("asdf", "fds").example("two", "2").deprecated("some reason")
+                .description("blah blah")
+        )
+        .header(HeaderSchema.int("other").example("blah", 123).deprecated("some reason").description("blah blah"))
+        .input(Schema.person())
+        .output(status(ResponseStatus.Ok, Schema.person()))
+        .error(status(ResponseStatus.NotFound, Schema.int()))
 
 val findPersonById =
     Http.get { Root / "person" / string("personId") }
-        .output { status(ResponseStatus.Ok) { person() } }
-        .error { status(ResponseStatus.NotFound) { int() } }
+        .output(status(ResponseStatus.Ok, Schema.person()))
+        .error(status(ResponseStatus.NotFound, Schema.int()))
 
 val multipleErrors =
     Http.get { Root / "error" / string("name") }
-        .output { status(ResponseStatus.Ok.description("asdf")) { person() } }
-        .error {
+        .output(status(ResponseStatus.Ok.description("asdf"), Schema.person()))
+        .error(
             oneOf<MultipleErrors>(
                 ResponseStatus.Ok.description("Custom not found") to responseCase(Schema.notFoundSchema()),
                 ResponseStatus.BadRequest to responseCase(Schema.badRequestSchema()),
             )
-        }
+        )
 
 sealed interface MultipleErrors {
     data class NotFound(val id: Int) : MultipleErrors
@@ -94,8 +99,8 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
 
     handle(
         Http.get { Root / string("personId") / "blah" / int("thing") }
-            .output { status(ResponseStatus.Ok) { person() } }
-            .error { status(ResponseStatus.NotFound, examples = mapOf("test1" to 123)) { int() } }
+            .output(status(ResponseStatus.Ok, Schema.person()))
+            .error(status(ResponseStatus.NotFound, Schema.int(), examples = mapOf("test1" to 123)))
     ) { request ->
         val (personId, thing) = tupleValues(request.params)
         println("personId: $personId, thing: $thing")
@@ -110,8 +115,8 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
 
     handle(
         Http.get { Root / "v1" / "estimated-delivery-date" / "package-id" / string("packageId") }
-            .output { status(ResponseStatus.Ok) { person() } }
-            .error { status(ResponseStatus.NotFound) { int() } }
+            .output(status(ResponseStatus.Ok, Schema.person()))
+            .error(status(ResponseStatus.NotFound, Schema.int()))
     ) { request ->
         val (name) = tupleValues(request.params)
         success(domainStuff().copy(name = name))

@@ -70,12 +70,12 @@ sealed interface ResponseSchema<A> {
 
         fun <A> status(
             status: ResponseStatus,
+            schema: Schema<A>,
             examples: Map<String, A> = emptyMap(),
-            schema: Schema.Companion.() -> Schema<A>
         ): ResponseSchema<A> =
-            Single(status, ResponseCase<A, A>(Schema.schema(), { it }, examples))
+            Single(status, ResponseCase<A, A>(schema, { it }, examples))
 
         fun empty(): ResponseSchema<Nothing?> =
-            status(ResponseStatus.NoContent.description("Empty")) { empty() }
+            status(ResponseStatus.NoContent.description("Empty"), Schema.empty())
     }
 }

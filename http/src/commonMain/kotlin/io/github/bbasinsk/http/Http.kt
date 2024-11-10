@@ -22,52 +22,52 @@ data class Http<Params, Input, Error, Output>(
     fun deprecated(reason: String): Http<Params, Input, Error, Output> =
         copy(metadata = metadata.copy(deprecated = Metadata.Deprecated(reason)))
 
-    fun <Params2> query(query: QuerySchema.Companion.() -> QuerySchema<Params2>): Http<Pair<Params, Params2>, Input, Error, Output> =
+    fun <Params2> query(query: QuerySchema<Params2>): Http<Pair<Params, Params2>, Input, Error, Output> =
         Http(
             method = method,
-            params = params + QuerySchema.query(),
+            params = params + query,
             input = input,
             error = error,
             output = output,
             metadata = metadata
         )
 
-    fun <Params2> header(header: HeaderSchema.Companion.() -> HeaderSchema<Params2>): Http<Pair<Params, Params2>, Input, Error, Output> =
+    fun <Params2> header(header: HeaderSchema<Params2>): Http<Pair<Params, Params2>, Input, Error, Output> =
         Http(
             method = method,
-            params = params + HeaderSchema.header(),
+            params = params + header,
             input = input,
             error = error,
             output = output,
             metadata = metadata
         )
 
-    fun <Input2> input(input: Schema.Companion.() -> Schema<Input2>): Http<Params, Input2, Error, Output> =
+    fun <Input2> input(input: Schema<Input2>): Http<Params, Input2, Error, Output> =
         Http(
             method = method,
             params = params,
-            input = Schema.input(),
+            input = input,
             error = error,
             output = output,
             metadata = metadata
         )
 
-    fun <Output2> output(output: ResponseSchema.Companion.() -> ResponseSchema<Output2>): Http<Params, Input, Error, Output2> =
+    fun <Output2> output(output: ResponseSchema<Output2>): Http<Params, Input, Error, Output2> =
         Http(
             method = method,
             params = params,
             input = input,
             error = error,
-            output = ResponseSchema.output(),
+            output = output,
             metadata = metadata
         )
 
-    fun <Error2> error(error: ResponseSchema.Companion.() -> ResponseSchema<Error2>): Http<Params, Input, Error2, Output> =
+    fun <Error2> error(error: ResponseSchema<Error2>): Http<Params, Input, Error2, Output> =
         Http(
             method = method,
             params = params,
             input = input,
-            error = ResponseSchema.error(),
+            error = error,
             output = output,
             metadata = metadata
         )
