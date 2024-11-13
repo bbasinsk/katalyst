@@ -22,10 +22,12 @@ fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emp
         )
     )
 
-private fun Http<*, *, *, *>.toComponents(): List<Pair<String, SchemaObject>> =
-    (output.schemasByStatus() + error.schemasByStatus()).mapNotNull { (_, schema) ->
+private fun Http<*, *, *, *>.toComponents(): List<Pair<String, SchemaObject>> {
+    val schemas = listOf(input) + (output.schemasByStatus() + error.schemasByStatus()).values
+    return schemas.mapNotNull { schema ->
         schema.useRef { ref -> ref to schema.toSchemaObject() }
     }
+}
 
 private fun List<Http<*, *, *, *>>.toOpenApiPaths(): Map<String, Map<String, Operation>> =
     this
