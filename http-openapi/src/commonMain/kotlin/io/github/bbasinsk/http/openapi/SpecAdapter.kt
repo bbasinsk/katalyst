@@ -63,7 +63,7 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.op
         }.toMap()
     )
 
-fun <A> ResponseCase<A, *>.toResponseObject(status: ResponseStatus): ResponseObject =
+fun <A, B : A> ResponseCase<A, B>.toResponseObject(status: ResponseStatus): ResponseObject =
     ResponseObject(
         description = status.description,
         content = (schema as Schema<A>).asJsonContent(examples = examples)

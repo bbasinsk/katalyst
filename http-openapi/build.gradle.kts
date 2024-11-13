@@ -1,9 +1,8 @@
 import com.vanniktech.maven.publish.SonatypeHost
-import org.gradle.kotlin.dsl.jvm
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
     id("module.publication")
+    id("module.serialization")
 }
 
 kotlin {

@@ -1,7 +1,6 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
     id("module.publication")
 }
 
@@ -15,8 +14,6 @@ kotlin {
             dependencies {
                 implementation(project(":validation"))
                 api(project(":schema-json"))
-                // TODO: replace with gradle lib definition
-                // TODO: make sure this blends with other versions of kotlinx-serialization
                 api(libs.kotlinx.serialization.json)
             }
         }
