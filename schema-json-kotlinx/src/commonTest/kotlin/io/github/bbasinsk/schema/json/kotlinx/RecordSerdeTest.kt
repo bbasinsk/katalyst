@@ -12,7 +12,7 @@ class RecordSerdeTest {
     data class MyRecord(val value: Int)
 
     fun Schema.Companion.myRecord(): Schema<MyRecord> = record(
-        field(MyRecord::value, int()),
+        field(int(), "value") { value },
         ::MyRecord
     )
 
@@ -63,7 +63,7 @@ class RecordSerdeTest {
     @Test
     fun `record deserializes with missing field and default value`() {
         val myRecordWithDefault = Schema.record(
-            Schema.field(MyRecord::value, Schema.int().default(42)),
+            Schema.field(Schema.int().default(42), "value") { value },
             ::MyRecord
         )
 
@@ -78,7 +78,7 @@ class RecordSerdeTest {
         data class MyOptionalRecord(val value: Int?)
 
         val schema = Schema.record(
-            Schema.field(MyOptionalRecord::value, Schema.int().optional()),
+            Schema.field(Schema.int().optional(), "value") { value },
             ::MyOptionalRecord
         )
 

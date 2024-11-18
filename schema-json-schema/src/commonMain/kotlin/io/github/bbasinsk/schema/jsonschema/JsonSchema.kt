@@ -26,7 +26,7 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<NullSchema> = with(Schema.Companion) {
                 record(
-                    field("stuff", empty()) { it.stuff },
+                    field(empty(), "stuff") { stuff },
                     ::NullSchema
                 )
             }
@@ -39,7 +39,7 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<IntegerSchema> = with(Schema.Companion) {
                 record(
-                    field("stuff", empty()) { it.stuff },
+                    field(empty(), "stuff") { stuff },
                     ::IntegerSchema
                 )
             }
@@ -52,7 +52,7 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<NumberSchema> = with(Schema.Companion) {
                 record(
-                    field("stuff", empty()) { it.stuff },
+                    field(empty(), "stuff") { stuff },
                     ::NumberSchema
                 )
             }
@@ -65,7 +65,7 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<StringSchema> = with(Schema.Companion) {
                 record(
-                    field("enum", list(string()).optional().default(null)) { it.enum },
+                    field(list(string()).optional().default(null), "enum") { enum },
                     ::StringSchema
                 )
             }
@@ -78,7 +78,7 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<BooleanSchema> = with(Schema.Companion) {
                 record(
-                    field("stuff", empty()) { it.stuff },
+                    field(empty(), "stuff") { stuff },
                     ::BooleanSchema
                 )
             }
@@ -91,7 +91,7 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<ArraySchema> = with(Schema.Companion) {
                 record(
-                    field("items", jsonSchema()) { it.items },
+                    field(jsonSchema(), "items") { items },
                     ::ArraySchema
                 )
             }
@@ -106,9 +106,9 @@ sealed interface JsonSchema {
         companion object {
             val schema: Schema<ObjectSchema> = with(Schema.Companion) {
                 record(
-                    field("properties", stringMap(lazy { jsonSchema() }).optional()) { it.properties },
-                    field("additionalProperties", lazy { jsonSchema() }.optional()) { it.additionalProperties },
-                    field("oneOf", list(lazy { jsonSchema() }).optional()) { it.oneOf },
+                    field(stringMap(lazy { jsonSchema() }).optional(), "properties") { properties },
+                    field(lazy { jsonSchema() }.optional(), "additionalProperties") { additionalProperties },
+                    field(list(lazy { jsonSchema() }).optional(), "oneOf") { oneOf },
                     ::ObjectSchema
                 )
             }

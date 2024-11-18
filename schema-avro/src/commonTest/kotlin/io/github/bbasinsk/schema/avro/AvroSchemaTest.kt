@@ -112,15 +112,15 @@ data class RecordDefault(
 
 fun Schema.Companion.recordOptional(): Schema<RecordOptional> =
     record(
-        field("a", long().optional()) { it.a },
-        field("b", string().optional()) { it.b },
+        field(long().optional(), "a") { a },
+        field(string().optional(), "b") { b },
         ::RecordOptional
     )
 
 fun Schema.Companion.recordDefault(): Schema<RecordDefault> =
     record(
-        field("a", long().default(42)) { it.a },
-        field("b", string().default("foo")) { it.b },
+        field(long().default(42), "a") { a },
+        field(string().default("foo"), "b") { b },
         ::RecordDefault
     )
 
@@ -140,15 +140,15 @@ data class RecordFlipped(
 
 fun Schema.Companion.recordSmall(): Schema<RecordSmall> =
     record(
-        field("a", long()) { it.a },
-        field("b", string()) { it.b },
+        field(long(), "a") { a },
+        field(string(), "b", { b }),
         ::RecordSmall
     )
 
 fun Schema.Companion.recordFlipped(): Schema<RecordFlipped> =
     record(
-        field("b", string()) { it.b },
-        field("a", long()) { it.a },
+        field(string(), "b", { b }),
+        field(long(), "a", { a }),
         ::RecordFlipped
     )
 
@@ -171,15 +171,15 @@ enum class Role {
 
 fun Schema.Companion.customer(): Schema<Customer> =
     record(
-        field("id", int()) { it.id },
-        field("email", string().optional()) { it.email },
+        field(int(), "id") { id },
+        field(string().optional(), "email") { email },
         ::Customer
     )
 
 fun Schema.Companion.employee(): Schema<Employee> =
     record(
-        field("id", int()) { it.id },
-        field("role", enumeration()) { it.role },
+        field(int(), "id") { id },
+        field(enumeration<Role>(), "role") { role },
         ::Employee
     )
 

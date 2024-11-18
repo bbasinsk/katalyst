@@ -131,13 +131,13 @@ sealed interface UnionSimple {
 
 fun Schema.Companion.first(): Schema<UnionSimple.First> =
     record(
-        field("a", long()) { it.data },
+        field(long(), "a") { data },
         UnionSimple::First
     )
 
 fun Schema.Companion.second(): Schema<UnionSimple.Second> =
     record(
-        field("b", string()) { it.data },
+        field(string(), "b") { data },
         UnionSimple::Second
     )
 

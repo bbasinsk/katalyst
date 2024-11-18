@@ -18,13 +18,13 @@ class UnionSerdeTest {
 
     private fun Schema.Companion.intExample(): Schema<UnionExample.IntExample> =
         record(
-            field(UnionExample.IntExample::value, int()),
+            field(int(), "value") { value },
             UnionExample::IntExample
         )
 
     private fun Schema.Companion.stringExample(): Schema<UnionExample.StringExample> =
         record(
-            field(UnionExample.StringExample::value, string()),
+            field(string(), "value") { value },
             UnionExample::StringExample
         )
 

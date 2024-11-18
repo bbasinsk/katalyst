@@ -59,10 +59,7 @@ sealed interface Schema<A> {
                 values = enumValues<A>().toList()
             )
 
-        fun <A, B> field(property: KProperty1<A, B>, schema: Schema<B>, name: String = property.name): Field<A, B> =
-            field(name, schema, property::get)
-
-        fun <A, B> field(name: String, schema: Schema<B>, extract: (A) -> B): Field<A, B> =
+        fun <A, B> field(schema: Schema<B>, name: String, extract: A.() -> B): Field<A, B> =
             Field(name, schema, extract)
 
         inline fun <A, reified B : A> case(

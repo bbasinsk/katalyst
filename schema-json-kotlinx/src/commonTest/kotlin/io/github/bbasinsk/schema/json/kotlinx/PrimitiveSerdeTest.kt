@@ -293,13 +293,13 @@ class PrimitiveSerdeTest {
 
     private fun Schema.Companion.leaf(): Schema<Tree.Leaf> =
         record(
-            field(Tree.Leaf::value, int()),
+            field(int(), "value") { value },
             Tree::Leaf
         )
 
     private fun Schema.Companion.branch(): Schema<Tree.Branch> =
         record(
-            field(Tree.Branch::value, lazy { tree() }),
+            field(lazy { tree() }, "value") { value },
             Tree::Branch
         )
 

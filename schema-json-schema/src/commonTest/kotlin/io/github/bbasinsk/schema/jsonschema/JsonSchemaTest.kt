@@ -161,15 +161,15 @@ data class RecordDefault(
 
 fun Schema.Companion.recordOptional(): Schema<RecordOptional> =
     record(
-        field("a", long().optional()) { it.a },
-        field("b", string().optional()) { it.b },
+        field(long().optional(), "a") { a },
+        field(string().optional(), "b") { b },
         ::RecordOptional
     )
 
 fun Schema.Companion.recordDefault(): Schema<RecordDefault> =
     record(
-        field("a", long().default(42)) { it.a },
-        field("b", string().default("foo")) { it.b },
+        field(long().default(42), "a") { a },
+        field(string().default("foo"), "b") { b },
         ::RecordDefault
     )
 
@@ -183,8 +183,8 @@ data class RecordSmall(
 
 fun Schema.Companion.recordSmall(): Schema<RecordSmall> =
     record(
-        field("a", long()) { it.a },
-        field("b", string()) { it.b },
+        field(long(), "a") { a },
+        field(string(), "b") { b },
         ::RecordSmall
     )
 
@@ -192,14 +192,14 @@ data class RecordCollection(val value: List<RecordSmall>)
 
 fun Schema.Companion.recordCollection(): Schema<RecordCollection> =
     record(
-        field("value", list(recordSmall())) { it.value },
+        field(list(recordSmall()), "value") { value },
         ::RecordCollection
     )
 
 fun Schema.Companion.recordFlipped(): Schema<RecordSmall> =
     record(
-        field("b", string()) { it.b },
-        field("a", long()) { it.a }
+        field(string(), "b") { b },
+        field(long(), "a") { a }
     ) { b, a -> RecordSmall(a, b) }
 
 sealed interface Person
@@ -215,14 +215,14 @@ data class Employee(
 
 fun Schema.Companion.customer(): Schema<Customer> =
     record(
-        field("id", int()) { it.id },
-        field("email", string().optional()) { it.email },
+        field(int(), "id") { id },
+        field(string().optional(), "email") { email },
         ::Customer
     )
 
 fun Schema.Companion.employee(): Schema<Employee> =
     record(
-        field("id", int()) { it.id },
+        field(int(), "id") { id },
         ::Employee
     )
 

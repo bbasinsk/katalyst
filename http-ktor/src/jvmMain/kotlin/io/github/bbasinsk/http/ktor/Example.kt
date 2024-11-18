@@ -38,10 +38,10 @@ fun Schema.Companion.personId(): Schema<PersonId> =
 
 fun Schema.Companion.person(): Schema<Person> =
     record(
-        field("id", personId()) { it.id },
-        field("name", string()) { it.name },
-        field("birthDate", localDate()) { it.birthDate },
-        field("createdAt", instant()) { it.createdAt },
+        field(personId(), "id") { id },
+        field(string(), "name") { name },
+        field(localDate(), "birthDate") { birthDate },
+        field(instant(), "createdAt") { createdAt },
         ::Person
     )
 
@@ -81,13 +81,13 @@ sealed interface MultipleErrors {
 
 fun Schema.Companion.notFoundSchema(): Schema<MultipleErrors.NotFound> =
     record(
-        field("id", int()) { it.id },
+        field(int(), "id") { id },
         MultipleErrors::NotFound
     )
 
 fun Schema.Companion.badRequestSchema(): Schema<MultipleErrors.BadRequest> =
     record(
-        field("message", string()) { it.message },
+        field(string(), "message") { message },
         MultipleErrors::BadRequest
     )
 
