@@ -24,9 +24,7 @@ fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emp
 
 private fun Http<*, *, *, *>.toComponents(): List<Pair<String, SchemaObject>> {
     val schemas = listOf(input) + (output.schemasByStatus() + error.schemasByStatus()).values
-    return schemas.mapNotNull { schema ->
-        schema.useRef { ref -> ref to schema.toSchemaObject() }
-    }
+    return schemas.mapNotNull { schema -> schema.ref() }
 }
 
 private fun List<Http<*, *, *, *>>.toOpenApiPaths(): Map<String, Map<String, Operation>> =
@@ -283,7 +281,7 @@ internal fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
                 discriminator = DiscriminatorObject(
                     propertyName = key,
                     mapping = unsafeCases()
-                        .mapNotNull { case -> case.schema.useRef { case.name to it } }
+                        .mapNotNull { case -> case.schema.ref()?.let { case.name to it.first } }
                         .toMap()
                 )
             )
@@ -302,26 +300,26 @@ internal fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
     }
 
 private fun <A, B> Schema.Transform<A, B>.toSchemaObject(ref: Boolean): SchemaObject =
-    when (metadata.name) {
-        "UUID" -> SchemaObject(type = "string", format = "uuid")
-        "LocalDate" -> SchemaObject(type = "string", format = "date")
-        "Instant" -> SchemaObject(type = "string", format = "date-time")
+    when (metadata.name.lowercase()) {
+        "uuid" -> SchemaObject(type = "string", format = "uuid")
+        "localdate" -> SchemaObject(type = "string", format = "date")
+        "instant" -> SchemaObject(type = "string", format = "date-time")
         else -> schema.toSchemaObject(ref)
     }
 
-private fun <B> Schema<*>.useRef(f: (String) -> B): B? =
+private fun Schema<*>.ref(): Pair<String, SchemaObject>? =
     when (this) {
         is Schema.Empty -> null
-        is Schema.Lazy<*> -> schema().useRef(f)
+        is Schema.Lazy<*> -> schema().ref()
         is Schema.Bytes -> null
-        is Schema.Collection<*> -> null
+        is Schema.Collection<*> -> itemSchema.ref()
         is Schema.Enumeration -> null
-        is Schema.Default -> schema.useRef(f)
-        is Schema.Optional<*> -> schema.useRef(f)
-        is Schema.OrElse<*> -> preferred.useRef(f)
+        is Schema.Default -> schema.ref()
+        is Schema.Optional<*> -> schema.ref()
+        is Schema.OrElse<*> -> preferred.ref()
         is Schema.Primitive -> null
-        is Schema.StringMap<*> -> null
-        is Schema.Transform<*, *> -> schema.useRef(f)
+        is Schema.StringMap<*> -> valueSchema.ref()
+        is Schema.Transform<*, *> -> schema.ref()
         is Schema.Union<*> -> null
-        is Schema.Record<*> -> f(metadata.qualifiedName())
+        is Schema.Record<*> -> metadata.qualifiedName() to toSchemaObject()
     }
