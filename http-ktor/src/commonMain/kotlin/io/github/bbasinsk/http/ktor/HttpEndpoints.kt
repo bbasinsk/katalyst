@@ -4,6 +4,8 @@ import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
+import io.github.bbasinsk.http.openapi.Info
+import io.github.bbasinsk.http.openapi.Server
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.routing.Routing
 import io.ktor.util.KtorDsl
@@ -12,12 +14,16 @@ fun HttpEndpoints.httpEndpoints(builder: HttpEndpoints.() -> Unit) = apply(build
 
 data class HttpEndpoints(
     val underlying: MutableList<HttpEndpoint<*, *, *, *, ApplicationCall>> = mutableListOf(),
-    val openApiBuilder: OpenApiBuilder = OpenApiBuilder()
+    var openApiBuilder: OpenApiBuilder? = null
 ) {
 
     @KtorDsl
-    fun openApi(builder: OpenApiBuilder.() -> Unit) {
-        openApiBuilder.apply(builder)
+    fun openApi(
+        info: Info,
+        servers: List<Server> = emptyList(),
+        jsonSpecPath: String = "/openapi.json"
+    ) {
+        openApiBuilder = OpenApiBuilder(jsonSpecPath, info, servers)
     }
 
     @KtorDsl

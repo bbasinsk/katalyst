@@ -27,8 +27,8 @@ class SpecAdapterTest {
             {
                 "openapi": "3.0.0",
                 "info": {
-                    "version": "1.0.0",
-                    "title": "API"
+                    "title": "API",
+                    "version": "1.0.0"
                 },
                 "servers": [],
                 "paths": {
@@ -100,8 +100,8 @@ class SpecAdapterTest {
             {
                 "openapi": "3.0.0",
                 "info": {
-                    "version": "1.0.0",
-                    "title": "API"
+                    "title": "API",
+                    "version": "1.0.0"
                 },
                 "servers": [],
                 "paths": {
@@ -194,8 +194,8 @@ class SpecAdapterTest {
             {
                 "openapi": "3.0.0",
                 "info": {
-                    "version": "1.0.0",
-                    "title": "API"
+                    "title": "API",
+                    "version": "1.0.0"
                 },
                 "servers": [],
                 "paths": {

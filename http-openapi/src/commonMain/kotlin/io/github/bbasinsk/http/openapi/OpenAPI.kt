@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonElement
 @Serializable
 data class OpenAPI(
     val openapi: String = "3.0.0",
-    val info: Info = Info(),
+    val info: Info,
     val servers: List<Server> = emptyList(),
     val paths: Map<String, Map<String, Operation>> = emptyMap(),
     val components: Components = Components(emptyMap())
@@ -16,8 +16,8 @@ data class OpenAPI(
 
 @Serializable
 data class Info(
+    val title: String,
     val version: String? = null,
-    val title: String? = null,
     val description: String? = null,
     val termsOfService: String? = null,
     val contact: Contact? = null,

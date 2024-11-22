@@ -11,20 +11,20 @@ fun Application.endpoints(
     builder: HttpEndpoints.() -> Unit
 ): Routing {
     val httpEndpoints = HttpEndpoints().apply(builder)
-    val jsonSpecPath = httpEndpoints.openApiBuilder.jsonSpecPath
-
     val configure = httpEndpoints.configure()
     val routing = (pluginOrNull(Routing)?.apply(configure) ?: install(Routing, configure))
 
     return routing.apply {
-        openapiSpecJson(
-            path = jsonSpecPath,
-            apis = httpEndpoints.apis(),
-            info = httpEndpoints.openApiBuilder.info,
-            servers = httpEndpoints.openApiBuilder.servers
-        )
-        stoplight(specPath = jsonSpecPath)
-        swagger(specPath = jsonSpecPath)
-        redoc(specPath = jsonSpecPath)
+        httpEndpoints.openApiBuilder?.let { openApi ->
+            openapiSpecJson(
+                path = openApi.jsonSpecPath,
+                apis = httpEndpoints.apis(),
+                info = openApi.info,
+                servers = openApi.servers
+            )
+            stoplight(specPath = openApi.jsonSpecPath)
+            swagger(specPath = openApi.jsonSpecPath)
+            redoc(specPath = openApi.jsonSpecPath)
+        }
     }
 }
