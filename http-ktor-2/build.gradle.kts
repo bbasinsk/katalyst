@@ -12,7 +12,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(libs.ktor.server.core)
+                api(libs.ktor2.server.core)
 
                 api(project(":http"))
                 api(project(":http-openapi"))
@@ -21,7 +21,7 @@ kotlin {
 
                 implementation(project(":validation"))
 
-                implementation(libs.ktor.server.cio) // For example / main
+                implementation(libs.ktor2.server.cio) // For example / main
             }
         }
         val commonTest by getting {
@@ -37,7 +37,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), "http-ktor", version.toString())
+    coordinates(group.toString(), "http-ktor-2", version.toString())
 
     pom {
         name = "Katalyst"

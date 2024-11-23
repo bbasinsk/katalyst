@@ -24,7 +24,7 @@ include(":schema-json-schema")
 include(":schema-kotlinx-datetime")
 
 include(":http")
-include(":http-ktor")
+include(":http-ktor-2")
 include(":http-openapi")
 
 include(":tuple")
