@@ -1,7 +1,9 @@
 @file:OptIn(ExperimentalUuidApi::class)
 
-package io.github.bbasinsk.schema
+package io.github.bbasinsk.schema.kotlin
 
+import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.transform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 

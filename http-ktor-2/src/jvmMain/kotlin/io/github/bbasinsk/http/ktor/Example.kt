@@ -10,10 +10,10 @@ import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
 import io.github.bbasinsk.http.responseCase
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.instant
-import io.github.bbasinsk.schema.localDate
+import io.github.bbasinsk.schema.java.instant
+import io.github.bbasinsk.schema.java.localDate
 import io.github.bbasinsk.schema.transform
-import io.github.bbasinsk.schema.uuid
+import io.github.bbasinsk.schema.java.uuid
 import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer

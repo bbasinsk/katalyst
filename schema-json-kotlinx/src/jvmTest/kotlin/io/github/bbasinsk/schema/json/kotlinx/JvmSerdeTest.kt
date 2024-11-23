@@ -1,9 +1,9 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.instant
-import io.github.bbasinsk.schema.localDate
-import io.github.bbasinsk.schema.uuid
+import io.github.bbasinsk.schema.java.instant
+import io.github.bbasinsk.schema.java.localDate
+import io.github.bbasinsk.schema.java.uuid
 import io.github.bbasinsk.validation.Validation
 import java.time.Instant
 import java.time.LocalDate

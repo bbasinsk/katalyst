@@ -1,5 +1,7 @@
-package io.github.bbasinsk.schema
+package io.github.bbasinsk.schema.java
 
+import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.transform
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
