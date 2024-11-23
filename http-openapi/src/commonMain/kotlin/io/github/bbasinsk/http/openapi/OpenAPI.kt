@@ -17,7 +17,7 @@ data class OpenAPI(
 @Serializable
 data class Info(
     val title: String,
-    val version: String? = null,
+    val version: String,
     val description: String? = null,
     val termsOfService: String? = null,
     val contact: Contact? = null,
