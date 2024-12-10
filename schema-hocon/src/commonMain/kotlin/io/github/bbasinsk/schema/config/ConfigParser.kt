@@ -19,45 +19,43 @@ import io.github.bbasinsk.validation.orElse
 
 object ConfigParser {
 
-    data class KtorConfig(
+    private data class ConfigWrapper(
+        val path: List<String>,
         val config: Config?,
         val value: ConfigValue?,
     ) {
-        fun atField(at: String): KtorConfig {
-            return KtorConfig(
+        fun atField(at: String): ConfigWrapper =
+            ConfigWrapper(
+                path = path.plus(at),
                 config = runCatching { config?.getConfig(at) }.getOrNull(),
                 value = runCatching { config?.getValue(at) }.getOrNull()
             )
-        }
 
-        fun getString(): String = value!!.unwrapped().toString()
+        fun getString(): Validation<ConfigParseError, String> =
+            Validation.requireNotNull(value) { ConfigParseError.MissingValue(path) }
+                .mapValid { it.unwrapped().toString() }
 
-        fun getList(): List<KtorConfig> =
+        fun getList(): Validation<ConfigParseError, List<ConfigWrapper>> =
             when (value) {
-                is ConfigList -> value.map {
-                    when (it) {
-                        is ConfigObject -> KtorConfig(it.toConfig(), it)
-                        else -> KtorConfig(null, it)
+                is ConfigList -> valid(value.mapIndexed { index, v ->
+                    when (v) {
+                        is ConfigObject -> ConfigWrapper(path.plus("[$index]"), v.toConfig(), v)
+                        else -> ConfigWrapper(path.plus("[$index]"), null, v)
                     }
-                }
+                })
 
-                else -> error("Expected list, got $value")
+                else -> invalid(ConfigParseError.MissingValue(path))
             }
 
-        fun getMap(): Map<String, KtorConfig> {
-            return when(value) {
-                is ConfigObject -> {
-                    value.toMap().mapValues { (k, v) ->
-                        atField(k)
-                    }
-                }
-                else -> error("Expected object, got $value")
+        fun getMap(): Validation<ConfigParseError, Map<String, ConfigWrapper>> =
+            when (value) {
+                is ConfigObject -> valid(value.toMap().mapValues { (k, _) -> atField(k) })
+                else -> invalid(ConfigParseError.MissingValue(path))
             }
-        }
     }
 
     fun <A> Config.parseSchema(schema: Schema<A>): Validation<ConfigParseError, A> =
-        parse(schema, emptyList(), KtorConfig(this, this.root()))
+        parse(schema, ConfigWrapper(emptyList(), this, this.root()))
 
     fun <A> Config.parseSchemaOrThrow(schema: Schema<A>): A =
         parseSchema(schema).getOrElse {
@@ -67,140 +65,118 @@ object ConfigParser {
     @Suppress("UNCHECKED_CAST")
     private fun <A> parse(
         parser: Schema<A>,
-        path: List<String>,
-        ktorConfig: KtorConfig
+        conf: ConfigWrapper
     ): Validation<ConfigParseError, A> =
         when (parser) {
             is Schema.Empty -> valid(null)
 
-            is Record<*> -> parseRecord(parser, path, ktorConfig)
-            is Union<*> -> parseUnion(parser, path, ktorConfig)
-            is Schema.Collection<*> -> parseList(parser, path, ktorConfig)
-            is Schema.Enumeration -> parseEnumeration(parser, path, ktorConfig)
-            is Schema.Lazy -> parse(parser.schema(), path, ktorConfig)
-            is Schema.Optional<*> -> parse(parser.schema, path, ktorConfig).orElse {
+            is Record<*> -> parseRecord(parser, conf)
+            is Union<*> -> parseUnion(parser, conf)
+            is Schema.Collection<*> -> parseList(parser, conf)
+            is Schema.Enumeration -> parseEnumeration(parser, conf)
+            is Schema.Lazy -> parse(parser.schema(), conf)
+            is Schema.Optional<*> -> parse(parser.schema, conf).orElse {
                 valid(null)
             }
 
-            is Schema.OrElse -> parse(parser.preferred, path, ktorConfig).orElse {
-                parse(parser.fallback, path, ktorConfig)
+            is Schema.OrElse -> parse(parser.preferred, conf).orElse {
+                parse(parser.fallback, conf)
             }
 
-            is Schema.Default -> parse(parser.schema, path, ktorConfig).orElse {
+            is Schema.Default -> parse(parser.schema, conf).orElse {
                 valid(parser.default)
             }
 
-            is Schema.Bytes -> Validation.requireNotNull(ktorConfig) { ConfigParseError.MissingValue(path) }
-                .mapValid { it.getString().toByteArray() }
-
-            is Schema.Primitive -> parsePrimitive(parser, path, ktorConfig)
-            is Schema.StringMap<*> -> parseStringMap(parser, path, ktorConfig)
-            is Schema.Transform<*, *> -> parseTransform(parser, path, ktorConfig)
+            is Schema.Bytes -> conf.getString().mapValid { it.toByteArray() }
+            is Schema.Primitive -> parsePrimitive(parser, conf)
+            is Schema.StringMap<*> -> parseStringMap(parser, conf)
+            is Schema.Transform<*, *> -> parseTransform(parser, conf)
         } as Validation<ConfigParseError, A>
 
     private fun <A> parseUnion(
         parser: Union<A>,
-        path: List<String>,
-        config: KtorConfig
+        config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.atField(parser.key).getString()) {
-            ConfigParseError.MissingValue(path.plus(parser.key))
-        }.andThen { name ->
+        config.atField(parser.key).getString().andThen { name ->
             Validation.requireNotNull(parser.unsafeCases().find { it.name == name }) {
-                ConfigParseError.InvalidValue(path.plus(parser.key), name, parser.unsafeCases().map { it.name }.toSet())
+                ConfigParseError.InvalidValue(
+                    config.path.plus(parser.key),
+                    name,
+                    parser.unsafeCases().map { it.name }.toSet()
+                )
             }
         }.andThen { case ->
-            parse(case.schema, path, config)
+            parse(case.schema, config)
         }
 
-    private fun <A> parseRecord(
-        schema: Record<A>,
-        path: List<String>,
-        config: KtorConfig
-    ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config) { ConfigParseError.MissingValue(path) }
-            .andThen { objectConfig ->
-                Validation.sequence(
-                    schema.unsafeFields().map { field ->
-                        parse(
-                            field.schema,
-                            path.plus(field.name),
-                            objectConfig.atField(field.name)
-                        )
-                    }
+    private fun <A> parseRecord(schema: Record<A>, config: ConfigWrapper): Validation<ConfigParseError, A> =
+        Validation.sequence(
+            schema.unsafeFields().map { field ->
+                parse(
+                    field.schema,
+                    config.atField(field.name)
                 )
-            }.mapValid { fields -> schema.unsafeConstruct(fields) }
+            }
+        ).mapValid { fields ->
+            schema.unsafeConstruct(fields)
+        }
 
     private fun <A> parseEnumeration(
         schema: Schema.Enumeration<A>,
-        path: List<String>,
-        config: KtorConfig
+        config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.getString()) { ConfigParseError.MissingValue(path) }
-            .andThen { rawString ->
-                Validation.requireNotNull(schema.values.find { it.toString() == rawString }) {
-                    ConfigParseError.InvalidValue(path, rawString, schema.values.map { it.toString() }.toSet())
-                }
+        config.getString().andThen { rawString ->
+            Validation.requireNotNull(schema.values.find { it.toString() == rawString }) {
+                ConfigParseError.InvalidValue(config.path, rawString, schema.values.map { it.toString() }.toSet())
             }
+        }
 
     private fun <A> parsePrimitive(
         parser: Schema.Primitive<A>,
-        path: List<String>,
-        config: KtorConfig
+        config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.getString()) {
-            ConfigParseError.MissingValue(path)
-        }.andThen { configValue ->
+        config.getString().andThen { configValue ->
             Validation.requireNotNull(parser.primitive.parse(configValue)) {
-                FormatError(value = configValue, format = parser.primitive.toString(), path = path)
+                FormatError(value = configValue, format = parser.primitive.toString(), path = config.path)
             }
         }
 
     private fun <A> parseList(
         schema: Schema.Collection<A>,
-        path: List<String>,
-        ktorConfig: KtorConfig
+        conf: ConfigWrapper
     ): Validation<ConfigParseError, List<A>> =
-        Validation.requireNotNull(ktorConfig.getList()) { ConfigParseError.MissingValue(path) }
-            .andThen { configs ->
-                Validation.sequence(
-                    configs.withIndex().map { (index, config) ->
-                        parse(schema.itemSchema, indexedPath(path, index), config)
-                    }
-                )
-            }
+        conf.getList().andThen { configs ->
+            Validation.sequence(configs.map { parse(schema.itemSchema, it) })
+        }
 
     private fun <V> parseStringMap(
         schema: Schema.StringMap<V>,
-        path: List<String>,
-        ktorConfig: KtorConfig
+        conf: ConfigWrapper
     ): Validation<ConfigParseError, Map<String, V>> =
-        Validation.requireNotNull(ktorConfig.getMap()) {
-            ConfigParseError.MissingValue(path)
-        }.andThen { mapConfig ->
+        conf.getMap().andThen { mapConfig ->
             Validation.sequence(
                 mapConfig.map { (key, value) ->
-                    parse(
-                        schema.valueSchema,
-                        path.plus(key),
-                        value,
-                    ).mapValid { key to it }
+                    parse(schema.valueSchema, value).mapValid { key to it }
                 }
             ).mapValid { it.toMap() }
         }
 
     private fun <A, B> parseTransform(
         parser: Schema.Transform<A, B>,
-        path: List<String>,
-        config: KtorConfig
+        config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
-        parse(parser.schema, path, config).andThen { b ->
+        parse(parser.schema, config).andThen { b ->
             parser.decode(b).fold(
                 onSuccess = { valid(it) },
-                onFailure = { invalid(FormatError(value = b.toString(), format = parser.metadata.name, path = path)) }
+                onFailure = {
+                    invalid(
+                        FormatError(
+                            value = b.toString(),
+                            format = parser.metadata.name,
+                            path = config.path
+                        )
+                    )
+                }
             )
         }
-
-    private fun indexedPath(path: List<String>, idx: Int): List<String> =
-        path.plus("[$idx]")
 }

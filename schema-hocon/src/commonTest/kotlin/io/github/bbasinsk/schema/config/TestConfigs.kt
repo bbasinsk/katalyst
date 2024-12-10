@@ -68,6 +68,7 @@ data class All(
     val oneOfB: OneOf,
     val build1: Build1,
     val build3: Build3,
+    val build2: Build2?,
     val customList: List<Char?>
 )
 
@@ -83,6 +84,7 @@ fun Schema.Companion.all() =
         field(oneOf(), "oneOfB") { oneOfB },
         field(build1(), "build1") { build1 },
         field(build3(), "build3") { build3 },
+        field(build2().optional(), "missing") { build2 },
         field(customList(), "customList") { customList },
         ::All
     )

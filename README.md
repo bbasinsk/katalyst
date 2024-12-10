@@ -14,3 +14,4 @@
  - [ ] Kafka Serde
  - [ ] CSV Reader/Writer
  - [ ] Kotest integration
+ - [ ] Better Hocon parsing errors
