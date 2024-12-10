@@ -18,6 +18,7 @@ rootProject.name = "Katalyst"
 
 include(":schema")
 include(":schema-avro")
+include(":schema-hocon")
 include(":schema-json")
 include(":schema-json-kotlinx")
 include(":schema-json-schema")

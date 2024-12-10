@@ -7,6 +7,7 @@ vanniktech-maven-publish = "0.30.0"
 
 [libraries]
 avro = { module = "org.apache.avro:avro", version = "1.11.1" }
+hocon = { module = "com.typesafe:config", version = "1.4.3" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-multiplatform = { module = "org.jetbrains.kotlin.multiplatform:org.jetbrains.kotlin.multiplatform.gradle.plugin", version.ref = "kotlin"}
 kotlin-serialization = { module = "org.jetbrains.kotlin.plugin.serialization:org.jetbrains.kotlin.plugin.serialization.gradle.plugin", version.ref = "kotlin"}

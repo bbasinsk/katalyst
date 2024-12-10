@@ -1,9 +1,13 @@
-package io.github.bbasinsk.http.ktor.config
+package io.github.bbasinsk.schema.config
 
-import io.github.bbasinsk.http.ktor.config.ConfigParseError.FormatError
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigList
+import com.typesafe.config.ConfigObject
+import com.typesafe.config.ConfigValue
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Record
 import io.github.bbasinsk.schema.Schema.Union
+import io.github.bbasinsk.schema.config.ConfigParseError.FormatError
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.Validation.Companion.invalid
 import io.github.bbasinsk.validation.Validation.Companion.valid
@@ -11,32 +15,53 @@ import io.github.bbasinsk.validation.andThen
 import io.github.bbasinsk.validation.getOrElse
 import io.github.bbasinsk.validation.mapValid
 import io.github.bbasinsk.validation.orElse
-import io.ktor.server.config.ApplicationConfig
-import io.ktor.server.config.ApplicationConfigValue
-import io.ktor.server.config.tryGetString
-import io.ktor.utils.io.core.toByteArray
-import kotlin.collections.find
-import kotlin.collections.map
-import kotlin.collections.plus
-import kotlin.collections.toSet
-import kotlin.let
-import kotlin.toString
 
 
 object ConfigParser {
 
-    private data class KtorConfig(
-        val asObject: ApplicationConfig?,
-        val asList: List<KtorConfig>?,
-        val asValue: ApplicationConfigValue?
-    )
+    data class KtorConfig(
+        val config: Config?,
+        val value: ConfigValue?,
+    ) {
+        fun atField(at: String): KtorConfig {
+            return KtorConfig(
+                config = runCatching { config?.getConfig(at) }.getOrNull(),
+                value = runCatching { config?.getValue(at) }.getOrNull()
+            )
+        }
 
-    fun <A> ApplicationConfig.parseSchema(schema: Schema<A>): Validation<ConfigParseError, A> =
-        parse(schema, emptyList(), KtorConfig(this, null, null))
+        fun getString(): String = value!!.unwrapped().toString()
 
-    fun <A> ApplicationConfig.parseSchemaOrThrow(schema: Schema<A>): A =
+        fun getList(): List<KtorConfig> =
+            when (value) {
+                is ConfigList -> value.map {
+                    when (it) {
+                        is ConfigObject -> KtorConfig(it.toConfig(), it)
+                        else -> KtorConfig(null, it)
+                    }
+                }
+
+                else -> error("Expected list, got $value")
+            }
+
+        fun getMap(): Map<String, KtorConfig> {
+            return when(value) {
+                is ConfigObject -> {
+                    value.toMap().mapValues { (k, v) ->
+                        atField(k)
+                    }
+                }
+                else -> error("Expected object, got $value")
+            }
+        }
+    }
+
+    fun <A> Config.parseSchema(schema: Schema<A>): Validation<ConfigParseError, A> =
+        parse(schema, emptyList(), KtorConfig(this, this.root()))
+
+    fun <A> Config.parseSchemaOrThrow(schema: Schema<A>): A =
         parseSchema(schema).getOrElse {
-            error("Failed to parse config: $it")
+            error("Failed to parse config: ${it.first()}")
         }
 
     @Suppress("UNCHECKED_CAST")
@@ -65,7 +90,7 @@ object ConfigParser {
                 valid(parser.default)
             }
 
-            is Schema.Bytes -> Validation.requireNotNull(ktorConfig.asValue) { ConfigParseError.MissingValue(path) }
+            is Schema.Bytes -> Validation.requireNotNull(ktorConfig) { ConfigParseError.MissingValue(path) }
                 .mapValid { it.getString().toByteArray() }
 
             is Schema.Primitive -> parsePrimitive(parser, path, ktorConfig)
@@ -78,7 +103,7 @@ object ConfigParser {
         path: List<String>,
         config: KtorConfig
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.asObject?.tryGetString(parser.key)) {
+        Validation.requireNotNull(config.atField(parser.key).getString()) {
             ConfigParseError.MissingValue(path.plus(parser.key))
         }.andThen { name ->
             Validation.requireNotNull(parser.unsafeCases().find { it.name == name }) {
@@ -93,18 +118,14 @@ object ConfigParser {
         path: List<String>,
         config: KtorConfig
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.asObject) { ConfigParseError.MissingValue(path) }
+        Validation.requireNotNull(config) { ConfigParseError.MissingValue(path) }
             .andThen { objectConfig ->
                 Validation.sequence(
                     schema.unsafeFields().map { field ->
                         parse(
                             field.schema,
                             path.plus(field.name),
-                            KtorConfig(
-                                asObject = objectConfig.configOrNull(field.name),
-                                asList = objectConfig.configListOrNull(field.name),
-                                asValue = objectConfig.propertyOrNull(field.name)
-                            )
+                            objectConfig.atField(field.name)
                         )
                     }
                 )
@@ -115,28 +136,23 @@ object ConfigParser {
         path: List<String>,
         config: KtorConfig
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.asValue) { ConfigParseError.MissingValue(path) }.andThen {
-            it.getString().let { rawString ->
+        Validation.requireNotNull(config.getString()) { ConfigParseError.MissingValue(path) }
+            .andThen { rawString ->
                 Validation.requireNotNull(schema.values.find { it.toString() == rawString }) {
                     ConfigParseError.InvalidValue(path, rawString, schema.values.map { it.toString() }.toSet())
                 }
             }
-        }
 
     private fun <A> parsePrimitive(
         parser: Schema.Primitive<A>,
         path: List<String>,
         config: KtorConfig
     ): Validation<ConfigParseError, A> =
-        Validation.requireNotNull(config.asValue) {
+        Validation.requireNotNull(config.getString()) {
             ConfigParseError.MissingValue(path)
         }.andThen { configValue ->
-            Validation.requireNotNull(parser.primitive.parse(configValue.getString())) {
-                FormatError(
-                    value = configValue.getString(),
-                    format = parser.primitive.toString(),
-                    path = path
-                )
+            Validation.requireNotNull(parser.primitive.parse(configValue)) {
+                FormatError(value = configValue, format = parser.primitive.toString(), path = path)
             }
         }
 
@@ -145,7 +161,7 @@ object ConfigParser {
         path: List<String>,
         ktorConfig: KtorConfig
     ): Validation<ConfigParseError, List<A>> =
-        Validation.requireNotNull(ktorConfig.asList) { ConfigParseError.MissingValue(path) }
+        Validation.requireNotNull(ktorConfig.getList()) { ConfigParseError.MissingValue(path) }
             .andThen { configs ->
                 Validation.sequence(
                     configs.withIndex().map { (index, config) ->
@@ -159,19 +175,15 @@ object ConfigParser {
         path: List<String>,
         ktorConfig: KtorConfig
     ): Validation<ConfigParseError, Map<String, V>> =
-        Validation.requireNotNull(ktorConfig.asObject) {
+        Validation.requireNotNull(ktorConfig.getMap()) {
             ConfigParseError.MissingValue(path)
         }.andThen { mapConfig ->
             Validation.sequence(
-                mapConfig.toMap().keys.map { key ->
+                mapConfig.map { (key, value) ->
                     parse(
                         schema.valueSchema,
                         path.plus(key),
-                        KtorConfig(
-                            asObject = mapConfig.configOrNull(key),
-                            asList = mapConfig.configListOrNull(key),
-                            asValue = mapConfig.propertyOrNull(key)
-                        )
+                        value,
                     ).mapValid { key to it }
                 }
             ).mapValid { it.toMap() }
@@ -185,36 +197,10 @@ object ConfigParser {
         parse(parser.schema, path, config).andThen { b ->
             parser.decode(b).fold(
                 onSuccess = { valid(it) },
-                onFailure = {
-                    invalid(
-                        FormatError(
-                            value = b.toString(),
-                            format = parser.metadata.name,
-                            path = path
-                        )
-                    )
-                }
+                onFailure = { invalid(FormatError(value = b.toString(), format = parser.metadata.name, path = path)) }
             )
         }
 
     private fun indexedPath(path: List<String>, idx: Int): List<String> =
         path.plus("[$idx]")
-
-    private fun ApplicationConfig.configOrNull(path: String): ApplicationConfig? =
-        try {
-            this.config(path)
-        } catch (_: Exception) {
-            null
-        }
-
-    private fun ApplicationConfig.configListOrNull(path: String): List<KtorConfig>? =
-        runCatching { configList(path).map { KtorConfig(it, null, null) } }
-            .recoverCatching { property(path).getList().map { KtorConfig(null, null, it.asApplicationConfigValue()) } }
-            .getOrNull()
-
-    private fun String.asApplicationConfigValue(): ApplicationConfigValue =
-        object : ApplicationConfigValue {
-            override fun getString(): String = this@asApplicationConfigValue
-            override fun getList(): List<String> = error("Not a list")
-        }
 }

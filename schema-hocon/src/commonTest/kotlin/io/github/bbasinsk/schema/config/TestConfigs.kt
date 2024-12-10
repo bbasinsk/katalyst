@@ -1,11 +1,7 @@
-package io.github.bbasinsk.http.ktor.config
+package io.github.bbasinsk.schema.config
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.transform
-import kotlin.collections.firstOrNull
-import kotlin.collections.map
-import kotlin.text.toList
-import kotlin.toString
 
 sealed interface OneOf
 data class OneOfA(val a: String) : OneOf
@@ -29,11 +25,11 @@ fun Schema.Companion.oneOf(): Schema<OneOf> =
         case(oneOfB())
     )
 
-enum class Enum {
+enum class MyEnum {
     A, B
 }
 
-fun Schema.Companion.myEnum(): Schema<Enum> = enumeration()
+fun Schema.Companion.myEnum(): Schema<MyEnum> = enumeration()
 
 data class Build1(val a: String)
 data class Build2(val a: String, val b: String)
@@ -68,11 +64,11 @@ data class All(
     val intList: List<Int>,
     val objList: List<Build2>,
     val stringMap: Map<String, Int>,
-    val oneOfA: OneOf,
+    val enumA: MyEnum,
     val oneOfB: OneOf,
     val build1: Build1,
-    val build2: Build2,
-    val build3: Build3
+    val build3: Build3,
+    val customList: List<Char?>
 )
 
 fun Schema.Companion.all() =
@@ -83,11 +79,11 @@ fun Schema.Companion.all() =
         field(list(int()), "intList") { intList },
         field(list(build2()), "objList") { objList },
         field(stringMap(int()), "stringMap") { stringMap },
-        field(oneOf(), "oneOfA") { oneOfA },
+        field(myEnum(), "enumA") { enumA },
         field(oneOf(), "oneOfB") { oneOfB },
         field(build1(), "build1") { build1 },
-        field(build2(), "build2") { build2 },
         field(build3(), "build3") { build3 },
+        field(customList(), "customList") { customList },
         ::All
     )
 
