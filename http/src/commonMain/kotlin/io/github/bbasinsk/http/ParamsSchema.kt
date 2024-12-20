@@ -55,22 +55,18 @@ fun <A> ParamsSchema<A>.parseCatching(
         parse(path.toMutableList(), headers, queryParams)
     }
 
-fun <A> ParamSchema<A>.parse(
-    rawPath: MutableList<String>,
-    getValue: (String) -> String?,
-): A =
+fun <A> ParamSchema<A>.parse(getValue: (String) -> String?): A =
     when (this) {
         is ParamSchema.Single -> {
             val str = getValue(name)
             if (str == null) {
-                error("Missing header $name")
+                error("Missing param $name")
             } else {
                 schema.decodeString(str).getOrThrow()
             }
         }
 
-        is ParamSchema.WithMetadata ->
-            schema.parse(rawPath, getValue)
+        is ParamSchema.WithMetadata -> schema.parse(getValue)
     }
 
 // TODO: Validation<A, B>?
@@ -80,8 +76,8 @@ fun <A> ParamsSchema<A>.parse(
     rawQueryParams: Map<String, String>,
 ): A {
     return when (this) {
-        is ParamsSchema.HeaderSchema -> this.param.parse(rawPath, rawHeaders::get)
-        is ParamsSchema.QuerySchema -> this.param.parse(rawPath, rawQueryParams::get)
+        is ParamsSchema.HeaderSchema -> this.param.parse(rawHeaders::get)
+        is ParamsSchema.QuerySchema -> this.param.parse(rawQueryParams::get)
 
         is ParamsSchema.Combine<*, *> -> {
             val left = this.left.parse(rawPath, rawHeaders, rawQueryParams)

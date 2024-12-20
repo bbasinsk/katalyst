@@ -3,13 +3,18 @@ package io.github.bbasinsk.http
 import io.github.bbasinsk.schema.Schema
 
 
-sealed interface RequestSchema<A> {
-    data class Single<A>(val schema: Schema<A>) : RequestSchema<A>
-    data class WithMetadata<A>(val schema: RequestSchema<A>, val metadata: Metadata<A>) : RequestSchema<A>
+sealed interface BodySchema<A> {
+    data class Single<A>(val schema: Schema<A>, val contentType: ContentType) : BodySchema<A>
+    data class WithMetadata<A>(val schema: BodySchema<A>, val metadata: Metadata<A>) : BodySchema<A>
 
     fun schema(): Schema<A> = when (this) {
         is Single -> schema
         is WithMetadata -> schema.schema()
+    }
+
+    fun contentType(): ContentType = when (this) {
+        is Single -> contentType
+        is WithMetadata -> schema.contentType()
     }
 
     fun deprecatedReason(): String? = when (this) {
@@ -39,18 +44,23 @@ sealed interface RequestSchema<A> {
         }
     }
 
-    fun example(description: String, value: A): RequestSchema<A> =
+    fun example(description: String, value: A): BodySchema<A> =
         WithMetadata(this, Metadata.Example(description, value))
 
-    fun deprecated(message: String): RequestSchema<A> =
+    fun deprecated(message: String): BodySchema<A> =
         WithMetadata(this, Metadata.Deprecated(message))
 
-    fun description(description: String): RequestSchema<A> =
+    fun description(description: String): BodySchema<A> =
         WithMetadata(this, Metadata.Description(description))
 
     companion object {
-        fun empty(): RequestSchema<Nothing?> = Single(Schema.empty())
-        fun <A> schema(schema: Schema.Companion.() -> Schema<A>): RequestSchema<A> =
-            Single(Schema.Companion.schema())
+        fun empty(): BodySchema<Nothing?> = Single(Schema.empty(), ContentType.Any)
+
+        // TODO: move out of http module into http-json, http-avro, etc.
+        fun <A> json(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =
+            Single(Schema.Companion.schema(), ContentType.Json)
+
+        fun <A> avro(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =
+            Single(Schema.Companion.schema(), ContentType.Avro)
     }
 }

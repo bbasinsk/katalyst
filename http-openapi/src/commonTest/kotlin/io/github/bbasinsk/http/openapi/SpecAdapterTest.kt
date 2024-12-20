@@ -1,7 +1,10 @@
 package io.github.bbasinsk.http.openapi
 
+import io.github.bbasinsk.http.BodySchema.Companion.json
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.Schema.Companion.int
+import io.github.bbasinsk.schema.Schema.Companion.list
 import kotlinx.serialization.encodeToString
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -13,8 +16,8 @@ class SpecAdapterTest {
     @Test
     fun `should convert to OpenApiSpec`() {
         val http = Http.get { Root / "test" }
-            .input { schema { string() } }
-            .output { status(Ok) { string() } }
+            .input { json { string() } }
+            .output { status(Ok) { json { string() } } }
 
         val result = listOf(http).toOpenApiSpec(info)
 
@@ -82,8 +85,8 @@ class SpecAdapterTest {
             )
         }
         val http = Http.get { Root / "test" }
-            .input { schema { personSchema } }
-            .output { status(Ok) { personSchema } }
+            .input { json { personSchema } }
+            .output { status(Ok) { json { personSchema } } }
 
         val result = listOf(http).toOpenApiSpec(info)
 
@@ -169,8 +172,8 @@ class SpecAdapterTest {
         }
 
         val http = Http.get { Root / "test" }
-            .input { schema { string() } }
-            .output { status(Ok) { list(personSchema) } }
+            .input { json { string() } }
+            .output { status(Ok) { json { list(personSchema) } } }
 
         val result = listOf(http).toOpenApiSpec(info)
 
@@ -250,16 +253,18 @@ class SpecAdapterTest {
     fun `should show examples`() {
         val http = Http.get { Root / "examples-test" }
             .input {
-                schema { Person.schema }
+                json { Person.schema }
                     .example("example A", Person(123, "John"))
                     .example("example B", Person(456, "Jane"))
                     .deprecated("some reason")
                     .description("a person")
             }
             .output {
-                status(Ok) { int() }
-                    .example("output 1", 1)
-                    .example("output 2", 2)
+                status(Ok) {
+                    json { int() }
+                        .example("output 1", 1)
+                        .example("output 2", 2)
+                }
             }
 
         val result = listOf(http).toOpenApiSpec(info)

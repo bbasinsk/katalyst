@@ -21,7 +21,7 @@ sealed interface Validation<out E, out A> {
         /**
          * Catch exceptions and convert them to Invalid
          */
-        fun <A> runCatching(f: () -> A): Validation<Throwable, A> =
+        inline fun <A> runCatching(f: () -> A): Validation<Throwable, A> =
             try {
                 valid(f())
             } catch (e: Throwable) {

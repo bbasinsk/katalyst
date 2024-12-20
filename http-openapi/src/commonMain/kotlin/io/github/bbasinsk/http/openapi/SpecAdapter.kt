@@ -3,10 +3,9 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathSchema
-import io.github.bbasinsk.http.ResponseCase
 import io.github.bbasinsk.http.ResponseStatus
 import io.github.bbasinsk.http.ParamSchema
-import io.github.bbasinsk.http.RequestSchema
+import io.github.bbasinsk.http.BodySchema
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.isRequired
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -22,8 +21,8 @@ fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emp
     )
 
 private fun Http<*, *, *, *>.toComponents(): List<Pair<String, SchemaObject>> {
-    val schemas = listOf(input.schema()) + (output.schemasByStatus() + error.schemasByStatus()).values
-    return schemas.mapNotNull { schema -> schema.ref() }
+    val schemas = listOf(input) + (output.schemaByStatus() + error.schemaByStatus()).values
+    return schemas.mapNotNull { schema -> schema.schema().ref() }
 }
 
 private fun List<Http<*, *, *, *>>.toOpenApiPaths(): Map<String, Map<String, Operation>> =
@@ -52,21 +51,19 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.op
         operationId = null,
         parameters = params.pathParams(),
         requestBody = requestBody(this.input),
-        responses = (output.flatten() + error.flatten()).map { (status, case) ->
+        responses = (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
             status.code.toString() to case.toResponseObject(status)
         }.toMap()
     )
 
-fun <A> ResponseCase<A>.toResponseObject(status: ResponseStatus): ResponseObject =
+fun <A> BodySchema<A>.toResponseObject(status: ResponseStatus): ResponseObject =
     ResponseObject(
         description = status.description,
-        content = schema().asJsonContent(
+        content = schema().toContentTypeObject(
+            contentType = contentType().mimeType,
             examples = examples().mapValues { (key, value) ->
-                ExampleObject(
-                    summary = key,
-                    value = schema().encodeToJsonElement(value)
-                )
-            }
+                ExampleObject(summary = key, value = schema().encodeToJsonElement(value))
+            }.ifEmpty { null }
         )
     )
 
@@ -88,23 +85,21 @@ private fun <A> ParamSchema<A>.toParameter(`in`: String): Parameter =
         required = this.schema().isRequired(),
         deprecated = this.deprecatedReason() != null,
         schema = this.schema().toSchemaObject(),
-        examples = this.examples().mapValues { (key, value) ->
-            ExampleObject(
-                summary = key,
-                value = this.schema().encodeToJsonElement(value)
-            )
+        examples = examples().mapValues { (key, value) ->
+            ExampleObject(summary = key, value = this.schema().encodeToJsonElement(value))
         }.ifEmpty { null }
     )
 
-private fun <A> requestBody(request: RequestSchema<A>): RequestBody? =
+private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
     if (request.schema() is Schema.Empty) {
         null
     } else {
         RequestBody(
-            content = request.schema().asJsonContent(
+            content = request.schema().toContentTypeObject(
+                contentType = request.contentType().mimeType,
                 examples = request.examples().mapValues { (key, value) ->
                     ExampleObject(summary = key, value = request.schema().encodeToJsonElement(value))
-                }
+                }.ifEmpty { null }
             ),
             required = request.schema().isRequired(),
             description = request.description()
@@ -112,41 +107,44 @@ private fun <A> requestBody(request: RequestSchema<A>): RequestBody? =
     }
 
 // Maps a content type to a schema
-private fun <A> Schema<A>.asJsonContent(examples: Map<String, ExampleObject>): Map<String, MediaTypeObject> {
+private fun <A> Schema<A>.toContentTypeObject(
+    contentType: String,
+    examples: Map<String, ExampleObject>?
+): Map<String, MediaTypeObject> {
     return when (this) {
         is Schema.Bytes -> TODO()
         is Schema.Collection<*> -> mapOf(
-            "application/json" to MediaTypeObject(
+            contentType to MediaTypeObject(
                 schema = toSchemaObject(ref = true),
-                examples = examples.ifEmpty { null }
+                examples = examples
             )
         )
 
-        is Schema.Default -> schema.asJsonContent(examples)
+        is Schema.Default -> schema.toContentTypeObject(contentType, examples)
         is Schema.Empty -> mapOf()
-        is Schema.Lazy -> schema().asJsonContent(examples)
+        is Schema.Lazy -> schema().toContentTypeObject(contentType, examples)
         is Schema.Optional<*> -> TODO()
         is Schema.OrElse<*> -> TODO()
         is Schema.Primitive -> mapOf(
             "text/plain" to MediaTypeObject(
                 schema = this.toSchemaObject(),
-                examples = examples.ifEmpty { null }
+                examples = examples
             ),
         )
 
         is Schema.StringMap<*> -> TODO()
-        is Schema.Transform<A, *> -> schema.asJsonContent(examples)
+        is Schema.Transform<A, *> -> schema.toContentTypeObject(contentType, examples)
         is Schema.Record<*> -> mapOf(
-            "application/json" to MediaTypeObject(
+            contentType to MediaTypeObject(
                 schema = toSchemaObject(ref = true),
-                examples = examples.ifEmpty { null }
+                examples = examples
             )
         )
 
         is Schema.Union<*> -> mapOf(
-            "application/json" to MediaTypeObject(
+            contentType to MediaTypeObject(
                 schema = toSchemaObject(ref = true),
-                examples = examples.ifEmpty { null }
+                examples = examples
             )
         )
     }

@@ -1,4 +1,4 @@
-package io.github.bbasinsk.http.ktor
+package io.github.bbasinsk.http.ktor2
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
@@ -7,7 +7,7 @@ import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathSchema
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
-import io.github.bbasinsk.http.ResponsesSchema
+import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.InvalidJson
@@ -111,8 +111,8 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         }
     }
 
-private suspend fun <A> ApplicationCall.respondSchema(schema: ResponsesSchema<A>, value: A) =
-    respondSchema(HttpStatusCode.fromValue(schema.getStatus(value).code), schema.getSchema(value), value)
+private suspend fun <A> ApplicationCall.respondSchema(schema: ResponseSchema<A>, value: A) =
+    respondSchema(HttpStatusCode.fromValue(schema.getStatus(value).code), schema.getSchema(value).schema(), value)
 
 private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
     when (this) {

@@ -1,31 +1,33 @@
-package io.github.bbasinsk.http.ktor
+@file:OptIn(ExperimentalUuidApi::class)
+
+package io.github.bbasinsk.http.ktor3
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
-import io.github.bbasinsk.http.responseCase
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.java.instant
-import io.github.bbasinsk.schema.java.localDate
-import io.github.bbasinsk.schema.java.uuid
+import io.github.bbasinsk.schema.kotlin.uuid
 import io.github.bbasinsk.schema.optional
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.tuple.tupleValues
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
-import java.time.Instant
-import java.time.LocalDate
-import java.util.UUID
+import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import kotlin.random.Random
+import kotlin.random.nextInt
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 
-data class PersonId(val value: UUID)
+data class PersonId(val value: Uuid)
 
 data class Person(
     val id: PersonId,
     val name: String,
-    val birthDate: LocalDate,
-    val createdAt: Instant
+    val age: Int,
 )
 
 fun Schema.Companion.personId(): Schema<PersonId> =
@@ -35,8 +37,7 @@ fun Schema.Companion.person(): Schema<Person> =
     record(
         field(personId(), "id") { id },
         field(string(), "name") { name },
-        field(localDate(), "birthDate") { birthDate },
-        field(instant(), "createdAt") { createdAt },
+        field(int(), "age") { age },
         ::Person
     )
 
@@ -44,9 +45,7 @@ val updatePerson =
     Http.put { Root / "person" }
         .description("Update a person")
         .deprecated("some reason")
-        .query {
-            schema("id") { int().optional() }
-        }
+        .query { schema("id") { uuid().optional() } }
         .header {
             schema("name") { string() }
                 .example("asdf", "fds")
@@ -55,29 +54,45 @@ val updatePerson =
                 .description("blah blah")
         }
         .header {
-            schema("other") { int() }
+            schema("age") { int() }
                 .example("blah", 123)
                 .deprecated("some reason")
                 .description("blah blah")
         }
-        .input { schema { person() } }
-        .output { status(Ok) { person() } }
-        .error { status(NotFound) { int() } }
+        .input { json { person() } }
+        .output { status(Ok) { json { person() } } }
+        .error { status(NotFound) { json { int() } } }
 
 val findPersonById =
     Http.get { Root / "person" / param("personId") { string() } }
-        .output { status(Ok) { person() } }
-        .error { status(NotFound) { int() } }
+        .output { status(Ok) { json { person() } } }
+        .error { status(NotFound) { json { int() } } }
 
 val multipleErrors =
     Http.get { Root / "error" / param("name") { string() } }
-        .output { status(Ok.description("asdf")) { person() } }
+        .output { status(Ok.description("asdf")) { json { person() } } }
         .error {
             oneOf(
-                Ok.description("Custom not found") to responseCase(Schema.notFoundSchema()),
-                BadRequest to responseCase(Schema.badRequestSchema()),
+                status(NotFound.description("Custom not found")) { json { notFoundSchema() } },
+                status(BadRequest) { json { badRequestSchema() } },
             )
         }
+
+val avroPersonEcho =
+    Http.post { Root / "person" / "avro" / "echo" }
+        .input { avro { person() } }
+        .output {
+            status(Ok) {
+                avro { person() }.example(
+                    "person a",
+                    Person(PersonId(Uuid.parse("00000000-0000-0000-0000-000000000000")), "John Doe", 100)
+                )
+            }
+        }
+
+val avroPersonOut =
+    Http.get { Root / "person" / "avro" / "out" }
+        .output { status(Ok) { avro { person() } } }
 
 sealed interface MultipleErrors {
     data class NotFound(val id: Int) : MultipleErrors
@@ -104,8 +119,8 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
 
     handle(
         Http.get { Root / param("personId") { string() } / "blah" / param("thing") { int() } }
-            .output { status(Ok) { person() } }
-            .error { status(NotFound) { int() } } // examples = mapOf("test1" to 123))
+            .output { status(Ok) { json { person() } } }
+            .error { status(NotFound) { json { int() }.example("test1", 123) } }
     ) { request ->
         val (personId, thing) = tupleValues(request.params)
         println("personId: $personId, thing: $thing")
@@ -118,34 +133,43 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
         success(domainStuff().copy(name = request.input.name))
     }
 
-    handle(
-        Http.get { Root / "v1" / "estimated-delivery-date" / "package-id" / param("packageId") { string() } }
-            .output { status(Ok) { person() } }
-            .error { status(NotFound) { int() } }
-    ) { request ->
-        val (name) = tupleValues(request.params)
-        success(domainStuff().copy(name = name))
-    }
-
     handle(multipleErrors) { req ->
         val (name) = tupleValues(req.params)
         when (name) {
-            "not-found" -> kotlin.error(MultipleErrors.NotFound(Random.nextInt()))
-            "bad-request" -> kotlin.error(MultipleErrors.BadRequest("Bad request"))
+            "not-found" -> error(MultipleErrors.NotFound(Random.nextInt()))
+            "bad-request" -> error(MultipleErrors.BadRequest("Bad request"))
             else -> success(domainStuff())
         }
     }
+
+    handle(avroPersonEcho) { request ->
+        println(request.input)
+        success(request.input)
+    }
+
+    handle(avroPersonOut) {
+        val person = Person(
+            id = PersonId(Uuid.parse("00000000-0000-0000-0000-000000000000")),
+            name = "John Doe",
+            age = 100
+        )
+        success(person)
+    }
 }
+
 
 fun main() {
     embeddedServer(CIO, port = 33333) {
+        install(CallLogging)
+        install(ContentNegotiation) {
+            json()
+        }
 
         val domainService = {
             Person(
-                id = PersonId(UUID.randomUUID()),
+                id = PersonId(Uuid.random()),
                 name = "John Doe",
-                birthDate = LocalDate.now(),
-                createdAt = Instant.now()
+                age = Random.nextInt(0..100)
             )
         }
 

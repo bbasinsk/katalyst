@@ -1,10 +1,11 @@
-package io.github.bbasinsk.http.ktor
+package io.github.bbasinsk.http.ktor3
 
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.routing.Routing
-import io.ktor.util.KtorDsl
+import io.ktor.server.routing.RoutingRoot
+import io.ktor.utils.io.KtorDsl
 
 @KtorDsl
 fun Application.endpoints(
@@ -12,7 +13,8 @@ fun Application.endpoints(
 ): Routing {
     val httpEndpoints = HttpEndpoints().apply(builder)
     val configure = httpEndpoints.configure()
-    val routing = (pluginOrNull(Routing)?.apply(configure) ?: install(Routing, configure))
+    @Suppress("UNCHECKED_CAST")
+    val routing = pluginOrNull(RoutingRoot)?.apply(configure) ?: install(RoutingRoot, configure as Routing.() -> Unit)
 
     return routing.apply {
         httpEndpoints.openApiBuilder?.let { openApi ->

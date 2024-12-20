@@ -8,9 +8,9 @@ data class HttpMetadata(
 data class Http<Params, Input, Error, Output>(
     val method: HttpMethod,
     val params: ParamsSchema<Params>,
-    val input: RequestSchema<Input>,
-    val error: ResponsesSchema<Error>,
-    val output: ResponsesSchema<Output>,
+    val input: BodySchema<Input>,
+    val error: ResponseSchema<Error>,
+    val output: ResponseSchema<Output>,
     val metadata: HttpMetadata
 ) {
 
@@ -40,75 +40,75 @@ data class Http<Params, Input, Error, Output>(
             metadata = metadata
         )
 
-    fun <Input2> input(input: RequestSchema.Companion.() -> RequestSchema<Input2>): Http<Params, Input2, Error, Output> =
+    fun <Input2> input(input: BodySchema.Companion.() -> BodySchema<Input2>): Http<Params, Input2, Error, Output> =
         Http(
             method = method,
             params = params,
-            input = RequestSchema.input(),
+            input = BodySchema.input(),
             error = error,
             output = output,
             metadata = metadata
         )
 
-    fun <Output2> output(output: ResponsesSchema.Companion.() -> ResponsesSchema<Output2>): Http<Params, Input, Error, Output2> =
+    fun <Output2> output(output: ResponseSchema.Companion.() -> ResponseSchema<Output2>): Http<Params, Input, Error, Output2> =
         Http(
             method = method,
             params = params,
             input = input,
             error = error,
-            output = ResponsesSchema.output(),
+            output = ResponseSchema.output(),
             metadata = metadata
         )
 
-    fun <Error2> error(error: ResponsesSchema.Companion.() -> ResponsesSchema<Error2>): Http<Params, Input, Error2, Output> =
+    fun <Error2> error(error: ResponseSchema.Companion.() -> ResponseSchema<Error2>): Http<Params, Input, Error2, Output> =
         Http(
             method = method,
             params = params,
             input = input,
-            error = ResponsesSchema.error(),
+            error = ResponseSchema.error(),
             output = output,
             metadata = metadata
         )
 
     companion object {
 
-        fun <Path> get(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing?> =
+        fun <Path> get(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing> =
             Http(
                 method = HttpMethod.GET,
                 params = PathSchema.path(),
-                input = RequestSchema.empty(),
-                error = ResponsesSchema.nothing(),
-                output = ResponsesSchema.empty(),
+                input = BodySchema.empty(),
+                error = ResponseSchema.nothing(),
+                output = ResponseSchema.nothing(),
                 metadata = HttpMetadata()
             )
 
-        fun <Path> post(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing?> =
+        fun <Path> post(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing> =
             Http(
                 method = HttpMethod.POST,
                 params = PathSchema.path(),
-                input = RequestSchema.empty(),
-                error = ResponsesSchema.nothing(),
-                output = ResponsesSchema.empty(),
+                input = BodySchema.empty(),
+                error = ResponseSchema.nothing(),
+                output = ResponseSchema.nothing(),
                 metadata = HttpMetadata()
             )
 
-        fun <Path> put(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing?> =
+        fun <Path> put(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing> =
             Http(
                 method = HttpMethod.PUT,
                 params = PathSchema.path(),
-                input = RequestSchema.empty(),
-                error = ResponsesSchema.nothing(),
-                output = ResponsesSchema.empty(),
+                input = BodySchema.empty(),
+                error = ResponseSchema.nothing(),
+                output = ResponseSchema.nothing(),
                 metadata = HttpMetadata()
             )
 
-        fun <Path> delete(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing?> =
+        fun <Path> delete(path: PathSchema.Companion.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing> =
             Http(
                 method = HttpMethod.DELETE,
                 params = PathSchema.path(),
-                input = RequestSchema.empty(),
-                error = ResponsesSchema.nothing(),
-                output = ResponsesSchema.empty(),
+                input = BodySchema.empty(),
+                error = ResponseSchema.nothing(),
+                output = ResponseSchema.nothing(),
                 metadata = HttpMetadata()
             )
     }

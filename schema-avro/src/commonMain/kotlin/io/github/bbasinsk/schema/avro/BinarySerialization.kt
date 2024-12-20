@@ -44,10 +44,6 @@ object BinarySerialization {
                 is Schema.Primitive.Int -> value
                 is Schema.Primitive.Long -> value
                 is Schema.Primitive.String -> value
-//                is Schema.Primitive.Default -> schema.encode(value)
-//                is Schema.Primitive.Optional<*> -> if (value == null) null else (schema as Schema<A>).encode(value)
-//                is Schema.Primitive.OrElse -> preferred.encode(value)
-//                is Schema.Primitive.Transform<A, *> -> (schema as Schema<Any?>).encode(encode(value))
             }
 
             is Schema.Lazy -> this.schema().encode(value)
