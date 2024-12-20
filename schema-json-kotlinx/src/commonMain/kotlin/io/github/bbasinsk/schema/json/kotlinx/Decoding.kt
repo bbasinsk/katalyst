@@ -1,10 +1,11 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.StandardPrimitive
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.Segment
 import io.github.bbasinsk.validation.Validation
+import io.github.bbasinsk.validation.Validation.Companion.invalid
+import io.github.bbasinsk.validation.Validation.Companion.valid
 import io.github.bbasinsk.validation.Validation.Invalid
 import io.github.bbasinsk.validation.andThen
 import io.github.bbasinsk.validation.mapInvalid
@@ -13,6 +14,7 @@ import io.github.bbasinsk.validation.orElse
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
@@ -38,7 +40,6 @@ private fun <A> Validation.Companion.decode(
         is Schema.Bytes -> decodeBytes(json, path) as Validation<InvalidJson, A>
         is Schema.Lazy<A> -> decode(schema.schema(), json, path)
         is Schema.Primitive -> decodePrimitive(schema, json, path)
-        is Schema.Enumeration -> decodeEnumeration(schema, json, path)
         is Schema.Default -> decodeDefault(schema, json, path)
         is Schema.Optional<*> -> decodeOptional(schema, json, path) as Validation<InvalidJson, A>
         is Schema.OrElse -> decode(schema.preferred, json, path).orElse { errors ->
@@ -57,14 +58,14 @@ private fun <A> Validation.Companion.decodePrimitive(
     json: JsonElement,
     path: List<Segment>
 ): Validation<InvalidJson, A> {
-    val error = InvalidJson(schema.primitive::class.simpleName.toString(), json.toString(), path)
+    val error = InvalidJson(schema.name(), json.toString(), path)
     return if (json is JsonNull) {
         invalid(error)
     } else {
         runCatching { json.jsonPrimitive }
             .mapInvalid { error }
-            .andThen { if (it.isString != schema.isJsonString()) invalid(error) else valid(it) }
-            .andThen { schema.primitive.parse(it.content)?.let { value -> valid(value) } ?: invalid(error) }
+            .andThen { schema.validateIsString(it, error) }
+            .andThen { fromResult(schema.decodeString(it.content)) { error } }
     }
 }
 
@@ -77,15 +78,23 @@ private fun Validation.Companion.decodeBytes(
         .andThen { runCatching { Base64.decode(it) } }
         .mapInvalid { InvalidJson("base64 encoded", json.toString(), path) }
 
-private fun <A> Schema.Primitive<A>.isJsonString(): Boolean =
-    when (this.primitive) {
-        StandardPrimitive.String -> true
-        StandardPrimitive.Boolean -> false
-        StandardPrimitive.Double -> false
-        StandardPrimitive.Float -> false
-        StandardPrimitive.Int -> false
-        StandardPrimitive.Long -> false
-    }
+private fun <A> Schema.Primitive<A>.validateIsString(
+    json: JsonPrimitive,
+    error: InvalidJson
+): Validation<InvalidJson, JsonPrimitive> = when (this) {
+    is Schema.Primitive.Enumeration<*> -> valid(json)
+    is Schema.Primitive.Boolean -> if (!json.isString) valid(json) else invalid(error)
+    is Schema.Primitive.Double -> if (!json.isString) valid(json) else invalid(error)
+    is Schema.Primitive.Float -> if (!json.isString) valid(json) else invalid(error)
+    is Schema.Primitive.Int -> if (!json.isString) valid(json) else invalid(error)
+    is Schema.Primitive.Long -> if (!json.isString) valid(json) else invalid(error)
+    is Schema.Primitive.String -> if (json.isString) valid(json) else invalid(error)
+//    is Schema.Primitive.Default<*> -> schema.validateIsString(json, error)
+//    is Schema.Primitive.Optional<*> -> schema.validateIsString(json, error)
+//    is Schema.Primitive.Transform<*, *> -> schema.validateIsString(json, error)
+//    is Schema.Primitive.OrElse<*> -> preferred.validateIsString(json, error)
+//        .orElse { fallback.validateIsString(json, error) }
+}
 
 private fun <A> Validation.Companion.decodeOptional(
     schema: Schema.Optional<A>,
@@ -112,19 +121,6 @@ private fun <A, B> Validation.Companion.decodeTransform(
                 { valid(it) },
                 { e -> invalid(InvalidJson(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path)) }
             )
-        }
-
-private fun <A> Validation.Companion.decodeEnumeration(
-    schema: Schema.Enumeration<A>,
-    json: JsonElement,
-    path: List<Segment>
-): Validation<InvalidJson, A> =
-    runCatching { json.jsonPrimitive.content }
-        .mapInvalid { InvalidJson("JsonPrimitive", json::class.simpleName.toString(), path) }
-        .andThen { jsonStr ->
-            schema.values.find { it.toString() == jsonStr }
-                ?.let { valid(it) }
-                ?: invalid(InvalidJson(schema.values.joinToListString(), jsonStr, path))
         }
 
 private fun <A> Validation.Companion.decodeList(

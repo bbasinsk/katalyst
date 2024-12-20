@@ -2,6 +2,7 @@ package io.github.bbasinsk.schema.config
 
 import io.github.bbasinsk.schema.Schema
 import com.typesafe.config.ConfigFactory
+import io.github.bbasinsk.schema.config.ConfigParser.parseSchema
 import io.github.bbasinsk.schema.config.ConfigParser.parseSchemaOrThrow
 import kotlin.test.Test
 
@@ -11,7 +12,7 @@ class ConfigTest {
 
     @Test
     fun `valid all`() {
-        val parsed = config.parseSchemaOrThrow(Schema.all())
-        println(parsed)
+        println(config.parseSchemaOrThrow(Schema.all()))
+        println(config.parseSchema(Schema.all()))
     }
 }

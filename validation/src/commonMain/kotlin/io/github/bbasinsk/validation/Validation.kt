@@ -16,7 +16,7 @@ sealed interface Validation<out E, out A> {
         /**
          * Create Invalid from errors
          */
-        fun <E> invalid(vararg error: E): Validation<E, Nothing> = Invalid(error.toList())
+        fun <E> invalid(error: E, vararg errors: E): Validation<E, Nothing> = Invalid(listOf(error) + errors.toList())
 
         /**
          * Catch exceptions and convert them to Invalid
@@ -33,6 +33,9 @@ sealed interface Validation<out E, out A> {
          */
         fun <E, A> requireNotNull(value: A?, error: () -> E): Validation<E, A> =
             if (value == null) invalid(error()) else valid(value)
+
+        fun <E, A> fromResult(result: Result<A>, error: (Throwable) -> E): Validation<E, A> =
+            result.fold({ valid(it) }, { invalid(error(it)) })
 
         /**
          * Creates a Validation from a sequence of Validations, collecting all errors

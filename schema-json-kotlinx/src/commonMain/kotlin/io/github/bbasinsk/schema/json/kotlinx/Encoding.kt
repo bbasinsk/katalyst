@@ -1,7 +1,8 @@
+@file:OptIn(ExperimentalEncodingApi::class)
+
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.StandardPrimitive
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -19,39 +20,40 @@ fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): Strin
 fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
-        is Schema.Bytes ->
-            @OptIn(ExperimentalEncodingApi::class)
-            JsonPrimitive(Base64.encode(value as ByteArray))
+        is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value)
         is Schema.Lazy -> schema().encodeToJsonElement(value, json)
         is Schema.Optional<*> -> encodeOptional(value, json)
         is Schema.Default -> schema.encodeToJsonElement(value, json)
         is Schema.OrElse -> preferred.encodeToJsonElement(value, json)
         is Schema.Transform<A, *> -> encodeTransform(value, json)
-        is Schema.Enumeration -> JsonPrimitive(value.toString())
         is Schema.Collection<*> -> encodeList(value as List<*>, json)
         is Schema.StringMap<*> -> encodeStringMap(value as Map<*, *>, json)
         is Schema.Union<*> -> encodeUnion(value, json)
         is Schema.Record<*> -> encodeRecord(value, json)
     }
 
+@Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Primitive<A>.encodePrimitive(value: A): JsonPrimitive =
-    when (this.primitive) {
-        StandardPrimitive.Boolean -> JsonPrimitive(value as Boolean)
-        StandardPrimitive.Double -> JsonPrimitive(value as Double)
-        StandardPrimitive.Float -> JsonPrimitive(value as Float)
-        StandardPrimitive.Int -> JsonPrimitive(value as Int)
-        StandardPrimitive.Long -> JsonPrimitive(value as Long)
-        StandardPrimitive.String -> JsonPrimitive(value as String)
+    when (this) {
+        is Schema.Primitive.Boolean -> JsonPrimitive(value as Boolean)
+        is Schema.Primitive.Double -> JsonPrimitive(value as Double)
+        is Schema.Primitive.Float -> JsonPrimitive(value as Float)
+        is Schema.Primitive.Int -> JsonPrimitive(value as Int)
+        is Schema.Primitive.Long -> JsonPrimitive(value as Long)
+        is Schema.Primitive.String -> JsonPrimitive(value as String)
+        is Schema.Primitive.Enumeration<*> -> JsonPrimitive(value.toString())
+//        is Schema.Primitive.Default -> schema.encodePrimitive(value)
+//        is Schema.Primitive.Optional<*> ->
+//            if (value == null) JsonNull else (schema as Schema.Primitive<A>).encodePrimitive(value)
+//
+//        is Schema.Primitive.OrElse -> preferred.encodePrimitive(value)
+//        is Schema.Primitive.Transform<A, *> -> (schema as Schema.Primitive<Any?>).encodePrimitive(encode(value))
     }
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Optional<A>.encodeOptional(value: Any?, json: Json): JsonElement =
-    if (value == null) {
-        JsonNull
-    } else {
-        this.schema.encodeToJsonElement(value as A, json)
-    }
+    if (value == null) JsonNull else schema.encodeToJsonElement(value as A, json)
 
 private fun <A, B> Schema.Transform<A, B>.encodeTransform(value: A, json: Json): JsonElement =
     this.schema.encodeToJsonElement(this.encode(value), json)
@@ -86,7 +88,7 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, json: Json): JsonElem
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Union<A>.encodeUnion(value: Any?, json: Json): JsonElement {
-    val case = this.unsafeCases().find { it.deconstruct(value as A) != null } ?: error("No case found for ${value as A}")
+    val case = unsafeCases().find { it.deconstruct(value as A) != null } ?: error("No case found for ${value as A}")
     val discriminator = mapOf(this.key to JsonPrimitive(case.name))
     val obj = (case.schema as Schema<Any?>).encodeToJsonElement(case.deconstruct(value as A)!!, json).jsonObject
     return JsonObject(discriminator.plus(obj))

@@ -73,7 +73,6 @@ object ConfigParser {
             is Record<*> -> parseRecord(parser, conf)
             is Union<*> -> parseUnion(parser, conf)
             is Schema.Collection<*> -> parseList(parser, conf)
-            is Schema.Enumeration -> parseEnumeration(parser, conf)
             is Schema.Lazy -> parse(parser.schema(), conf)
             is Schema.Optional<*> -> parse(parser.schema, conf).orElse {
                 valid(null)
@@ -106,7 +105,8 @@ object ConfigParser {
                 )
             }
         }.andThen { case ->
-            parse(case.schema, config)
+            @Suppress("UNCHECKED_CAST")
+            parse(case.schema as Schema<A>, config)
         }
 
     private fun <A> parseRecord(schema: Record<A>, config: ConfigWrapper): Validation<ConfigParseError, A> =
@@ -121,23 +121,13 @@ object ConfigParser {
             schema.unsafeConstruct(fields)
         }
 
-    private fun <A> parseEnumeration(
-        schema: Schema.Enumeration<A>,
-        config: ConfigWrapper
-    ): Validation<ConfigParseError, A> =
-        config.getString().andThen { rawString ->
-            Validation.requireNotNull(schema.values.find { it.toString() == rawString }) {
-                ConfigParseError.InvalidValue(config.path, rawString, schema.values.map { it.toString() }.toSet())
-            }
-        }
-
     private fun <A> parsePrimitive(
         parser: Schema.Primitive<A>,
         config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
         config.getString().andThen { configValue ->
-            Validation.requireNotNull(parser.primitive.parse(configValue)) {
-                FormatError(value = configValue, format = parser.primitive.toString(), path = config.path)
+            Validation.fromResult(parser.decodeString(configValue)) {
+                FormatError(value = configValue, format = parser.name(), path = config.path)
             }
         }
 

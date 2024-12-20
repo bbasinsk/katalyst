@@ -1,19 +1,15 @@
 package io.github.bbasinsk.http.ktor
 
-import io.github.bbasinsk.http.HeaderSchema
 import io.github.bbasinsk.http.Http
-import io.github.bbasinsk.http.QuerySchema
-import io.github.bbasinsk.http.ResponseSchema.Companion.oneOf
-import io.github.bbasinsk.http.ResponseSchema.Companion.status
-import io.github.bbasinsk.http.ResponseStatus
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
 import io.github.bbasinsk.http.responseCase
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.java.instant
 import io.github.bbasinsk.schema.java.localDate
-import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.schema.java.uuid
+import io.github.bbasinsk.schema.optional
+import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
@@ -21,7 +17,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
-import kotlin.to
 
 
 data class PersonId(val value: UUID)
@@ -49,30 +44,40 @@ val updatePerson =
     Http.put { Root / "person" }
         .description("Update a person")
         .deprecated("some reason")
-        .query(QuerySchema.int("id").optional())
-        .header(
-            HeaderSchema.string("name").example("asdf", "fds").example("two", "2").deprecated("some reason")
+        .query {
+            schema("id") { int().optional() }
+        }
+        .header {
+            schema("name") { string() }
+                .example("asdf", "fds")
+                .example("two", "2")
+                .deprecated("some reason")
                 .description("blah blah")
-        )
-        .header(HeaderSchema.int("other").example("blah", 123).deprecated("some reason").description("blah blah"))
-        .input(Schema.person())
-        .output(status(ResponseStatus.Ok, Schema.person()))
-        .error(status(ResponseStatus.NotFound, Schema.int()))
+        }
+        .header {
+            schema("other") { int() }
+                .example("blah", 123)
+                .deprecated("some reason")
+                .description("blah blah")
+        }
+        .input { schema { person() } }
+        .output { status(Ok) { person() } }
+        .error { status(NotFound) { int() } }
 
 val findPersonById =
-    Http.get { Root / "person" / string("personId") }
-        .output(status(ResponseStatus.Ok, Schema.person()))
-        .error(status(ResponseStatus.NotFound, Schema.int()))
+    Http.get { Root / "person" / param("personId") { string() } }
+        .output { status(Ok) { person() } }
+        .error { status(NotFound) { int() } }
 
 val multipleErrors =
-    Http.get { Root / "error" / string("name") }
-        .output(status(ResponseStatus.Ok.description("asdf"), Schema.person()))
-        .error(
-            oneOf<MultipleErrors>(
-                ResponseStatus.Ok.description("Custom not found") to responseCase(Schema.notFoundSchema()),
-                ResponseStatus.BadRequest to responseCase(Schema.badRequestSchema()),
+    Http.get { Root / "error" / param("name") { string() } }
+        .output { status(Ok.description("asdf")) { person() } }
+        .error {
+            oneOf(
+                Ok.description("Custom not found") to responseCase(Schema.notFoundSchema()),
+                BadRequest to responseCase(Schema.badRequestSchema()),
             )
-        )
+        }
 
 sealed interface MultipleErrors {
     data class NotFound(val id: Int) : MultipleErrors
@@ -98,9 +103,9 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
     }
 
     handle(
-        Http.get { Root / string("personId") / "blah" / int("thing") }
-            .output(status(ResponseStatus.Ok, Schema.person()))
-            .error(status(ResponseStatus.NotFound, Schema.int(), examples = mapOf("test1" to 123)))
+        Http.get { Root / param("personId") { string() } / "blah" / param("thing") { int() } }
+            .output { status(Ok) { person() } }
+            .error { status(NotFound) { int() } } // examples = mapOf("test1" to 123))
     ) { request ->
         val (personId, thing) = tupleValues(request.params)
         println("personId: $personId, thing: $thing")
@@ -114,9 +119,9 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
     }
 
     handle(
-        Http.get { Root / "v1" / "estimated-delivery-date" / "package-id" / string("packageId") }
-            .output(status(ResponseStatus.Ok, Schema.person()))
-            .error(status(ResponseStatus.NotFound, Schema.int()))
+        Http.get { Root / "v1" / "estimated-delivery-date" / "package-id" / param("packageId") { string() } }
+            .output { status(Ok) { person() } }
+            .error { status(NotFound) { int() } }
     ) { request ->
         val (name) = tupleValues(request.params)
         success(domainStuff().copy(name = name))
