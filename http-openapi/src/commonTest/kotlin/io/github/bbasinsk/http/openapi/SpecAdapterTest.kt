@@ -1,17 +1,14 @@
 package io.github.bbasinsk.http.openapi
 
-import io.github.bbasinsk.http.BodySchema.Companion.json
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.Schema.Companion.int
-import io.github.bbasinsk.schema.Schema.Companion.list
 import kotlinx.serialization.encodeToString
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class SpecAdapterTest {
 
-    val info = Info(title = "API", version = "1.0.0")
+    private val info = Info(title = "API", version = "1.0.0")
 
     @Test
     fun `should convert to OpenApiSpec`() {
@@ -56,8 +53,7 @@ class SpecAdapterTest {
                                         }
                                     }
                                 }
-                            },
-                            "deprecated": false
+                            }
                         }
                     }
                 },
@@ -125,8 +121,7 @@ class SpecAdapterTest {
                                         }
                                     }
                                 }
-                            },
-                            "deprecated": false
+                            }
                         }
                     }
                 },
@@ -218,8 +213,7 @@ class SpecAdapterTest {
                                         }
                                     }
                                 }
-                            },
-                            "deprecated": false
+                            }
                         }
                     }
                 },
@@ -332,8 +326,7 @@ class SpecAdapterTest {
                                         }
                                     }
                                 }
-                            },
-                            "deprecated": false
+                            }
                         }
                     }
                 },

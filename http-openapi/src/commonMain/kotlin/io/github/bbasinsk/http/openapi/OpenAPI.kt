@@ -44,12 +44,13 @@ data class Server(
 
 @Serializable
 data class Operation(
-    val description: String?,
+    val summary: String?,
+    val tags: List<String>?,
     val operationId: String?,
     val parameters: List<Parameter>,
     val requestBody: RequestBody?,
     val responses: Map<String, ResponseObject>,
-    val deprecated: Boolean,
+    val deprecated: Boolean?,
 )
 
 @Serializable

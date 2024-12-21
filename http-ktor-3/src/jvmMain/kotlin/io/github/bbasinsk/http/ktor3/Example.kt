@@ -43,7 +43,8 @@ fun Schema.Companion.person(): Schema<Person> =
 
 val updatePerson =
     Http.put { Root / "person" }
-        .description("Update a person")
+        .tag("Person")
+        .summary("Update a person")
         .deprecated("some reason")
         .query { schema("id") { uuid().optional() } }
         .header {
@@ -65,6 +66,7 @@ val updatePerson =
 
 val findPersonById =
     Http.get { Root / "person" / param("personId") { string() } }
+        .tag("Person")
         .output { status(Ok) { json { person() } } }
         .error { status(NotFound) { json { int() } } }
 
@@ -80,6 +82,7 @@ val multipleErrors =
 
 val avroPersonEcho =
     Http.post { Root / "person" / "avro" / "echo" }
+        .tag("Person")
         .input { avro { person() } }
         .output {
             status(Ok) {
@@ -92,6 +95,7 @@ val avroPersonEcho =
 
 val avroPersonOut =
     Http.get { Root / "person" / "avro" / "out" }
+        .tag("Person")
         .output { status(Ok) { avro { person() } } }
 
 sealed interface MultipleErrors {

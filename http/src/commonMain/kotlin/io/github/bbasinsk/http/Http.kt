@@ -1,8 +1,9 @@
 package io.github.bbasinsk.http
 
 data class HttpMetadata(
-    val description: String? = null,
+    val summary: String? = null,
     val deprecatedReason: String? = null,
+    val tags: List<String> = emptyList()
 )
 
 data class Http<Params, Input, Error, Output>(
@@ -14,11 +15,14 @@ data class Http<Params, Input, Error, Output>(
     val metadata: HttpMetadata
 ) {
 
-    fun description(description: String): Http<Params, Input, Error, Output> =
-        copy(metadata = metadata.copy(description = description))
+    fun summary(summary: String): Http<Params, Input, Error, Output> =
+        copy(metadata = metadata.copy(summary = summary))
 
     fun deprecated(reason: String): Http<Params, Input, Error, Output> =
         copy(metadata = metadata.copy(deprecatedReason = reason))
+
+    fun tag(tag: String): Http<Params, Input, Error, Output> =
+        copy(metadata = metadata.copy(tags = metadata.tags + tag))
 
     fun <Params2> query(query: ParamSchema.Companion.() -> ParamSchema<Params2>): Http<Pair<Params, Params2>, Input, Error, Output> =
         Http(

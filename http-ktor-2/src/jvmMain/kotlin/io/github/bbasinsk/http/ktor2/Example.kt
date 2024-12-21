@@ -41,7 +41,8 @@ fun Schema.Companion.person(): Schema<Person> =
 
 val updatePerson =
     Http.put { Root / "person" }
-        .description("Update a person")
+        .tag("Person")
+        .summary("Update a person")
         .deprecated("some reason")
         .query {
             schema("id") { int().optional() }

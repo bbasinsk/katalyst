@@ -46,8 +46,9 @@ private fun ParamsSchema<*>.toFormattedPath(): String =
 
 private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.operation(): Operation =
     Operation(
-        description = metadata.description,
-        deprecated = metadata.deprecatedReason != null,
+        summary = metadata.summary,
+        tags = metadata.tags.ifEmpty { null },
+        deprecated = true.takeIf { metadata.deprecatedReason != null },
         operationId = null,
         parameters = params.pathParams(),
         requestBody = requestBody(this.input),
@@ -63,7 +64,7 @@ fun <A> BodySchema<A>.toResponseObject(status: ResponseStatus): ResponseObject =
             contentType = contentType().mimeType,
             examples = examples().mapValues { (key, value) ->
                 ExampleObject(summary = key, value = schema().encodeToJsonElement(value))
-            }.ifEmpty { null }
+            }
         )
     )
 
@@ -87,7 +88,7 @@ private fun <A> ParamSchema<A>.toParameter(`in`: String): Parameter =
         schema = this.schema().toSchemaObject(),
         examples = examples().mapValues { (key, value) ->
             ExampleObject(summary = key, value = this.schema().encodeToJsonElement(value))
-        }.ifEmpty { null }
+        }
     )
 
 private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
@@ -99,7 +100,7 @@ private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
                 contentType = request.contentType().mimeType,
                 examples = request.examples().mapValues { (key, value) ->
                     ExampleObject(summary = key, value = request.schema().encodeToJsonElement(value))
-                }.ifEmpty { null }
+                }
             ),
             required = request.schema().isRequired(),
             description = request.description()
@@ -109,14 +110,14 @@ private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
 // Maps a content type to a schema
 private fun <A> Schema<A>.toContentTypeObject(
     contentType: String,
-    examples: Map<String, ExampleObject>?
+    examples: Map<String, ExampleObject>
 ): Map<String, MediaTypeObject> {
     return when (this) {
         is Schema.Bytes -> TODO()
         is Schema.Collection<*> -> mapOf(
             contentType to MediaTypeObject(
                 schema = toSchemaObject(ref = true),
-                examples = examples
+                examples = examples.ifEmpty { null }
             )
         )
 
@@ -128,7 +129,7 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Primitive -> mapOf(
             "text/plain" to MediaTypeObject(
                 schema = this.toSchemaObject(),
-                examples = examples
+                examples = examples.ifEmpty { null }
             ),
         )
 
@@ -137,14 +138,14 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Record<*> -> mapOf(
             contentType to MediaTypeObject(
                 schema = toSchemaObject(ref = true),
-                examples = examples
+                examples = examples.ifEmpty { null }
             )
         )
 
         is Schema.Union<*> -> mapOf(
             contentType to MediaTypeObject(
                 schema = toSchemaObject(ref = true),
-                examples = examples
+                examples = examples.ifEmpty { null }
             )
         )
     }
