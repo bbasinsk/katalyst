@@ -1,7 +1,9 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.InvalidJson
+import io.github.bbasinsk.schema.optional
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.mapValid
@@ -261,8 +263,8 @@ class PrimitiveSerdeTest {
         assertEquals(
             Validation.invalid(
                 InvalidJson(
-                    expected = "[RED, GREEN, BLUE]",
-                    found = "BAD",
+                    expected = "Color",
+                    found = """"BAD"""",
                     path = listOf()
                 )
             ),
@@ -277,8 +279,8 @@ class PrimitiveSerdeTest {
         assertEquals(
             Validation.invalid(
                 InvalidJson(
-                    expected = "JsonPrimitive",
-                    found = "JsonArray",
+                    expected = "Color",
+                    found = "[]",
                     path = listOf()
                 )
             ),

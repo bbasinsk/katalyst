@@ -1,22 +1,28 @@
-package io.github.bbasinsk.http.ktor
+package io.github.bbasinsk.http.ktor3
 
+import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
 import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathSchema
 import io.github.bbasinsk.http.Request
+import io.github.bbasinsk.http.BodySchema
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
+import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
+import io.github.bbasinsk.validation.andThen
 import io.github.bbasinsk.validation.getOrElse
 import io.github.bbasinsk.validation.mapInvalid
+import io.github.bbasinsk.validation.orElse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.HttpStatusCode.Companion.UnprocessableEntity
 import io.ktor.server.request.httpMethod
@@ -36,16 +42,6 @@ import io.ktor.server.routing.RoutingHandler
 import io.ktor.server.routing.RoutingNode
 import io.ktor.util.flattenEntries
 import kotlinx.serialization.json.JsonElement
-import kotlin.also
-import kotlin.collections.filter
-import kotlin.collections.fold
-import kotlin.collections.mapNotNull
-import kotlin.collections.toMap
-import kotlin.collections.toMutableList
-import kotlin.getOrThrow
-import kotlin.let
-import kotlin.text.isNotBlank
-import kotlin.text.split
 
 fun <Path, Input, Error, Output> RoutingNode.httpEndpointToRoute(
     endpoint: HttpEndpoint<Path, Input, Error, Output, RoutingCall>
@@ -66,7 +62,7 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.to
 
 private fun ParamsSchema<*>.toSelector(): RouteSelector? =
     when (this) {
-        is PathSchema.Parameter -> PathSegmentParameterRouteSelector(name)
+        is PathSchema.Parameter -> PathSegmentParameterRouteSelector(param.name())
         is PathSchema.Segment -> PathSegmentConstantRouteSelector(name)
         else -> null
     }
@@ -93,11 +89,9 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
     val query = call.request.queryParameters.flattenEntries().toMap()
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
-    val input = call.receiveSchema(endpoint.api.input)
-        .mapInvalid { SchemaError(it.message()) }
-        .getOrElse { errors ->
-            return@interceptor call.respondSchema(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
-        }
+    val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
+        return@interceptor call.respondJson(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
+    }
 
     val response = with(endpoint) {
         Response.handle(Request(path, input, call))
@@ -123,44 +117,89 @@ private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
         HttpMethod.OPTIONS -> io.ktor.http.HttpMethod.Options
     }
 
+private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Validation<SchemaError, A> =
+    when (request) {
+        is BodySchema.WithMetadata -> receiveRequest(request.schema)
+        is BodySchema.Single -> when (request.contentType) {
+            ContentType.Avro -> receiveAvro(request.schema())
+            ContentType.Any -> receiveJson(request.schema()).mapInvalid { SchemaError(it.message()) }
+            ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.message()) }
+        }
+    }
+
+private suspend fun <A> RoutingCall.receiveAvro(schema: Schema<A>): Validation<SchemaError, A> =
+    Validation.runCatching { receive<ByteArray>() }
+        .mapInvalid { SchemaError(it.toString()) }
+        .andThen { bytes -> schema.deserializeIgnoringSchemaId(bytes).mapInvalid { SchemaError(it.reason) } }
+
 @Suppress("UNCHECKED_CAST")
-private suspend fun <A> RoutingCall.receiveSchema(schema: Schema<A>): Validation<InvalidJson, A> =
+private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
     when (schema) {
-        is Schema.Default -> TODO()
-        is Schema.Enumeration -> TODO()
-        is Schema.Optional<*> -> TODO()
-        is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<*> -> TODO()
-        is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
-        is Schema.Empty -> Validation.valid(null as A)
-        is Schema.Lazy -> receiveSchema(with(schema) { schema() })
-        is Schema.Primitive -> receiveText().let { raw ->
-            Validation.requireNotNull(schema.primitive.parse(raw)) {
-                InvalidJson(expected = schema.primitive::class.simpleName.toString(), found = raw, path = emptyList())
+        is Schema.Optional<*> -> receiveJson(schema.schema).orElse { Validation.valid(null) } as Validation<InvalidJson, A>
+        is Schema.Transform<A, *> -> receiveJson((schema as Schema.Transform<A, Any?>)).andThen {
+            Validation.fromResult(schema.decode(it)) {
+                InvalidJson(expected = schema.metadata.name, found = it.toString(), path = emptyList())
             }
         }
 
+        is Schema.Default -> receiveJson(schema.schema).orElse { Validation.valid(schema.default) }
+        is Schema.OrElse -> receiveJson(schema.preferred).orElse { receiveJson(schema.fallback) }
+        is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
+        is Schema.Empty -> Validation.valid(null as A)
+        is Schema.Lazy -> receiveJson(with(schema) { schema() })
+        is Schema.Primitive -> receiveText().let { raw ->
+            Validation.fromResult(schema.decodeString(raw)) {
+                InvalidJson(expected = schema.name(), found = raw, path = emptyList())
+            }
+        }
+
+        is Schema.Record -> schema.decodeFromJsonElement(receive<JsonElement>())
+        is Schema.Union -> schema.decodeFromJsonElement(receive<JsonElement>())
         is Schema.Collection<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
         is Schema.StringMap<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
-        is Schema.Record<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
-        is Schema.Union<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
     }
 
-@Suppress("UNCHECKED_CAST")
-private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema: Schema<A>, value: A) {
+private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema: BodySchema<A>, value: A) {
+    when (schema) {
+        is BodySchema.WithMetadata -> respondSchema(status, schema.schema, value)
+        is BodySchema.Single -> when(schema.contentType) {
+            ContentType.Json -> respondJson(status, schema.schema(), value)
+            ContentType.Avro -> respondAvro(status, schema.schema(), value)
+            ContentType.Any -> TODO()
+        }
+    }
+}
+
+private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: Schema<A>, value: A) {
     when (schema) {
         is Schema.Default -> TODO()
-        is Schema.Enumeration -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
         is Schema.OrElse<*> -> TODO()
         is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
-        is Schema.Record<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
-        is Schema.Union<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
+        is Schema.Record -> respond(status, schema.encodeToJsonElement(value))
+        is Schema.Union -> respond(status, schema.encodeToJsonElement(value))
         is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
         is Schema.Empty -> respond(status)
-        is Schema.Lazy -> respondSchema(status, with(schema) { schema() }, value)
+        is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
+        is Schema.Primitive -> respondText(value.toString(), status = status)
+    }
+}
+
+private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: Schema<A>, value: A) {
+    when (schema) {
+        is Schema.Default -> TODO()
+        is Schema.Optional<*> -> TODO()
+        is Schema.Transform<*, *> -> TODO()
+        is Schema.OrElse<*> -> TODO()
+        is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
+        is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
+        is Schema.Record -> respond(status, schema.serialize(1, value)!!)
+        is Schema.Union -> respond(status, schema.encodeToJsonElement(value))
+        is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
+        is Schema.Empty -> respond(status)
+        is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
 }

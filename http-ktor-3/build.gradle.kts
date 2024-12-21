@@ -6,8 +6,8 @@ plugins {
 
 kotlin {
     jvm()
-    macosArm64()
-    linuxX64()
+//    macosArm64()
+//    linuxX64()
 
     sourceSets {
         val commonMain by getting {
@@ -17,15 +17,17 @@ kotlin {
                 api(project(":http"))
                 api(project(":http-openapi"))
                 api(project(":schema-json-kotlinx"))
+                api(project(":schema-avro"))
                 api(project(":tuple"))
 
                 implementation(project(":validation"))
             }
         }
-        val commonTest by getting {
+        val jvmMain by getting {
             dependencies {
-                implementation(libs.kotlin.test)
+                implementation("ch.qos.logback:logback-classic:1.5.12")
                 implementation(libs.ktor3.server.cio) // For example / main
+                implementation(libs.ktor3.server.call.logging) // For example / main
                 implementation(libs.ktor3.server.content.negotiation) // For example / main
                 implementation(libs.ktor3.serialization.kotlinx.json) // For example / main
             }

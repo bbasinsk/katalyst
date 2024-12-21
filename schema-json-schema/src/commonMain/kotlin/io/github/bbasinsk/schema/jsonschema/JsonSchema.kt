@@ -1,8 +1,9 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.StandardPrimitive
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
+import io.github.bbasinsk.schema.optional
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -141,31 +142,27 @@ private fun <A> Schema<A>.toJsonSchemaImpl(): JsonSchema {
         // contentEncoding?
 //            .defaultValue(default)
 
-        is Schema.Enumeration -> JsonSchema.StringSchema(
-            enum = values.map { it.toString() }
-        )
-
         is Schema.Lazy -> this.schema().toJsonSchemaImpl()
         is Schema.Default -> this.schema.toJsonSchemaImpl()
         is Schema.OrElse -> this.preferred.toJsonSchemaImpl()
 
         is Schema.Primitive ->
-            when (primitive) {
-                StandardPrimitive.Boolean -> JsonSchema.BooleanSchema()
-                StandardPrimitive.Int -> JsonSchema.IntegerSchema()
-                StandardPrimitive.Long -> JsonSchema.IntegerSchema()
-                StandardPrimitive.String -> JsonSchema.StringSchema()
-                StandardPrimitive.Double -> JsonSchema.NumberSchema()
-                StandardPrimitive.Float -> JsonSchema.NumberSchema()
+            when (this) {
+                is Schema.Primitive.Boolean -> JsonSchema.BooleanSchema()
+                is Schema.Primitive.Double -> JsonSchema.NumberSchema()
+                is Schema.Primitive.Float -> JsonSchema.NumberSchema()
+                is Schema.Primitive.Int -> JsonSchema.IntegerSchema()
+                is Schema.Primitive.Long -> JsonSchema.IntegerSchema()
+                is Schema.Primitive.String -> JsonSchema.StringSchema()
+                is Schema.Primitive.Enumeration<*> -> JsonSchema.StringSchema(enum = values.map { it.toString() })
+//                is Schema.Primitive.Default<*> -> schema.toJsonSchemaImpl()
+//                is Schema.Primitive.Optional<*> -> schema.toJsonSchemaImpl()
+//                is Schema.Primitive.OrElse<*> -> preferred.toJsonSchemaImpl()
+//                is Schema.Primitive.Transform<*, *> -> schema.toJsonSchemaImpl()
             }
 
-        is Schema.Transform<*, *> ->
-            @Suppress("unchecked_cast")
-            (this.schema as Schema<A>).toJsonSchemaImpl()
-
-        is Schema.Optional<*> ->
-            @Suppress("unchecked_cast")
-            (this.schema as Schema<A>).toJsonSchemaImpl()
+        is Schema.Transform<*, *> -> schema.toJsonSchemaImpl()
+        is Schema.Optional<*> -> schema.toJsonSchemaImpl()
 
         is Schema.Collection<*> ->
             JsonSchema.ArraySchema(itemSchema.toJsonSchemaImpl())

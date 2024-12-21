@@ -85,7 +85,7 @@ object BinaryDeserialization {
                 }
 
             is Schema.Transform<A, *> ->
-                (schema as Schema<Any?>).decode(input).andThen { b ->
+                this.schema.decode(input).andThen { b ->
                     (this as Schema.Transform<A, Any?>).decode(b).fold({ decoded ->
                         valid(decoded)
                     }, { error ->
@@ -94,15 +94,8 @@ object BinaryDeserialization {
                 }
 
             is Schema.Primitive ->
-                Validation.requireNotNull(primitive.parse(input.toString())) {
-                    InvalidField("Unable to parse $input as ${primitive.javaClass.simpleName}")
-                }
-
-            is Schema.Enumeration ->
-                read(input) { it as? GenericData.EnumSymbol }.andThen { symbol ->
-                    values.find { it.toString() == symbol.toString() }
-                        ?.let { valid(it) }
-                        ?: invalid(InvalidField("Invalid symbol $symbol"))
+                Validation.fromResult(this.decodeString(input.toString())) {
+                    InvalidField("Unable to parse $input as ${this.name()}")
                 }
 
             is Schema.Collection<*> ->
