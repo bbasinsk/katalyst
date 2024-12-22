@@ -67,7 +67,7 @@ val findPersonById =
     Http.get { Root / "person" / param("personId") { string() } }
         .tag("Person")
         .output { status(Ok) { json { person() } } }
-        .error { status(NotFound) { json { int() } } }
+        .error { status(NotFound) { plain { int() } } }
 
 val multipleErrors =
     Http.get { Root / "error" / param("name") { string() } }
@@ -78,6 +78,11 @@ val multipleErrors =
                 case(BadRequest) { json { badRequestSchema() } },
             )
         }
+
+val emptyResponse =
+    Http.get { Root / "empty" }
+        .output { status(Ok) { empty() } }
+        .error { status(NoContent) { empty() } }
 
 val avroPersonEcho =
     Http.post { Root / "person" / "avro" / "echo" }
@@ -123,7 +128,7 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
     handle(
         Http.get { Root / param("personId") { string() } / "blah" / param("thing") { int() } }
             .output { status(Ok) { json { person() } } }
-            .error { status(NotFound) { json { int() }.example("test1", 123) } }
+            .error { status(NotFound) { plain { int() }.example("test1", 123) } }
     ) { request ->
         val (personId, thing) = tupleValues(request.params)
         println("personId: $personId, thing: $thing")
@@ -143,6 +148,10 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
             "bad-request" -> error(MultipleErrors.BadRequest("Bad request"))
             else -> success(domainStuff())
         }
+    }
+
+    handle(emptyResponse) {
+        if (Random.nextBoolean()) success(null) else error(null)
     }
 
     handle(avroPersonEcho) { request ->

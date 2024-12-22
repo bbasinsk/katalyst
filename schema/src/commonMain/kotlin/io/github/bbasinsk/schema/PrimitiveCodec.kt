@@ -1,6 +1,8 @@
 package io.github.bbasinsk.schema
 
 
+// TODO: Test this!
+
 @Suppress("UNCHECKED_CAST")
 fun <A> Schema<A>.decodeString(str: String): Result<A> =
     when (this) {
@@ -25,4 +27,21 @@ fun <A> Schema<A>.decodeString(str: String): Result<A> =
         is Schema.Union -> Result.failure(IllegalStateException("Cannot decode Union from String"))
         is Schema.Bytes -> Result.failure(IllegalStateException("Cannot decode Bytes from String"))
         is Schema.Collection<*> -> Result.failure(IllegalStateException("Cannot decode Collection from String"))
+    }
+
+@Suppress("UNCHECKED_CAST")
+fun <A> Schema<A>.encodeString(value: A): Result<String> =
+    when (this) {
+        is Schema.Primitive -> Result.success(value.toString())
+        is Schema.Default -> schema.encodeString(value)
+        is Schema.Empty -> Result.success("")
+        is Schema.Lazy -> schema().encodeString(value)
+        is Schema.Optional<*> -> (schema as Schema<Any?>).encodeString(value).recoverCatching { "" }
+        is Schema.OrElse -> preferred.encodeString(value).recoverCatching { fallback.encodeString(value).getOrThrow() }
+        is Schema.Transform<A, *> -> runCatching { (this as Schema.Transform<A, Any?>).encode(value).let { schema.encodeString(it).getOrThrow() } }
+        is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot encode StringMap to String"))
+        is Schema.Record -> Result.failure(IllegalStateException("Cannot encode Record to String"))
+        is Schema.Union -> Result.failure(IllegalStateException("Cannot encode Union to String"))
+        is Schema.Bytes -> Result.failure(IllegalStateException("Cannot encode Bytes to String"))
+        is Schema.Collection<*> -> Result.failure(IllegalStateException("Cannot encode Collection to String"))
     }

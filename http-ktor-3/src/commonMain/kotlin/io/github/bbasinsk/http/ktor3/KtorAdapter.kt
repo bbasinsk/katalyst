@@ -15,6 +15,7 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.decodeString
+import io.github.bbasinsk.schema.encodeString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -123,8 +124,10 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
         is BodySchema.WithMetadata -> receiveRequest(request.schema)
         is BodySchema.Single -> when (request.contentType) {
             ContentType.Avro -> receiveAvro(request.schema())
-            ContentType.Any -> receiveJson(request.schema()).mapInvalid { SchemaError(it.message()) }
             ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.message()) }
+            ContentType.Plain -> Validation.fromResult(request.schema().decodeString(receiveText())) {
+                SchemaError(it.message ?: "Error decoding")
+            }
         }
     }
 
@@ -163,10 +166,10 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
 private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema: BodySchema<A>, value: A) {
     when (schema) {
         is BodySchema.WithMetadata -> respondSchema(status, schema.schema, value)
-        is BodySchema.Single -> when(schema.contentType) {
+        is BodySchema.Single -> when (schema.contentType) {
             ContentType.Json -> respondJson(status, schema.schema(), value)
             ContentType.Avro -> respondAvro(status, schema.schema(), value)
-            ContentType.Any -> TODO()
+            ContentType.Plain -> respondPlain(status, schema.schema(), value)
         }
     }
 }
@@ -204,6 +207,11 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
 }
+
+private suspend fun <A> RoutingCall.respondPlain(status: HttpStatusCode, schema: Schema<A>, value: A) {
+    respondText(schema.encodeString(value).getOrThrow(), io.ktor.http.ContentType.Text.Plain, status = status)
+}
+
 
 data class SchemaError(
     val message: String
