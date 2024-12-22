@@ -73,8 +73,8 @@ val multipleErrors =
         .output { status(Ok.description("asdf")) { json { person() } } }
         .error {
             oneOf(
-                status(NotFound.description("Custom not found")) { json { notFoundSchema() } },
-                status(BadRequest) { json { badRequestSchema() } }
+                case(NotFound.description("Custom not found")) { json { notFoundSchema() } },
+                case(BadRequest) { json { badRequestSchema() } }
             )
         }
 

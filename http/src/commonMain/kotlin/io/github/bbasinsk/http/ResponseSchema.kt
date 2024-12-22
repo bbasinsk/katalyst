@@ -45,13 +45,22 @@ sealed interface ResponseSchema<A> {
         // Response Schemas
         fun nothing(): ResponseSchema<Nothing> = None
 
-        inline fun <A> oneOf(first: ResponseSchema<A>, vararg rest: ResponseSchema<A>): ResponseSchema<A> =
+        fun <A> oneOf(
+            first: ResponseSchema<A>,
+            vararg rest: ResponseSchema<A>
+        ): ResponseSchema<A> =
             rest.fold(first) { acc, schema -> Multiple(acc, schema) }
 
-        inline fun <A, reified B : A> status(
+        inline fun <A, reified B : A> case(
             status: ResponseStatus,
             schema: BodySchema.Companion.() -> BodySchema<B>
         ): ResponseSchema<A> =
             Single<A, B>(status, BodySchema.schema()) { it as? B }
+
+        fun <A> status(
+            status: ResponseStatus,
+            schema: BodySchema.Companion.() -> BodySchema<A>
+        ): ResponseSchema<A> =
+            Single(status, BodySchema.schema()) { it }
     }
 }
