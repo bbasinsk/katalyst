@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.decodeString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.Segment
 import io.github.bbasinsk.validation.Validation
@@ -58,7 +59,7 @@ private fun <A> Validation.Companion.decodePrimitive(
     json: JsonElement,
     path: List<Segment>
 ): Validation<InvalidJson, A> {
-    val error = InvalidJson(schema.name(), json.toString(), path)
+    val error = InvalidJson(schema.name, json.toString(), path)
     return if (json is JsonNull) {
         invalid(error)
     } else {
@@ -89,11 +90,6 @@ private fun <A> Schema.Primitive<A>.validateIsString(
     is Schema.Primitive.Int -> if (!json.isString) valid(json) else invalid(error)
     is Schema.Primitive.Long -> if (!json.isString) valid(json) else invalid(error)
     is Schema.Primitive.String -> if (json.isString) valid(json) else invalid(error)
-//    is Schema.Primitive.Default<*> -> schema.validateIsString(json, error)
-//    is Schema.Primitive.Optional<*> -> schema.validateIsString(json, error)
-//    is Schema.Primitive.Transform<*, *> -> schema.validateIsString(json, error)
-//    is Schema.Primitive.OrElse<*> -> preferred.validateIsString(json, error)
-//        .orElse { fallback.validateIsString(json, error) }
 }
 
 private fun <A> Validation.Companion.decodeOptional(

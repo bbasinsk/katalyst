@@ -43,12 +43,6 @@ private fun <A> Schema.Primitive<A>.encodePrimitive(value: A): JsonPrimitive =
         is Schema.Primitive.Long -> JsonPrimitive(value as Long)
         is Schema.Primitive.String -> JsonPrimitive(value as String)
         is Schema.Primitive.Enumeration<*> -> JsonPrimitive(value.toString())
-//        is Schema.Primitive.Default -> schema.encodePrimitive(value)
-//        is Schema.Primitive.Optional<*> ->
-//            if (value == null) JsonNull else (schema as Schema.Primitive<A>).encodePrimitive(value)
-//
-//        is Schema.Primitive.OrElse -> preferred.encodePrimitive(value)
-//        is Schema.Primitive.Transform<A, *> -> (schema as Schema.Primitive<Any?>).encodePrimitive(encode(value))
     }
 
 @Suppress("UNCHECKED_CAST")

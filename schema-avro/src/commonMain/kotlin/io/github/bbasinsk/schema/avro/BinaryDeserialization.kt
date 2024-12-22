@@ -3,6 +3,7 @@ package io.github.bbasinsk.schema.avro
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.ByteAllocation.ID_SIZE
 import io.github.bbasinsk.schema.avro.ByteAllocation.MAGIC_BYTE
+import io.github.bbasinsk.schema.decodeString
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.Validation.Companion.invalid
 import io.github.bbasinsk.validation.Validation.Companion.valid
@@ -95,7 +96,7 @@ object BinaryDeserialization {
 
             is Schema.Primitive ->
                 Validation.fromResult(this.decodeString(input.toString())) {
-                    InvalidField("Unable to parse $input as ${this.name()}")
+                    InvalidField("Unable to parse $input as ${this.name}")
                 }
 
             is Schema.Collection<*> ->

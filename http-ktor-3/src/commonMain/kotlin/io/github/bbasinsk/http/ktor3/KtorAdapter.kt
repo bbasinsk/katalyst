@@ -14,6 +14,7 @@ import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
+import io.github.bbasinsk.schema.decodeString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -149,7 +150,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.fromResult(schema.decodeString(raw)) {
-                InvalidJson(expected = schema.name(), found = raw, path = emptyList())
+                InvalidJson(expected = schema.name, found = raw, path = emptyList())
             }
         }
 

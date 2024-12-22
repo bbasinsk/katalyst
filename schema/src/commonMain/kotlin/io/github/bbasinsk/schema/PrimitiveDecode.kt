@@ -2,7 +2,7 @@ package io.github.bbasinsk.schema
 
 
 @Suppress("UNCHECKED_CAST")
-fun <A> Schema<A>.decodeString(str: kotlin.String): Result<A> =
+fun <A> Schema<A>.decodeString(str: String): Result<A> =
     when (this) {
         is Schema.Primitive.String -> Result.success(str as A)
         is Schema.Primitive.Int -> runCatching { str.toInt() as A }
@@ -10,8 +10,8 @@ fun <A> Schema<A>.decodeString(str: kotlin.String): Result<A> =
         is Schema.Primitive.Float -> runCatching { str.toFloat() as A }
         is Schema.Primitive.Double -> runCatching { str.toDouble() as A }
         is Schema.Primitive.Boolean -> runCatching { str.toBooleanStrict() as A }
-        is Schema.Primitive.Enumeration<*> -> runCatching { values.first { it.toString() == str } as A }
-        is Schema.Default -> schema.decodeString(str).recoverCatching { default as A }
+        is Schema.Primitive.Enumeration -> runCatching { values.first { it.toString() == str } }
+        is Schema.Default -> schema.decodeString(str).recoverCatching { default }
         is Schema.Empty -> Result.success(null as A)
         is Schema.Lazy -> schema().decodeString(str)
         is Schema.Optional<*> -> schema.decodeString(str).recoverCatching { null } as Result<A>

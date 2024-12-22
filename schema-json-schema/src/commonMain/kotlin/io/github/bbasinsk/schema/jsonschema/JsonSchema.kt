@@ -155,10 +155,6 @@ private fun <A> Schema<A>.toJsonSchemaImpl(): JsonSchema {
                 is Schema.Primitive.Long -> JsonSchema.IntegerSchema()
                 is Schema.Primitive.String -> JsonSchema.StringSchema()
                 is Schema.Primitive.Enumeration<*> -> JsonSchema.StringSchema(enum = values.map { it.toString() })
-//                is Schema.Primitive.Default<*> -> schema.toJsonSchemaImpl()
-//                is Schema.Primitive.Optional<*> -> schema.toJsonSchemaImpl()
-//                is Schema.Primitive.OrElse<*> -> preferred.toJsonSchemaImpl()
-//                is Schema.Primitive.Transform<*, *> -> schema.toJsonSchemaImpl()
             }
 
         is Schema.Transform<*, *> -> schema.toJsonSchemaImpl()
