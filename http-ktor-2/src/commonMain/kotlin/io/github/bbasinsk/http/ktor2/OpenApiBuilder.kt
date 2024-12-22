@@ -1,4 +1,4 @@
-package io.github.bbasinsk.http.ktor
+package io.github.bbasinsk.http.ktor2
 
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server

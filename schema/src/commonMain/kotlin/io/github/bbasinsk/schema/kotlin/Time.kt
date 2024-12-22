@@ -5,8 +5,8 @@ import io.github.bbasinsk.schema.transform
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 
-fun Schema.Companion.duration(): Schema<Duration> =
+fun Schema.Companion.duration() =
     string().transform({ it.toIsoString() }) { Duration.parseIsoString(it) }
 
-fun Schema.Companion.durationUnit(): Schema<DurationUnit> =
-    enumeration()
+fun Schema.Companion.durationUnit() =
+    enumeration<DurationUnit>()

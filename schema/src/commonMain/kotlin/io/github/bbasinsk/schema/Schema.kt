@@ -1,14 +1,28 @@
 package io.github.bbasinsk.schema
 
-import kotlin.reflect.KProperty1
 
 sealed interface Schema<A> {
+
+    // For non-composite types (ie. primitives, enums, etc.)
+    // For use in csv values, http parameters, or other use-case where a single value is expected
+    sealed class Primitive<A>(val name: kotlin.String) : Schema<A> {
+        data object Boolean : Primitive<kotlin.Boolean>("Boolean")
+        data object String : Primitive<kotlin.String>("String")
+        data object Int : Primitive<kotlin.Int>("Int")
+        data object Long : Primitive<kotlin.Long>("Long")
+        data object Double : Primitive<kotlin.Double>("Double")
+        data object Float : Primitive<kotlin.Float>("Float")
+        data class Enumeration<A>(val metadata: Metadata<A>, val values: List<A>) : Primitive<A>(metadata.name)
+    }
+
     data object Empty : Schema<Nothing?>
     data object Bytes : Schema<ByteArray>
     data class Lazy<A>(val schema: () -> Schema<A>) : Schema<A>
     data class Optional<A>(val schema: Schema<A>) : Schema<A?>
     data class Default<A>(val schema: Schema<A>, val default: A) : Schema<A>
     data class OrElse<A>(val preferred: Schema<A>, val fallback: Schema<A>) : Schema<A>
+    data class Collection<A>(val itemSchema: Schema<A>) : Schema<List<A>>
+    data class StringMap<B>(val valueSchema: Schema<B>) : Schema<Map<String, B>>
 
     data class Transform<A, B>(
         val metadata: Metadata<A>,
@@ -17,44 +31,37 @@ sealed interface Schema<A> {
         val decode: (B) -> Result<A>
     ) : Schema<A>
 
-    data class Collection<A>(val itemSchema: Schema<A>) : Schema<List<A>>
-    data class StringMap<B>(val valueSchema: Schema<B>) : Schema<Map<String, B>>
-    data class Enumeration<A>(val metadata: Metadata<A>, val values: List<A>) : Schema<A>
-    data class Primitive<A>(val primitive: StandardPrimitive<A>) : Schema<A>
-    sealed interface Union<A> {
+    sealed interface Union<A> : Schema<A> {
         val key: String
         fun unsafeCases(): List<Case<A, *>>
     }
-    sealed interface Record<A> {
+
+    sealed interface Record<A> : Schema<A> {
         val metadata: Metadata<A>
         fun unsafeFields(): List<Field<A, *>>
         fun unsafeConstruct(values: List<Any?>): A
     }
 
-    fun optional(): Schema<A?> =
-        Optional(this)
-
-    fun default(default: A): Schema<A> =
-        Default(this, default)
-
-    fun orElse(fallback: Schema<A>): Schema<A> =
-        OrElse(this, fallback)
+    fun optional(): Schema<A?> = Optional(this)
+    fun default(default: A): Schema<A> = Default(this, default)
+    fun orElse(fallback: Schema<A>): Schema<A> = OrElse(this, fallback)
 
     companion object {
         fun <A> lazy(schema: () -> Schema<A>): Schema<A> = Lazy(schema)
         fun empty(): Schema<Nothing?> = Empty
         fun byteArray(): Schema<ByteArray> = Bytes
-        fun boolean(): Schema<Boolean> = Primitive(StandardPrimitive.Boolean)
-        fun string(): Schema<String> = Primitive(StandardPrimitive.String)
-        fun int(): Schema<Int> = Primitive(StandardPrimitive.Int)
-        fun long(): Schema<Long> = Primitive(StandardPrimitive.Long)
-        fun double(): Schema<Double> = Primitive(StandardPrimitive.Double)
-        fun float(): Schema<Float> = Primitive(StandardPrimitive.Float)
+        fun boolean(): Primitive<Boolean> = Primitive.Boolean
+        fun string(): Primitive<String> = Primitive.String
+        fun int(): Primitive<Int> = Primitive.Int
+        fun long(): Primitive<Long> = Primitive.Long
+        fun double(): Primitive<Double> = Primitive.Double
+        fun float(): Primitive<Float> = Primitive.Float
+
         fun <A> list(schema: Schema<A>): Schema<List<A>> = Collection(schema)
         fun <B> stringMap(valueSchema: Schema<B>): Schema<Map<String, B>> = StringMap(valueSchema)
 
-        inline fun <reified A : Enum<A>> enumeration(): Schema<A> =
-            Enumeration(
+        inline fun <reified A : Enum<A>> enumeration(): Primitive<A> =
+            Primitive.Enumeration(
                 metadata = A::class.toMetadata(),
                 values = enumValues<A>().toList()
             )
@@ -139,7 +146,8 @@ sealed interface Schema<A> {
             field7: Field<A, B7>,
             field8: Field<A, B8>,
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8) -> (A)
-        ): Schema<A> = Record8(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, construct)
+        ): Schema<A> =
+            Record8(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, construct)
 
         inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9> record(
             field1: Field<A, B1>,
