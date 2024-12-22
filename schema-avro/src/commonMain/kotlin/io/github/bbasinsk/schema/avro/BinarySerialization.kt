@@ -1,7 +1,5 @@
 package io.github.bbasinsk.schema.avro
 
-import io.github.bbasinsk.schema.Case
-import io.github.bbasinsk.schema.Field
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.ByteAllocation.ID_SIZE
 import io.github.bbasinsk.schema.avro.ByteAllocation.MAGIC_BYTE
@@ -38,24 +36,32 @@ object BinarySerialization {
         when (this) {
             is Schema.Empty -> null
             is Schema.Bytes -> ByteBuffer.wrap(value as ByteArray)
-            is Schema.Primitive -> value
+            is Schema.Primitive -> when (this) {
+                is Schema.Primitive.Boolean -> value
+                is Schema.Primitive.Double -> value
+                is Schema.Primitive.Enumeration<*> -> GenericData.EnumSymbol(toAvroSchema(), value.toString())
+                is Schema.Primitive.Float -> value
+                is Schema.Primitive.Int -> value
+                is Schema.Primitive.Long -> value
+                is Schema.Primitive.String -> value
+            }
+
             is Schema.Lazy -> this.schema().encode(value)
             is Schema.OrElse -> this.preferred.encode(value)
             is Schema.Optional<*> -> if (value == null) null else (schema as Schema<Any>).encode(value)
             is Schema.Default -> if (value == null) default else schema.encode(value)
             is Schema.Transform<A, *> -> (schema as Schema<Any?>).encode(encode(value))
-            is Schema.Enumeration -> GenericData.EnumSymbol(toAvroSchema(), value.toString())
-            is Schema.Union<*> -> unsafeCases().firstNotNullOf { case ->
-                (case as Case<A, Any?>).deconstruct(value)?.let { value ->
-                    case.schema.encode(value)
+            is Schema.Union -> unsafeCases().firstNotNullOf { case ->
+                case.deconstruct(value)?.let { value ->
+                    (case.schema as Schema<Any?>).encode(value)
                 }
             }
 
-            is Schema.Record<*> -> {
+            is Schema.Record -> {
                 GenericData.Record(toAvroSchema()).also { data ->
                     unsafeFields().forEach { field ->
-                        val fieldValue = (field as Field<A, Any?>).extract(value)
-                        data.put(field.name, field.schema.encode(fieldValue))
+                        val fieldValue = field.extract(value)
+                        data.put(field.name, (field.schema as Schema<Any?>).encode(fieldValue))
                     }
                 }
             }

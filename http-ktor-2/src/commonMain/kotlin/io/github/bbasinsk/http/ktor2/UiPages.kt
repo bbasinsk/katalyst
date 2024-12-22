@@ -1,4 +1,4 @@
-package io.github.bbasinsk.http.ktor
+package io.github.bbasinsk.http.ktor2
 
 import io.ktor.http.ContentType
 import io.ktor.server.application.call

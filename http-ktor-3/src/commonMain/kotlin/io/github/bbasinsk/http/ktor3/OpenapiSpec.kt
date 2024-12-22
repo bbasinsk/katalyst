@@ -1,11 +1,10 @@
-package io.github.bbasinsk.http.ktor
+package io.github.bbasinsk.http.ktor3
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.OpenApiJson
 import io.github.bbasinsk.http.openapi.Server
 import io.github.bbasinsk.http.openapi.toOpenApiSpec
-import io.ktor.server.application.call
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get

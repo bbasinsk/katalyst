@@ -3,7 +3,7 @@ package io.github.bbasinsk.schema
 data class Union1<A, B1 : A>(
     override val key: String,
     val case1: Case<A, B1>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1
     )
@@ -13,7 +13,7 @@ data class Union2<A, B1 : A, B2 : A>(
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2
@@ -25,7 +25,7 @@ data class Union3<A, B1 : A, B2 : A, B3 : A>(
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
     val case3: Case<A, B3>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -39,7 +39,7 @@ data class Union4<A, B1 : A, B2 : A, B3 : A, B4 : A>(
     val case2: Case<A, B2>,
     val case3: Case<A, B3>,
     val case4: Case<A, B4>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -55,7 +55,7 @@ data class Union5<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A>(
     val case3: Case<A, B3>,
     val case4: Case<A, B4>,
     val case5: Case<A, B5>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -73,7 +73,7 @@ data class Union6<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A>(
     val case4: Case<A, B4>,
     val case5: Case<A, B5>,
     val case6: Case<A, B6>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -93,7 +93,7 @@ data class Union7<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A>(
     val case5: Case<A, B5>,
     val case6: Case<A, B6>,
     val case7: Case<A, B7>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -115,7 +115,7 @@ data class Union8<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 
     val case6: Case<A, B6>,
     val case7: Case<A, B7>,
     val case8: Case<A, B8>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -139,7 +139,7 @@ data class Union9<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 
     val case7: Case<A, B7>,
     val case8: Case<A, B8>,
     val case9: Case<A, B9>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,
@@ -165,7 +165,7 @@ data class Union10<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8
     val case8: Case<A, B8>,
     val case9: Case<A, B9>,
     val case10: Case<A, B10>
-) : Schema<A>, Schema.Union<A> {
+) : Schema.Union<A> {
     override fun unsafeCases(): List<Case<A, *>> = listOf(
         case1,
         case2,

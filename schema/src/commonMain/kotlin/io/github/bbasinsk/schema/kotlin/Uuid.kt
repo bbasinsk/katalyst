@@ -7,7 +7,7 @@ import io.github.bbasinsk.schema.transform
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-fun Schema.Companion.uuid(): Schema<Uuid> =
+fun Schema.Companion.uuid() =
     string().transform(
         encode = { it.toString() },
         decode = { Uuid.parse(it) }

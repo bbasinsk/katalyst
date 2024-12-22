@@ -5,13 +5,13 @@ import io.github.bbasinsk.schema.transform
 import java.nio.ByteBuffer
 import java.util.UUID
 
-fun Schema.Companion.uuid(): Schema<UUID> =
+fun Schema.Companion.uuid() =
     string().transform(
         encode = { it.toString() },
         decode = { UUID.fromString(it) }
     )
 
-fun Schema.Companion.byteBuffer(): Schema<ByteBuffer> =
+fun Schema.Companion.byteBuffer() =
     byteArray().transform(
         encode = { it.array() },
         decode = { ByteBuffer.wrap(it) }
