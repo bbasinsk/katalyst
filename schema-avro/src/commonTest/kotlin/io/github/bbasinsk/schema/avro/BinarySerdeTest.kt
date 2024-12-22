@@ -5,7 +5,6 @@ import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserialize
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.java.uuid
-import io.github.bbasinsk.schema.optional
 import io.github.bbasinsk.validation.Validation
 import org.junit.Test
 import java.util.UUID

@@ -1,7 +1,6 @@
 package io.github.bbasinsk.schema.config
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.optional
 import io.github.bbasinsk.schema.transform
 
 sealed interface OneOf

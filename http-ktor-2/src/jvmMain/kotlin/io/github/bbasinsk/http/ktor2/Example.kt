@@ -7,7 +7,6 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.java.instant
 import io.github.bbasinsk.schema.java.localDate
 import io.github.bbasinsk.schema.java.uuid
-import io.github.bbasinsk.schema.optional
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.server.cio.CIO

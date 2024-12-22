@@ -2,7 +2,6 @@ package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.InvalidJson
-import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test

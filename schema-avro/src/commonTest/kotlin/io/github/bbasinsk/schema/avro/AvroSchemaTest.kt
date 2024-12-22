@@ -1,8 +1,6 @@
 package io.github.bbasinsk.schema.avro
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.default
-import io.github.bbasinsk.schema.optional
 import kotlinx.serialization.json.Json
 import org.junit.Test
 import kotlin.test.assertEquals

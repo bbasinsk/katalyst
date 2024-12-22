@@ -1,9 +1,7 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
-import io.github.bbasinsk.schema.optional
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement

@@ -4,7 +4,6 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.avro.ByteAllocation.ID_SIZE
 import io.github.bbasinsk.schema.avro.ByteAllocation.MAGIC_BYTE
-import io.github.bbasinsk.schema.optional
 import org.apache.avro.io.EncoderFactory
 import org.junit.Test
 import java.io.ByteArrayOutputStream

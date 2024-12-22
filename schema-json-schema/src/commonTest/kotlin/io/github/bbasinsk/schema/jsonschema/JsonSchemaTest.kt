@@ -1,8 +1,6 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.default
-import io.github.bbasinsk.schema.optional
 import kotlinx.serialization.json.Json
 import kotlin.test.Ignore
 import kotlin.test.Test

@@ -1,10 +1,8 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.Segment
-import io.github.bbasinsk.schema.optional
 import io.github.bbasinsk.validation.Validation
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
