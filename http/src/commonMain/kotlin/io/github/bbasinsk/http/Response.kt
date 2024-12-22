@@ -7,5 +7,7 @@ sealed interface Response<Error, Output> {
     companion object {
         fun <E, A> success(value: A): Response<E, A> = Success(value)
         fun <E, A> error(value: E): Response<E, A> = Error(value)
+        fun <E> success(): Response<E, Nothing?> = Success(null)
+        fun <A> error(): Response<Nothing?, A> = Error(null)
     }
 }

@@ -151,7 +151,7 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
     }
 
     handle(emptyResponse) {
-        if (Random.nextBoolean()) success(null) else error(null)
+        if (Random.nextBoolean()) success() else error()
     }
 
     handle(avroPersonEcho) { request ->
