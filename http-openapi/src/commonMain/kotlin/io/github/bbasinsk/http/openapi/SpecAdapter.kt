@@ -124,8 +124,8 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Default -> schema.toContentTypeObject(contentType, examples)
         is Schema.Empty -> mapOf()
         is Schema.Lazy -> schema().toContentTypeObject(contentType, examples)
-        is Schema.Optional<*> -> TODO()
-        is Schema.OrElse<*> -> TODO()
+        is Schema.Optional<*> -> schema.toContentTypeObject(contentType, examples)
+        is Schema.OrElse<*> -> preferred.toContentTypeObject(contentType, examples)
         is Schema.Primitive -> mapOf(
             "text/plain" to MediaTypeObject(
                 schema = this.toSchemaObject(),
@@ -133,7 +133,13 @@ private fun <A> Schema<A>.toContentTypeObject(
             ),
         )
 
-        is Schema.StringMap<*> -> TODO()
+        is Schema.StringMap<*> -> mapOf(
+            contentType to MediaTypeObject(
+                schema = toSchemaObject(),
+                examples = examples.ifEmpty { null }
+            )
+        )
+
         is Schema.Transform<A, *> -> schema.toContentTypeObject(contentType, examples)
         is Schema.Record<*> -> mapOf(
             contentType to MediaTypeObject(
