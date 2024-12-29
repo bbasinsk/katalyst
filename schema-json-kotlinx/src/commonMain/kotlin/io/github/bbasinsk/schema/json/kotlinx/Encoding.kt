@@ -68,11 +68,10 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, json: Json): JsonElem
     JsonObject(
         this.unsafeFields().mapNotNull { field ->
             val schema = field.schema as Schema<Any?>
-
             val fieldValue = field.extract(value as A)
             val encodedValue = schema.encodeToJsonElement(fieldValue, json)
 
-            if (!json.configuration.encodeDefaults && (field.schema as? Schema.Default)?.default == fieldValue) {
+            if (!json.configuration.explicitNulls && fieldValue == null) {
                 null
             } else {
                 field.name to encodedValue

@@ -8,7 +8,7 @@ import kotlinx.serialization.json.JsonElement
 
 // TODO: Probably a non-kotlinx encodeNull?
 private val json = Json {
-    encodeDefaults = false
+    explicitNulls = false
 }
 
 fun JsonSchema.encodeToJsonElement(): JsonElement =

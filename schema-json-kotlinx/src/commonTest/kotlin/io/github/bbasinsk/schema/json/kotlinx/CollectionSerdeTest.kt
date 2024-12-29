@@ -25,6 +25,12 @@ class CollectionSerdeTest {
     }
 
     @Test
+    fun `list works with empty list json`() {
+        val str = ListRecord.schema.encodeToJsonElement(ListRecord(emptyList()))
+        assertEquals("""{"value":[]}""", str.toString())
+    }
+
+    @Test
     fun `list fails deserialize with invalid values`() {
         val schema = Schema.list(Schema.int())
         assertEquals(
@@ -77,5 +83,16 @@ class CollectionSerdeTest {
             ),
             schema.decodeFromJsonString("""{"a": "not-an-int", "b": null}""")
         )
+    }
+}
+
+data class ListRecord(val value: List<Int>) {
+    companion object {
+        val schema: Schema<ListRecord> = with(Schema) {
+            record(
+                field(list(int()).default(emptyList()), "value") { value },
+                ::ListRecord
+            )
+        }
     }
 }
