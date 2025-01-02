@@ -2,6 +2,7 @@ package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
+import kotlinx.serialization.Required
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -101,6 +102,7 @@ sealed interface JsonSchema {
         val properties: Map<String, JsonSchema>? = null,
         val additionalProperties: JsonSchema? = null,
         val oneOf: List<JsonSchema>? = null,
+        val required: List<String>? = null
     ) : JsonSchema {
         companion object {
             val schema: Schema<ObjectSchema> = with(Schema.Companion) {
@@ -108,6 +110,7 @@ sealed interface JsonSchema {
                     field(stringMap(lazy { jsonSchema() }).optional(), "properties") { properties },
                     field(lazy { jsonSchema() }.optional(), "additionalProperties") { additionalProperties },
                     field(list(lazy { jsonSchema() }).optional(), "oneOf") { oneOf },
+                    field(list(string()).optional(), "required") { required },
                     ::ObjectSchema
                 )
             }
@@ -173,7 +176,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(): JsonSchema {
 
         is Schema.Record<*> ->
             JsonSchema.ObjectSchema(
-                properties = unsafeFields().associate { it.name to it.schema.toJsonSchemaImpl() }
+                properties = unsafeFields().associate { it.name to it.schema.toJsonSchemaImpl() },
+                required = unsafeFields().filterNot { it.schema is Schema.Optional }.map { it.name }
             )
     }
 

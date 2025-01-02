@@ -36,6 +36,7 @@ class JsonSchemaTest {
                 """
                     {
                         "type": "object",
+                        "required": ["a", "b"],
                         "properties": {
                             "a": { "type": "integer" },
                             "b": { "type": "string" }
@@ -54,11 +55,13 @@ class JsonSchemaTest {
                 """
                    {
                       "type": "object",
+                      "required": ["value"],
                       "properties": {
                         "value": {
                           "type": "array",
                           "items": {
                             "type": "object",
+                            "required": ["a", "b"],
                             "properties": { 
                               "a": { "type": "integer" }, 
                               "b": { "type": "string" }
@@ -111,6 +114,7 @@ class JsonSchemaTest {
                         "type": "object",
                         "additionalProperties": {
                             "type": "object",
+                            "required": ["a", "b"],
                             "properties": {
                                 "a": { "type": "integer" },
                                 "b": { "type": "string" }
@@ -120,6 +124,29 @@ class JsonSchemaTest {
                 """.trimIndent()
             ),
             Schema.recordMap().toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `optional field`() {
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                    {
+                        "type": "object",
+                        "required": [],
+                        "properties": {
+                            "a": {
+                                "type": "integer"
+                            },
+                            "b": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                """.trimIndent()
+            ),
+            Schema.recordOptional().toJsonSchema().encodeToJsonElement()
         )
     }
 
