@@ -157,7 +157,7 @@ private fun <A> Schema<A>.toContentTypeObject(
     }
 }
 
-internal fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
+fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
         is Schema.Lazy<A> -> schema().toSchemaObject(ref)
@@ -177,6 +177,7 @@ internal fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
         is Schema.StringMap<*> -> SchemaObject(type = "object", additionalProperties = valueSchema.toSchemaObject(ref))
         is Schema.Union<*> ->
             SchemaObject(
+//                anyOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
                 oneOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
                 discriminator = DiscriminatorObject(
                     propertyName = key,
