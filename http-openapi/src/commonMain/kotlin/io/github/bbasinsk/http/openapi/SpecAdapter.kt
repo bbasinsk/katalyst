@@ -177,8 +177,8 @@ fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
         is Schema.StringMap<*> -> SchemaObject(type = "object", additionalProperties = valueSchema.toSchemaObject(ref))
         is Schema.Union<*> ->
             SchemaObject(
-//                anyOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
-                oneOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
+                anyOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
+//                oneOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
                 discriminator = DiscriminatorObject(
                     propertyName = key,
                     mapping = unsafeCases()
