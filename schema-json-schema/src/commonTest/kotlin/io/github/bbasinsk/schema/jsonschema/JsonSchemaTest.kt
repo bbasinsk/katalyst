@@ -87,6 +87,7 @@ class JsonSchemaTest {
                             {
                                 "type": "object",
                                 "properties": {
+                                    "type": { "const": "Customer" },   
                                     "id": { "type": "integer" },
                                     "email": { "type": "string", "nullable": true }
                                 }
@@ -94,6 +95,7 @@ class JsonSchemaTest {
                             {
                                 "type": "object",
                                 "properties": {
+                                    "type": { "const": "Employee" },
                                     "id": { "type": "integer" }
                                 }
                             }
