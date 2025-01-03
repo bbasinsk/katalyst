@@ -1,9 +1,6 @@
 package io.github.bbasinsk.http.openapi
 
-import io.github.bbasinsk.http.Http
-import io.github.bbasinsk.schema.Schema
 import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -11,7 +8,7 @@ class SchemaObjectTest {
 
     @Test
     fun `should convert to SchemaObject`() {
-        val obj = Person.schema.toSchemaObject()
+        val obj = Customer.schema.toSchemaObject()
 
         assertEquals(
             """

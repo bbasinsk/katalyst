@@ -3,6 +3,7 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.schema.Schema
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -247,9 +248,9 @@ class SpecAdapterTest {
     fun `should show examples`() {
         val http = Http.get { Root / "examples-test" }
             .input {
-                json { Person.schema }
-                    .example("example A", Person(123, "John"))
-                    .example("example B", Person(456, "Jane"))
+                json { Customer.schema }
+                    .example("example A", Customer(123, "John"))
+                    .example("example B", Customer(456, "Jane"))
                     .deprecated("some reason")
                     .description("a person")
             }
@@ -283,7 +284,7 @@ class SpecAdapterTest {
                                 "content": {
                                     "application/json": {
                                         "schema": {
-                                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Person"
+                                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
                                         },
                                         "examples": {
                                             "example A": {
@@ -332,7 +333,7 @@ class SpecAdapterTest {
                 },
                 "components": {
                     "schemas": {
-                        "io.github.bbasinsk.http.openapi.Person": {
+                        "io.github.bbasinsk.http.openapi.Customer": {
                             "type": "object",
                             "properties": {
                                 "id": {
@@ -355,20 +356,157 @@ class SpecAdapterTest {
 
         assertEquals(expected, json)
     }
+
+    @Test
+    fun `should work for oneOf`() {
+        val http = Http.get { Root / "examples-test" }
+            .input { json { Human.schema } }
+            .output { status(Ok) { json { int() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val expected = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/examples-test": {
+                        "get": {
+                            "parameters": [],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human"
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "text/plain": {
+                                            "schema": {
+                                                "type": "integer",
+                                                "format": "int32"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "io.github.bbasinsk.http.openapi.Human": {
+                            "discriminator":{
+                                "propertyName":"type",
+                                "mapping":{
+                                    "Customer":"io.github.bbasinsk.http.openapi.Customer",
+                                    "Employee":"io.github.bbasinsk.http.openapi.Employee"
+                                }
+                            },
+                            "anyOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "format": "int32"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "name"
+                                    ]
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "id": {
+                                            "type": "integer",
+                                            "format": "int32"
+                                        },
+                                        "role": {
+                                            "type": "string",
+                                            "enum": [
+                                                "Admin",
+                                                "User"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "role"
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        """.trimIndent()
+
+        assertEquals(
+            OpenApiJson.parseToJsonElement(expected),
+            OpenApiJson.encodeToJsonElement(result)
+        )
+    }
 }
 
-
-data class Person(
-    val id: Int,
-    val name: String
-) {
+sealed interface Human {
     companion object {
-        val schema: Schema<Person> = with(Schema.Companion) {
-            record(
-                field(int(), "id") { id },
-                field(string(), "name") { name },
-                ::Person
+        val schema: Schema<Human> = with(Schema.Companion) {
+            union(
+                case(Customer.schema),
+                case(Employee.schema)
             )
         }
     }
 }
+
+data class Customer(
+    val id: Int,
+    val name: String
+) : Human {
+    companion object {
+        val schema: Schema<Customer> = with(Schema.Companion) {
+            record(
+                field(int(), "id") { id },
+                field(string(), "name") { name },
+                ::Customer
+            )
+        }
+    }
+}
+
+enum class Role {
+    Admin,
+    User
+}
+
+data class Employee(
+    val id: Int,
+    val role: Role
+) : Human {
+    companion object {
+        val schema: Schema<Employee> = with(Schema.Companion) {
+            record(
+                field(int(), "id") { id },
+                field(enumeration(), "role") { role },
+                ::Employee
+            )
+        }
+    }
+}
+

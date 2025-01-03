@@ -32,6 +32,7 @@ sealed interface Schema<A> {
     ) : Schema<A>
 
     sealed interface Union<A> : Schema<A> {
+        val metadata: Metadata<A>
         val key: String
         fun unsafeCases(): List<Case<A, *>>
     }
@@ -281,42 +282,42 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16) -> (A)
         ): Schema<A> = Record16(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, construct)
 
-        fun <A, B1 : A> union(
+        inline fun <reified A : Any, B1 : A> union(
             case1: Case<A, B1>,
             key: String = "type"
-        ): Schema<A> = Union1(key, case1)
+        ): Schema<A> = Union1(A::class.toMetadata(), key, case1)
 
-        fun <A, B1 : A, B2 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             key: String = "type"
-        ): Schema<A> = Union2(key, case1, case2)
+        ): Schema<A> = Union2(A::class.toMetadata(), key, case1, case2)
 
-        fun <A, B1 : A, B2 : A, B3 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
             key: String = "type"
-        ): Schema<A> = Union3(key, case1, case2, case3)
+        ): Schema<A> = Union3(A::class.toMetadata(), key, case1, case2, case3)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
             case4: Case<A, B4>,
             key: String = "type"
-        ): Schema<A> = Union4(key, case1, case2, case3, case4)
+        ): Schema<A> = Union4(A::class.toMetadata(), key, case1, case2, case3, case4)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
             case4: Case<A, B4>,
             case5: Case<A, B5>,
             key: String = "type"
-        ): Schema<A> = Union5(key, case1, case2, case3, case4, case5)
+        ): Schema<A> = Union5(A::class.toMetadata(), key, case1, case2, case3, case4, case5)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -324,9 +325,9 @@ sealed interface Schema<A> {
             case5: Case<A, B5>,
             case6: Case<A, B6>,
             key: String = "type"
-        ): Schema<A> = Union6(key, case1, case2, case3, case4, case5, case6)
+        ): Schema<A> = Union6(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -335,9 +336,9 @@ sealed interface Schema<A> {
             case6: Case<A, B6>,
             case7: Case<A, B7>,
             key: String = "type"
-        ): Schema<A> = Union7(key, case1, case2, case3, case4, case5, case6, case7)
+        ): Schema<A> = Union7(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -347,9 +348,9 @@ sealed interface Schema<A> {
             case7: Case<A, B7>,
             case8: Case<A, B8>,
             key: String = "type"
-        ): Schema<A> = Union8(key, case1, case2, case3, case4, case5, case6, case7, case8)
+        ): Schema<A> = Union8(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -360,9 +361,9 @@ sealed interface Schema<A> {
             case8: Case<A, B8>,
             case9: Case<A, B9>,
             key: String = "type"
-        ): Schema<A> = Union9(key, case1, case2, case3, case4, case5, case6, case7, case8, case9)
+        ): Schema<A> = Union9(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9)
 
-        fun <A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A> union(
+        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -374,7 +375,8 @@ sealed interface Schema<A> {
             case9: Case<A, B9>,
             case10: Case<A, B10>,
             key: String = "type"
-        ): Schema<A> = Union10(key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10)
+        ): Schema<A> =
+            Union10(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10)
     }
 }
 

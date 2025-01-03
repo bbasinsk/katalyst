@@ -176,16 +176,20 @@ fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
         is Schema.Transform<*, *> -> this.toSchemaObject(ref)
         is Schema.StringMap<*> -> SchemaObject(type = "object", additionalProperties = valueSchema.toSchemaObject(ref))
         is Schema.Union<*> ->
-            SchemaObject(
-                anyOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
+            if (ref) {
+                SchemaObject(ref = "#/components/schemas/${metadata.qualifiedName()}")
+            } else {
+                SchemaObject(
+                    anyOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
 //                oneOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
-                discriminator = DiscriminatorObject(
-                    propertyName = key,
-                    mapping = unsafeCases()
-                        .mapNotNull { case -> case.schema.ref()?.let { case.name to it.first } }
-                        .toMap()
+                    discriminator = DiscriminatorObject(
+                        propertyName = key,
+                        mapping = unsafeCases()
+                            .mapNotNull { case -> case.schema.ref()?.let { case.name to it.first } }
+                            .toMap()
+                    )
                 )
-            )
+            }
 
         is Schema.Record<*> -> {
             if (ref) {
@@ -220,6 +224,6 @@ private fun Schema<*>.ref(): Pair<String, SchemaObject>? =
         is Schema.Primitive -> null
         is Schema.StringMap<*> -> valueSchema.ref()
         is Schema.Transform<*, *> -> schema.ref()
-        is Schema.Union<*> -> null
+        is Schema.Union<*> -> metadata.qualifiedName() to toSchemaObject()
         is Schema.Record<*> -> metadata.qualifiedName() to toSchemaObject()
     }
