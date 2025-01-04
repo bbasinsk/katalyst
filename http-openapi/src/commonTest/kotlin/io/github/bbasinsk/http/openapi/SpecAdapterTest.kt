@@ -367,93 +367,94 @@ class SpecAdapterTest {
 
         val expected = """
             {
-                "openapi": "3.0.0",
-                "info": {
-                    "title": "API",
-                    "version": "1.0.0"
-                },
-                "servers": [],
-                "paths": {
-                    "/examples-test": {
-                        "get": {
-                            "parameters": [],
-                            "requestBody": {
-                                "required": true,
-                                "content": {
-                                    "application/json": {
-                                        "schema": {
-                                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human"
-                                        }
-                                    }
-                                }
-                            },
-                            "responses": {
-                                "200": {
-                                    "description": "OK",
-                                    "content": {
-                                        "text/plain": {
-                                            "schema": {
-                                                "type": "integer",
-                                                "format": "int32"
-                                            }
-                                        }
-                                    }
-                                }
+              "openapi": "3.0.0",
+              "info": {
+                "title": "API",
+                "version": "1.0.0"
+              },
+              "servers": [],
+              "paths": {
+                "/examples-test": {
+                  "get": {
+                    "parameters": [],
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human"
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "200": {
+                        "description": "OK",
+                        "content": {
+                          "text/plain": {
+                            "schema": {
+                              "type": "integer",
+                              "format": "int32"
                             }
+                          }
                         }
+                      }
                     }
-                },
-                "components": {
-                    "schemas": {
-                        "io.github.bbasinsk.http.openapi.Human": {
-                            "discriminator":{
-                                "propertyName":"type",
-                                "mapping":{
-                                    "Customer":"io.github.bbasinsk.http.openapi.Customer",
-                                    "Employee":"io.github.bbasinsk.http.openapi.Employee"
-                                }
-                            },
-                            "anyOf": [
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer",
-                                            "format": "int32"
-                                        },
-                                        "name": {
-                                            "type": "string"
-                                        }
-                                    },
-                                    "required": [
-                                        "id",
-                                        "name"
-                                    ]
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer",
-                                            "format": "int32"
-                                        },
-                                        "role": {
-                                            "type": "string",
-                                            "enum": [
-                                                "Admin",
-                                                "User"
-                                            ]
-                                        }
-                                    },
-                                    "required": [
-                                        "id",
-                                        "role"
-                                    ]
-                                }
-                            ]
-                        }
-                    }
+                  }
                 }
+              },
+              "components": {
+                "schemas": {
+                  "io.github.bbasinsk.http.openapi.Human": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "type"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "integer",
+                            "format": "int32"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "Admin",
+                              "User"
+                            ]
+                          },
+                          "type": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "role",
+                          "type"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
             }
         """.trimIndent()
 

@@ -1,11 +1,12 @@
 package io.github.bbasinsk.http.openapi
 
+import io.github.bbasinsk.http.BodySchema
 import io.github.bbasinsk.http.Http
+import io.github.bbasinsk.http.ParamSchema
 import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathSchema
 import io.github.bbasinsk.http.ResponseStatus
-import io.github.bbasinsk.http.ParamSchema
-import io.github.bbasinsk.http.BodySchema
+import io.github.bbasinsk.schema.Metadata
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.isRequired
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -22,7 +23,7 @@ fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emp
 
 private fun Http<*, *, *, *>.toComponents(): List<Pair<String, SchemaObject>> {
     val schemas = listOf(input) + (output.schemaByStatus() + error.schemaByStatus()).values
-    return schemas.mapNotNull { schema -> schema.schema().ref() }
+    return schemas.flatMap { schema -> schema.schema().byRefName().toList() }
 }
 
 private fun List<Http<*, *, *, *>>.toOpenApiPaths(): Map<String, Map<String, Operation>> =
@@ -177,23 +178,30 @@ fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
         is Schema.StringMap<*> -> SchemaObject(type = "object", additionalProperties = valueSchema.toSchemaObject(ref))
         is Schema.Union<*> ->
             if (ref) {
-                SchemaObject(ref = "#/components/schemas/${metadata.qualifiedName()}")
+                SchemaObject(ref = refPath(metadata.qualifiedName()))
             } else {
                 SchemaObject(
-                    anyOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
-//                oneOf = unsafeCases().map { it.schema.toSchemaObject(ref) },
-                    discriminator = DiscriminatorObject(
-                        propertyName = key,
-                        mapping = unsafeCases()
-                            .mapNotNull { case -> case.schema.ref()?.let { case.name to it.first } }
-                            .toMap()
-                    )
+                    anyOf = unsafeCases()
+                        .map { it.schema.toSchemaObject(ref = false) }
+                        .map { childSchema ->
+                            childSchema.copy(
+                                properties = childSchema.properties?.plus(key to SchemaObject(type = "string")),
+                                required = childSchema.required?.plus(key)
+                            )
+                        },
+//                oneOf = unsafeCases().map { it.schema.toSchemaObject(ref = true) },
+//                    discriminator = DiscriminatorObject(
+//                        propertyName = key,
+//                        mapping = unsafeCases().mapNotNull { case ->
+//                            case.schema.byRefName().toList().singleOrNull()?.run { case.name to refPath(first) }
+//                        }.toMap()
+//                    )
                 )
             }
 
         is Schema.Record<*> -> {
             if (ref) {
-                SchemaObject(ref = "#/components/schemas/${metadata.qualifiedName()}")
+                SchemaObject(ref = refPath(metadata.qualifiedName()))
             } else {
                 SchemaObject(
                     type = "object",
@@ -212,18 +220,23 @@ private fun <A, B> Schema.Transform<A, B>.toSchemaObject(ref: Boolean): SchemaOb
         else -> schema.toSchemaObject(ref)
     }
 
-private fun Schema<*>.ref(): Pair<String, SchemaObject>? =
+private fun Schema<*>.byRefName(): Map<String, SchemaObject> =
     when (this) {
-        is Schema.Empty -> null
-        is Schema.Lazy<*> -> schema().ref()
-        is Schema.Bytes -> null
-        is Schema.Collection<*> -> itemSchema.ref()
-        is Schema.Default -> schema.ref()
-        is Schema.Optional<*> -> schema.ref()
-        is Schema.OrElse<*> -> preferred.ref()
-        is Schema.Primitive -> null
-        is Schema.StringMap<*> -> valueSchema.ref()
-        is Schema.Transform<*, *> -> schema.ref()
-        is Schema.Union<*> -> metadata.qualifiedName() to toSchemaObject()
-        is Schema.Record<*> -> metadata.qualifiedName() to toSchemaObject()
+        is Schema.Empty -> emptyMap()
+        is Schema.Lazy<*> -> schema().byRefName()
+        is Schema.Bytes -> emptyMap()
+        is Schema.Collection<*> -> itemSchema.byRefName()
+        is Schema.Default -> schema.byRefName()
+        is Schema.Optional<*> -> schema.byRefName()
+        is Schema.OrElse<*> -> preferred.byRefName()
+        is Schema.Primitive -> emptyMap()
+        is Schema.StringMap<*> -> valueSchema.byRefName()
+        is Schema.Transform<*, *> -> schema.byRefName()
+        is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject())) { acc, case ->
+            acc // + case.schema.byRefName()
+        }
+
+        is Schema.Record<*> -> mapOf(metadata.qualifiedName() to toSchemaObject())
     }
+
+private fun refPath(name: String): String = "#/components/schemas/$name"
