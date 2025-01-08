@@ -6,7 +6,6 @@ import io.github.bbasinsk.http.ParamSchema
 import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathSchema
 import io.github.bbasinsk.http.ResponseStatus
-import io.github.bbasinsk.schema.Metadata
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.isRequired
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -86,7 +85,7 @@ private fun <A> ParamSchema<A>.toParameter(`in`: String): Parameter =
         description = this.description(),
         required = this.schema().isRequired(),
         deprecated = this.deprecatedReason() != null,
-        schema = this.schema().toSchemaObject(),
+        schema = this.schema().toSchemaObject(Options()),
         examples = examples().mapValues { (key, value) ->
             ExampleObject(summary = key, value = this.schema().encodeToJsonElement(value))
         }
@@ -117,7 +116,7 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Bytes -> TODO()
         is Schema.Collection<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObject(ref = true),
+                schema = toSchemaObject(Options(ref = true)),
                 examples = examples.ifEmpty { null }
             )
         )
@@ -129,14 +128,14 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.OrElse<*> -> preferred.toContentTypeObject(contentType, examples)
         is Schema.Primitive -> mapOf(
             "text/plain" to MediaTypeObject(
-                schema = this.toSchemaObject(),
+                schema = this.toSchemaObject(Options()),
                 examples = examples.ifEmpty { null }
             ),
         )
 
         is Schema.StringMap<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObject(),
+                schema = toSchemaObject(Options()),
                 examples = examples.ifEmpty { null }
             )
         )
@@ -144,45 +143,54 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Transform<A, *> -> schema.toContentTypeObject(contentType, examples)
         is Schema.Record<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObject(ref = true),
+                schema = toSchemaObject(Options(ref = true)),
                 examples = examples.ifEmpty { null }
             )
         )
 
         is Schema.Union<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObject(ref = true),
+                schema = toSchemaObject(Options(ref = true)),
                 examples = examples.ifEmpty { null }
             )
         )
     }
 }
 
-fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
+data class Options(
+    val ref: Boolean = false,
+    val nullable: Boolean? = null
+)
+
+fun <A> Schema<A>.toSchemaObject(options: Options = Options()): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
-        is Schema.Lazy<A> -> schema().toSchemaObject(ref)
-        is Schema.Bytes -> SchemaObject(type = "string", format = "byte")
-        is Schema.Collection<*> -> SchemaObject(type = "array", items = itemSchema.toSchemaObject(ref))
-        is Schema.Default -> schema.toSchemaObject(ref)
-        is Schema.Optional<*> -> schema.toSchemaObject(ref)
-        is Schema.Primitive.Boolean -> SchemaObject(type = "boolean")
-        is Schema.Primitive.String -> SchemaObject(type = "string")
-        is Schema.Primitive.Double -> SchemaObject(type = "number", format = "double")
-        is Schema.Primitive.Float -> SchemaObject(type = "number", format = "float")
-        is Schema.Primitive.Int -> SchemaObject(type = "integer", format = "int32")
-        is Schema.Primitive.Long -> SchemaObject(type = "integer", format = "int64")
-        is Schema.Primitive.Enumeration<*> -> SchemaObject(type = "string", enum = values.map { it.toString() })
-        is Schema.OrElse<*> -> preferred.toSchemaObject(ref)
-        is Schema.Transform<*, *> -> this.toSchemaObject(ref)
-        is Schema.StringMap<*> -> SchemaObject(type = "object", additionalProperties = valueSchema.toSchemaObject(ref))
+        is Schema.Lazy<A> -> schema().toSchemaObject(options)
+        is Schema.Bytes -> SchemaObject(nullable = options.nullable, type = "string", format = "byte")
+        is Schema.Collection<*> -> SchemaObject(nullable = options.nullable, type = "array", items = itemSchema.toSchemaObject(Options(ref = options.ref)))
+        is Schema.Default -> schema.toSchemaObject(options)
+        is Schema.Optional<*> -> schema.toSchemaObject(options.copy(nullable = true))
+        is Schema.Primitive.Boolean -> SchemaObject(nullable = options.nullable, type = "boolean")
+        is Schema.Primitive.String -> SchemaObject(nullable = options.nullable, type = "string")
+        is Schema.Primitive.Double -> SchemaObject(nullable = options.nullable, type = "number", format = "double")
+        is Schema.Primitive.Float -> SchemaObject(nullable = options.nullable, type = "number", format = "float")
+        is Schema.Primitive.Int -> SchemaObject(nullable = options.nullable, type = "integer", format = "int32")
+        is Schema.Primitive.Long -> SchemaObject(nullable = options.nullable, type = "integer", format = "int64")
+        is Schema.Primitive.Enumeration<*> -> SchemaObject(nullable = options.nullable, type = "string", enum = values.map { it.toString() })
+        is Schema.OrElse<*> -> preferred.toSchemaObject(options)
+        is Schema.Transform<*, *> -> this.toSchemaObject(options)
+        is Schema.StringMap<*> -> SchemaObject(nullable = options.nullable, type = "object", additionalProperties = valueSchema.toSchemaObject(Options(ref = options.ref)))
         is Schema.Union<*> ->
-            if (ref) {
-                SchemaObject(ref = refPath(metadata.qualifiedName()))
+            if (options.ref) {
+                SchemaObject(
+                    nullable = options.nullable,
+                    ref = refPath(metadata.qualifiedName())
+                )
             } else {
                 SchemaObject(
+                    nullable = options.nullable,
                     anyOf = unsafeCases()
-                        .map { it.schema.toSchemaObject(ref = false) }
+                        .map { it.schema.toSchemaObject(Options()) }
                         .map { childSchema ->
                             childSchema.copy(
                                 properties = childSchema.properties?.plus(key to SchemaObject(type = "string")),
@@ -200,43 +208,47 @@ fun <A> Schema<A>.toSchemaObject(ref: Boolean = false): SchemaObject =
             }
 
         is Schema.Record<*> -> {
-            if (ref) {
-                SchemaObject(ref = refPath(metadata.qualifiedName()))
+            if (options.ref) {
+                SchemaObject(
+                    nullable = options.nullable,
+                    ref = refPath(metadata.qualifiedName())
+                )
             } else {
                 SchemaObject(
                     type = "object",
-                    properties = unsafeFields().associate { it.name to it.schema.toSchemaObject() },
+                    nullable = options.nullable,
+                    properties = unsafeFields().associate { it.name to it.schema.toSchemaObject(Options()) },
                     required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name }
                 )
             }
         }
     }
 
-private fun <A, B> Schema.Transform<A, B>.toSchemaObject(ref: Boolean): SchemaObject =
+private fun <A, B> Schema.Transform<A, B>.toSchemaObject(options: Options): SchemaObject =
     when (metadata.name.lowercase()) {
-        "uuid" -> SchemaObject(type = "string", format = "uuid")
-        "localdate" -> SchemaObject(type = "string", format = "date")
-        "instant" -> SchemaObject(type = "string", format = "date-time")
-        else -> schema.toSchemaObject(ref)
+        "uuid" -> SchemaObject(type = "string", format = "uuid", nullable = options.nullable)
+        "localdate" -> SchemaObject(type = "string", format = "date", nullable = options.nullable)
+        "instant" -> SchemaObject(type = "string", format = "date-time", nullable = options.nullable)
+        else -> schema.toSchemaObject(options)
     }
 
-private fun Schema<*>.byRefName(): Map<String, SchemaObject> =
+private fun Schema<*>.byRefName(nullable: Boolean? = null): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
         is Schema.Lazy<*> -> schema().byRefName()
         is Schema.Bytes -> emptyMap()
         is Schema.Collection<*> -> itemSchema.byRefName()
         is Schema.Default -> schema.byRefName()
-        is Schema.Optional<*> -> schema.byRefName()
+        is Schema.Optional<*> -> schema.byRefName(nullable = true)
         is Schema.OrElse<*> -> preferred.byRefName()
         is Schema.Primitive -> emptyMap()
-        is Schema.StringMap<*> -> valueSchema.byRefName()
-        is Schema.Transform<*, *> -> schema.byRefName()
-        is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject())) { acc, case ->
+        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable)
+        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable)
+        is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject(Options()))) { acc, case ->
             acc // + case.schema.byRefName()
         }
 
-        is Schema.Record<*> -> mapOf(metadata.qualifiedName() to toSchemaObject())
+        is Schema.Record<*> -> mapOf(metadata.qualifiedName() to toSchemaObject(Options()))
     }
 
 private fun refPath(name: String): String = "#/components/schemas/$name"

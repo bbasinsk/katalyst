@@ -85,6 +85,7 @@ data class SchemaObject(
     val items: SchemaObject? = null,
     val properties: Map<String, SchemaObject>? = null,
     val required: List<String>? = null,
+    val nullable: Boolean? = null,
     val enum: List<String>? = null,
     val oneOf: List<SchemaObject>? = null,
     val anyOf: List<SchemaObject>? = null,
