@@ -173,10 +173,7 @@ class SpecAdapterTest {
 
         val result = listOf(http).toOpenApiSpec(info)
 
-        val json = OpenApiJson.encodeToString(result).also {
-            println("BLAH")
-            println(it)
-        }
+        val json = OpenApiJson.encodeToString(result)
 
         val expected = """
             {
