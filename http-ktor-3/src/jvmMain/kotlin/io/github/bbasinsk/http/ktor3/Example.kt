@@ -119,7 +119,7 @@ fun Schema.Companion.badRequestSchema(): Schema<MultipleErrors.BadRequest> =
         MultipleErrors::BadRequest
     )
 
-fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints {
+fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints("Example") {
     handle(findPersonById) { request ->
         val (name) = tupleValues(request.params)
         success(domainStuff().copy(name = name))

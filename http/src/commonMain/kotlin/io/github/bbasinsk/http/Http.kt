@@ -21,8 +21,8 @@ data class Http<Params, Input, Error, Output>(
     fun deprecated(reason: String): Http<Params, Input, Error, Output> =
         copy(metadata = metadata.copy(deprecatedReason = reason))
 
-    fun tag(tag: String): Http<Params, Input, Error, Output> =
-        copy(metadata = metadata.copy(tags = metadata.tags + tag))
+    fun tag(vararg tag: String): Http<Params, Input, Error, Output> =
+        copy(metadata = metadata.copy(tags = metadata.tags + tag.toList()))
 
     fun <Params2> query(query: ParamSchema.Companion.() -> ParamSchema<Params2>): Http<Pair<Params, Params2>, Input, Error, Output> =
         Http(

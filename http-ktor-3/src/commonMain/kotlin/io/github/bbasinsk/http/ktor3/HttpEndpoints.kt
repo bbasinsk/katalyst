@@ -10,11 +10,13 @@ import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.utils.io.KtorDsl
 
-fun HttpEndpoints.httpEndpoints(builder: HttpEndpoints.() -> Unit) = apply(builder)
+fun HttpEndpoints.httpEndpoints(vararg tags: String, builder: HttpEndpoints.() -> Unit) =
+    apply { this.tags += tags.toList() }.apply(builder)
 
 data class HttpEndpoints(
     val underlying: MutableList<HttpEndpoint<*, *, *, *, RoutingCall>> = mutableListOf(),
-    var openApiBuilder: OpenApiBuilder? = null
+    var openApiBuilder: OpenApiBuilder? = null,
+    val tags: MutableList<String> = mutableListOf(),
 ) {
 
     @KtorDsl
@@ -38,5 +40,5 @@ data class HttpEndpoints(
     }
 
     internal fun apis(): List<Http<*, *, *, *>> =
-        underlying.map { it.api }
+        underlying.map { it.api.tag(*tags.toTypedArray()) }
 }
