@@ -153,7 +153,7 @@ class SpecAdapterTest {
     }
 
     @Test
-    fun `should return refs for list records`() {
+    fun `should return refs for list records output`() {
         data class Person(
             val name: String,
             val age: Int
@@ -207,6 +207,95 @@ class SpecAdapterTest {
                                                 "items": {
                                                     "${'$'}ref": "#/components/schemas/Person"
                                                 }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "Person": {
+                            "type": "object",
+                            "properties": {
+                                "name": {
+                                    "type": "string"
+                                },
+                                "age": {
+                                    "type": "integer",
+                                    "format": "int32"
+                                }
+                            },
+                            "required": [
+                                "name",
+                                "age"
+                            ]
+                        }
+                    }
+                }
+            }
+        """.trimIndent()
+
+        assertEquals(expected, json)
+    }
+
+    @Test
+    fun `should return refs for list records input`() {
+        data class Person(
+            val name: String,
+            val age: Int
+        )
+
+        val personSchema = with(Schema.Companion) {
+            record(
+                field(string(), "name") { name },
+                field(int(), "age") { age },
+                ::Person
+            )
+        }
+
+        val http = Http.get { Root / "test" }
+            .input { json { list(personSchema)  } }
+            .output { status(Ok) { plain { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToString(result)
+
+        val expected = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/test": {
+                        "get": {
+                            "parameters": [],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "application/json": {
+                                        "schema": {
+                                            "type": "array",
+                                            "items": {
+                                                "${'$'}ref": "#/components/schemas/Person"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "text/plain": {
+                                            "schema": {
+                                                "type": "string"
                                             }
                                         }
                                     }
