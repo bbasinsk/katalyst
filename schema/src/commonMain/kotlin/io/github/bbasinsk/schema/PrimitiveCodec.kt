@@ -4,7 +4,7 @@ package io.github.bbasinsk.schema
 // TODO: Test this!
 
 @Suppress("UNCHECKED_CAST")
-fun <A> Schema<A>.decodeString(str: String): Result<A> =
+fun <A> Schema<A>.decodePrimitiveString(str: String): Result<A> =
     when (this) {
         is Schema.Primitive.String -> Result.success(str as A)
         is Schema.Primitive.Int -> runCatching { str.toInt() as A }
@@ -13,15 +13,12 @@ fun <A> Schema<A>.decodeString(str: String): Result<A> =
         is Schema.Primitive.Double -> runCatching { str.toDouble() as A }
         is Schema.Primitive.Boolean -> runCatching { str.toBooleanStrict() as A }
         is Schema.Primitive.Enumeration -> runCatching { values.first { it.toString() == str } }
-        is Schema.Default -> schema.decodeString(str).recoverCatching { default }
+        is Schema.Default -> schema.decodePrimitiveString(str).recoverCatching { default }
         is Schema.Empty -> Result.success(null as A)
-        is Schema.Lazy -> schema().decodeString(str)
-        is Schema.Optional<*> -> schema.decodeString(str).recoverCatching { null } as Result<A>
-        is Schema.OrElse -> preferred.decodeString(str).recoverCatching { fallback.decodeString(str).getOrThrow() }
-        is Schema.Transform<A, *> -> runCatching {
-            (this as Schema.Transform<A, Any?>).decode(schema.decodeString(str).getOrThrow())
-        } as Result<A>
-
+        is Schema.Lazy -> schema().decodePrimitiveString(str)
+        is Schema.Optional<*> -> schema.decodePrimitiveString(str).recoverCatching { null } as Result<A>
+        is Schema.OrElse -> preferred.decodePrimitiveString(str).recoverCatching { fallback.decodePrimitiveString(str).getOrThrow() }
+        is Schema.Transform<A, *> -> (this as Schema.Transform<A, Any?>).decode(schema.decodePrimitiveString(str).getOrThrow())
         is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot decode StringMap from String"))
         is Schema.Record -> Result.failure(IllegalStateException("Cannot decode Record from String"))
         is Schema.Union -> Result.failure(IllegalStateException("Cannot decode Union from String"))

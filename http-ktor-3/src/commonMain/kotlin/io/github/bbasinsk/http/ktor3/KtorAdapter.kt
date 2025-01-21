@@ -14,7 +14,7 @@ import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
-import io.github.bbasinsk.schema.decodeString
+import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodeString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
@@ -125,7 +125,7 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
         is BodySchema.Single -> when (request.contentType) {
             ContentType.Avro -> receiveAvro(request.schema())
             ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.message()) }
-            ContentType.Plain -> Validation.fromResult(request.schema().decodeString(receiveText())) {
+            ContentType.Plain -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
                 SchemaError(it.message ?: "Error decoding")
             }
         }
@@ -152,7 +152,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
         is Schema.Primitive -> receiveText().let { raw ->
-            Validation.fromResult(schema.decodeString(raw)) {
+            Validation.fromResult(schema.decodePrimitiveString(raw)) {
                 InvalidJson(expected = schema.name, found = raw, path = emptyList())
             }
         }

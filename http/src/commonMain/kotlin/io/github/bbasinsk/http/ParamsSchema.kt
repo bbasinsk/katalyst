@@ -1,7 +1,7 @@
 package io.github.bbasinsk.http
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.decodeString
+import io.github.bbasinsk.schema.decodePrimitiveString
 
 
 // A ParamSchema is a description of a Path, Query Parameters, and Headers.
@@ -57,15 +57,7 @@ fun <A> ParamsSchema<A>.parseCatching(
 
 fun <A> ParamSchema<A>.parse(getValue: (String) -> String?): A =
     when (this) {
-        is ParamSchema.Single -> {
-            val str = getValue(name)
-            if (str == null) {
-                error("Missing param $name")
-            } else {
-                schema.decodeString(str).getOrThrow()
-            }
-        }
-
+        is ParamSchema.Single -> schema.decodePrimitiveString(getValue(name) ?: "").getOrThrow()
         is ParamSchema.WithMetadata -> schema.parse(getValue)
     }
 
@@ -94,7 +86,7 @@ fun <A> ParamsSchema<A>.parse(
 
         is PathSchema.Parameter -> {
             rawPath.removeFirstOrNull()
-                ?.let { rawValue -> this.param.schema().decodeString(rawValue).getOrThrow() }
+                ?.let { rawValue -> this.param.schema().decodePrimitiveString(rawValue).getOrThrow() }
                 ?: error("Expected parameter ${this.param.name()}")
         }
 

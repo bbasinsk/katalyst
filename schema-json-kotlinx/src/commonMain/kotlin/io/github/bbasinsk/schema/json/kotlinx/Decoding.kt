@@ -1,7 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.decodeString
+import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.Segment
 import io.github.bbasinsk.validation.Validation
@@ -66,7 +66,7 @@ private fun <A> Validation.Companion.decodePrimitive(
         runCatching { json.jsonPrimitive }
             .mapInvalid { error }
             .andThen { schema.validateIsString(it, error) }
-            .andThen { fromResult(schema.decodeString(it.content)) { error } }
+            .andThen { fromResult(schema.decodePrimitiveString(it.content)) { error } }
     }
 }
 

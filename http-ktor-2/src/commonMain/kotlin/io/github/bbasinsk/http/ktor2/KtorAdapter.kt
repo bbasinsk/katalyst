@@ -10,7 +10,7 @@ import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.decodeString
+import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -137,7 +137,7 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveSchema(with(schema) { schema() })
         is Schema.Primitive -> receiveText().let { raw ->
-            Validation.fromResult(schema.decodeString(raw)) {
+            Validation.fromResult(schema.decodePrimitiveString(raw)) {
                 InvalidJson(expected = schema.name, found = raw, path = emptyList())
             }
         }

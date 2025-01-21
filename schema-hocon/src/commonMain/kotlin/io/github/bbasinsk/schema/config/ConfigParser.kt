@@ -8,7 +8,7 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Record
 import io.github.bbasinsk.schema.Schema.Union
 import io.github.bbasinsk.schema.config.ConfigParseError.FormatError
-import io.github.bbasinsk.schema.decodeString
+import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.Validation.Companion.invalid
 import io.github.bbasinsk.validation.Validation.Companion.valid
@@ -127,7 +127,7 @@ object ConfigParser {
         config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
         config.getString().andThen { configValue ->
-            Validation.fromResult(parser.decodeString(configValue)) {
+            Validation.fromResult(parser.decodePrimitiveString(configValue)) {
                 FormatError(value = configValue, format = parser.name, path = config.path)
             }
         }
