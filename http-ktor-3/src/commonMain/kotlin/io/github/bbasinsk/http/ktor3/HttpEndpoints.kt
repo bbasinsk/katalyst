@@ -11,12 +11,12 @@ import io.ktor.server.routing.RoutingRoot
 import io.ktor.utils.io.KtorDsl
 
 fun HttpEndpoints.httpEndpoints(vararg tags: String, builder: HttpEndpoints.() -> Unit) =
-    apply { this.tags += tags.toList() }.apply(builder)
+    copy(tags = this.tags + tags.toList()).apply(builder)
 
 data class HttpEndpoints(
     val underlying: MutableList<HttpEndpoint<*, *, *, *, RoutingCall>> = mutableListOf(),
     var openApiBuilder: OpenApiBuilder? = null,
-    val tags: MutableList<String> = mutableListOf(),
+    val tags: List<String> = emptyList(),
 ) {
 
     @KtorDsl
@@ -33,12 +33,17 @@ data class HttpEndpoints(
         api: Http<Path, Input, Error, Output>,
         handler: suspend Response.Companion.(request: Request<Path, Input, RoutingCall>) -> Response<Error, Output>
     ): HttpEndpoint<Path, Input, Error, Output, RoutingCall> =
-        HttpEndpoint(api, handler).also { underlying.add(it) }
+        HttpEndpoint(
+            api = api.tag(*tags.toTypedArray()),
+            handle = handler
+        ).also {
+            underlying.add(it)
+        }
 
     internal fun configure(): RoutingRoot.() -> Unit = {
         underlying.forEach { httpEndpointToRoute(it) }
     }
 
     internal fun apis(): List<Http<*, *, *, *>> =
-        underlying.map { it.api.tag(*tags.toTypedArray()) }
+        underlying.map { it.api }
 }
