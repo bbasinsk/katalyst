@@ -1,5 +1,7 @@
 package io.github.bbasinsk.schema
 
+import io.github.bbasinsk.schema.Schema.Default
+
 
 sealed interface Schema<A> {
 
@@ -576,9 +578,10 @@ sealed interface Schema<A> {
     }
 }
 
-inline fun <A, reified B : Any> Schema<A>.transform(noinline encode: (B) -> A, noinline decode: (A) -> B): Schema<B> =
+inline fun <A, reified B : Any> Schema<A>.transform(noinline decode: (A) -> B, noinline encode: (B) -> A): Schema<B> =
     Schema.Transform(
         metadata = B::class.toMetadata(),
         schema = this,
-        encode = encode
-    ) { runCatching { decode(it) } }
+        encode = encode,
+        decode = { runCatching { decode(it) } }
+    )

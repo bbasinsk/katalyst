@@ -30,7 +30,7 @@ data class Person(
 )
 
 fun Schema.Companion.personId(): Schema<PersonId> =
-    uuid().transform({ it.value }, ::PersonId)
+    uuid().transform(::PersonId) { it.value }
 
 fun Schema.Companion.person(): Schema<Person> =
     record(

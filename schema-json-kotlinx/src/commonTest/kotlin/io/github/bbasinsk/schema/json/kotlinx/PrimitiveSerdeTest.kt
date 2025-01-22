@@ -378,9 +378,8 @@ class PrimitiveSerdeTest {
             }
         }
         val uuidSchema = Schema.string().transform(
-            encode = { it.toString() },
             decode = { UUID(it) }
-        )
+        ) { it.toString() }
 
         assertEquals(
             Validation.invalid(

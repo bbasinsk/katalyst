@@ -10,7 +10,7 @@ import kotlin.test.assertEquals
 class LenientSerdeTest {
 
     fun Schema.Companion.quotedDouble(): Schema<Double> =
-        string().transform({ it.toString() }, { it.toDouble() })
+        string().transform({ it.toDouble() }) { it.toString() }
 
     fun Schema.Companion.lenientDouble(): Schema<Double> =
         double().orElse(quotedDouble())

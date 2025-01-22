@@ -9,6 +9,5 @@ import kotlin.uuid.Uuid
 
 fun Schema.Companion.uuid() =
     string().transform(
-        encode = { it.toString() },
         decode = { Uuid.parse(it) }
-    )
+    ) { it.toString() }

@@ -7,12 +7,10 @@ import java.util.UUID
 
 fun Schema.Companion.uuid() =
     string().transform(
-        encode = { it.toString() },
         decode = { UUID.fromString(it) }
-    )
+    ) { it.toString() }
 
 fun Schema.Companion.byteBuffer() =
     byteArray().transform(
-        encode = { it.array() },
         decode = { ByteBuffer.wrap(it) }
-    )
+    ) { it.array() }

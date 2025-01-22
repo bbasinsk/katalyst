@@ -90,4 +90,4 @@ fun Schema.Companion.all() =
     )
 
 fun Schema.Companion.customList(): Schema<List<Char?>> =
-    list(string()).transform({ it.map { it.toString() } }, { it.firstOrNull()?.toList() ?: emptyList() })
+    list(string()).transform({ it.firstOrNull()?.toList() ?: emptyList() }) { it.map { it.toString() } }

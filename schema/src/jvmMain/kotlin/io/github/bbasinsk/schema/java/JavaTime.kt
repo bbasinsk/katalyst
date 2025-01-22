@@ -8,14 +8,12 @@ import java.time.format.DateTimeFormatter
 
 fun Schema.Companion.instant(format: DateTimeFormatter = DateTimeFormatter.ISO_INSTANT) =
     string().transform(
-        encode = { format.format(it) },
         decode = { format.parse(it, Instant::from) }
-    )
+    ) { format.format(it) }
 
 fun Schema.Companion.localDate(format: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE) =
     string().transform(
-        encode = { format.format(it) },
         decode = { format.parse(it, LocalDate::from) }
-    )
+    ) { format.format(it) }
 
 // TODO: Add support for all the other Java Time types

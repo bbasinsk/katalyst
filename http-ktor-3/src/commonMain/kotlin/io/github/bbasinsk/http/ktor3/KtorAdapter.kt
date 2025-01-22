@@ -217,6 +217,6 @@ data class SchemaError(
     val message: String
 ) {
     companion object {
-        val schema = Schema.string().transform({ it.message }, { SchemaError(it) })
+        val schema = Schema.string().transform({ SchemaError(it) }) { it.message }
     }
 }

@@ -1,5 +1,7 @@
 package io.github.bbasinsk.schema
 
+import kotlin.coroutines.EmptyCoroutineContext.fold
+
 
 // TODO: Test this!
 
@@ -18,7 +20,7 @@ fun <A> Schema<A>.decodePrimitiveString(str: String): Result<A> =
         is Schema.Lazy -> schema().decodePrimitiveString(str)
         is Schema.Optional<*> -> schema.decodePrimitiveString(str).recoverCatching { null } as Result<A>
         is Schema.OrElse -> preferred.decodePrimitiveString(str).recoverCatching { fallback.decodePrimitiveString(str).getOrThrow() }
-        is Schema.Transform<A, *> -> (this as Schema.Transform<A, Any?>).decode(schema.decodePrimitiveString(str).getOrThrow())
+        is Schema.Transform<A, *> -> schema.decodePrimitiveString(str).mapCatching { (this as Schema.Transform<A, Any?>).decode(it).getOrThrow() }
         is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot decode StringMap from String"))
         is Schema.Record -> Result.failure(IllegalStateException("Cannot decode Record from String"))
         is Schema.Union -> Result.failure(IllegalStateException("Cannot decode Union from String"))
