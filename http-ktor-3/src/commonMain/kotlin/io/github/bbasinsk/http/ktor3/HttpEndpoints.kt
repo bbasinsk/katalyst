@@ -19,7 +19,6 @@ data class HttpEndpoints(
     val tags: List<String> = emptyList(),
 ) {
 
-    @KtorDsl
     fun openApi(
         info: Info,
         servers: List<Server> = emptyList(),

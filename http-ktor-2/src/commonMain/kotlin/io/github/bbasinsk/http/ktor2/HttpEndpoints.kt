@@ -17,7 +17,6 @@ data class HttpEndpoints(
     var openApiBuilder: OpenApiBuilder? = null
 ) {
 
-    @KtorDsl
     fun openApi(
         info: Info,
         servers: List<Server> = emptyList(),
