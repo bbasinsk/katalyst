@@ -162,7 +162,7 @@ data class Options(
     val nullable: Boolean? = null
 )
 
-fun <A> Schema<A>.toSchemaObject(options: Options = Options()): SchemaObject =
+fun <A> Schema<A>.toSchemaObject(options: Options = Options(), anyOf: Boolean = false): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
         is Schema.Lazy<A> -> schema().toSchemaObject(options)
@@ -187,24 +187,30 @@ fun <A> Schema<A>.toSchemaObject(options: Options = Options()): SchemaObject =
                     ref = refPath(metadata.qualifiedName())
                 )
             } else {
-                SchemaObject(
-                    nullable = options.nullable,
-                    anyOf = unsafeCases()
-                        .map { it.schema.toSchemaObject(Options()) }
-                        .map { childSchema ->
-                            childSchema.copy(
-                                properties = childSchema.properties?.plus(key to SchemaObject(type = "string")),
-                                required = childSchema.required?.plus(key)
-                            )
-                        },
-//                oneOf = unsafeCases().map { it.schema.toSchemaObject(ref = true) },
-//                    discriminator = DiscriminatorObject(
-//                        propertyName = key,
-//                        mapping = unsafeCases().mapNotNull { case ->
-//                            case.schema.byRefName().toList().singleOrNull()?.run { case.name to refPath(first) }
-//                        }.toMap()
-//                    )
-                )
+                if (anyOf) {
+                    SchemaObject(
+                        nullable = options.nullable,
+                        anyOf = unsafeCases()
+                            .map { it.schema.toSchemaObject(Options()) }
+                            .map { childSchema ->
+                                childSchema.copy(
+                                    properties = childSchema.properties?.plus(key to SchemaObject(type = "string")),
+                                    required = childSchema.required?.plus(key)
+                                )
+                            },
+                    )
+                } else {
+                    SchemaObject(
+                        nullable = options.nullable,
+                        oneOf = unsafeCases().map { it.schema.toSchemaObject(Options()) },
+                        discriminator = DiscriminatorObject(
+                            propertyName = key,
+                            mapping = unsafeCases().mapNotNull { case ->
+                                case.schema.byRefName().toList().singleOrNull()?.run { case.name to refPath(first) }
+                            }.toMap()
+                        )
+                    )
+                }
             }
 
         is Schema.Record<*> -> {

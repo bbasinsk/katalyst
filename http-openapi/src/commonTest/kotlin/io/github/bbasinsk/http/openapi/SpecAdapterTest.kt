@@ -492,7 +492,7 @@ class SpecAdapterTest {
               "components": {
                 "schemas": {
                   "io.github.bbasinsk.http.openapi.Human": {
-                    "anyOf": [
+                    "oneOf": [
                       {
                         "type": "object",
                         "properties": {
@@ -502,15 +502,11 @@ class SpecAdapterTest {
                           },
                           "name": {
                             "type": "string"
-                          },
-                          "type": {
-                            "type": "string"
                           }
                         },
                         "required": [
                           "id",
-                          "name",
-                          "type"
+                          "name"
                         ]
                       },
                       {
@@ -526,18 +522,21 @@ class SpecAdapterTest {
                               "Admin",
                               "User"
                             ]
-                          },
-                          "type": {
-                            "type": "string"
                           }
                         },
                         "required": [
                           "id",
-                          "role",
-                          "type"
+                          "role"
                         ]
                       }
-                    ]
+                    ],
+                    "discriminator":{
+                        "propertyName":"type",
+                        "mapping":{
+                            "Customer":"#/components/schemas/io.github.bbasinsk.http.openapi.Customer",
+                            "Employee":"#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                        }
+                    }
                   }
                 }
               }

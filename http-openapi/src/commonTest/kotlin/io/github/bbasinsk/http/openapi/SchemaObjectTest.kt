@@ -45,7 +45,7 @@ class SchemaObjectTest {
         assertEquals(
             """
             {
-                "anyOf": [
+                "oneOf": [
                     {
                         "type": "object",
                         "properties": {
@@ -55,15 +55,11 @@ class SchemaObjectTest {
                             },
                             "name": {
                                 "type": "string"
-                            },
-                            "type": {
-                                "type": "string"
                             }
                         },
                         "required": [
                             "id",
-                            "name",
-                            "type"
+                            "name"
                         ]
                     },
                     {
@@ -79,18 +75,21 @@ class SchemaObjectTest {
                                     "Admin",
                                     "User"
                                 ]
-                            },
-                            "type": {
-                                "type": "string"
                             }
                         },
                         "required": [
                             "id",
-                            "role",
-                            "type"
+                            "role"
                         ]
                     }
-                ]
+                ],
+                "discriminator": {
+                    "propertyName": "type",
+                    "mapping": {
+                        "Customer": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer",
+                        "Employee": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                    }
+                }
             }
             """.trimIndent(),
             OpenApiJson.encodeToString(obj)
