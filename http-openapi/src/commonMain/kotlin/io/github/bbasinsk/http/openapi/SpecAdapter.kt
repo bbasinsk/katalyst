@@ -224,7 +224,8 @@ fun <A> Schema<A>.toSchemaObject(options: Options = Options(), anyOf: Boolean = 
                     type = "object",
                     nullable = options.nullable,
                     properties = unsafeFields().associate { it.name to it.schema.toSchemaObject(Options()) },
-                    required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name }
+                    required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name },
+                    propertyOrdering = unsafeFields().map { it.name }
                 )
             }
         }
