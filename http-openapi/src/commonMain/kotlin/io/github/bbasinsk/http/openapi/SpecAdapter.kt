@@ -159,10 +159,14 @@ private fun <A> Schema<A>.toContentTypeObject(
 
 data class Options(
     val ref: Boolean = false,
-    val nullable: Boolean? = null
+    val nullable: Boolean? = null,
+
+    // Really for google gemini structured output
+    val useAnyOf: Boolean = false,
+    val usePropertyOrdering: Boolean = false
 )
 
-fun <A> Schema<A>.toSchemaObject(options: Options = Options(), anyOf: Boolean = false): SchemaObject =
+fun <A> Schema<A>.toSchemaObject(options: Options = Options()): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
         is Schema.Lazy<A> -> schema().toSchemaObject(options)
@@ -187,7 +191,7 @@ fun <A> Schema<A>.toSchemaObject(options: Options = Options(), anyOf: Boolean = 
                     ref = refPath(metadata.qualifiedName())
                 )
             } else {
-                if (anyOf) {
+                if (options.useAnyOf) {
                     SchemaObject(
                         nullable = options.nullable,
                         anyOf = unsafeCases()
@@ -225,7 +229,7 @@ fun <A> Schema<A>.toSchemaObject(options: Options = Options(), anyOf: Boolean = 
                     nullable = options.nullable,
                     properties = unsafeFields().associate { it.name to it.schema.toSchemaObject(Options()) },
                     required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name },
-                    propertyOrdering = unsafeFields().map { it.name }
+                    propertyOrdering = if (options.usePropertyOrdering) unsafeFields().map { it.name } else null
                 )
             }
         }
