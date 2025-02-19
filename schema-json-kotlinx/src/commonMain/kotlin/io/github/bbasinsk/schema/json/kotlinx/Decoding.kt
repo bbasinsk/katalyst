@@ -43,10 +43,7 @@ private fun <A> Validation.Companion.decode(
         is Schema.Primitive -> decodePrimitive(schema, json, path)
         is Schema.Default -> decodeDefault(schema, json, path)
         is Schema.Optional<*> -> decodeOptional(schema, json, path) as Validation<InvalidJson, A>
-        is Schema.OrElse -> decode(schema.preferred, json, path).orElse { errors ->
-            decode(schema.fallback, json, path).orElse { Invalid(errors) }
-        }
-
+        is Schema.OrElse -> decode(schema.preferred, json, path).orElse { decode(schema.fallback, json, path) }
         is Schema.Transform<A, *> -> decodeTransform(schema, json, path)
         is Schema.Collection<*> -> decodeList(schema, json, path) as Validation<InvalidJson, A>
         is Schema.StringMap<*> -> stringMap(schema, json, path) as Validation<InvalidJson, A>

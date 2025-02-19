@@ -30,10 +30,10 @@ class LenientSerdeTest {
     }
 
     @Test
-    fun `still returns error of preferred deserialization`() {
+    fun `returns error`() {
         val rawString = "{}"
         assertEquals(
-            Validation.invalid(InvalidJson(expected = "Double", found = "{}", path = emptyList())),
+            Validation.invalid(InvalidJson(expected = "String", found = "{}", path = emptyList())),
             Schema.lenientDouble().decodeFromJsonString(rawString)
         )
     }

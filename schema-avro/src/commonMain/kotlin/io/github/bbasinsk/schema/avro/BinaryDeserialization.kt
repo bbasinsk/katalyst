@@ -81,8 +81,8 @@ object BinaryDeserialization {
                 if (input == null) valid(this.default) else this.schema.decode(input)
 
             is Schema.OrElse ->
-                this.preferred.decode(input).orElse { errors ->
-                    this.fallback.decode(input).orElse { Invalid(errors) }
+                this.preferred.decode(input).orElse {
+                    this.fallback.decode(input)
                 }
 
             is Schema.Transform<A, *> ->
