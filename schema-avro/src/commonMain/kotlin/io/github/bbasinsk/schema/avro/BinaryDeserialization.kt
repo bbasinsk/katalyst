@@ -7,7 +7,6 @@ import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.Validation.Companion.invalid
 import io.github.bbasinsk.validation.Validation.Companion.valid
-import io.github.bbasinsk.validation.Validation.Invalid
 import io.github.bbasinsk.validation.andThen
 import io.github.bbasinsk.validation.mapInvalid
 import io.github.bbasinsk.validation.mapValid
@@ -21,24 +20,39 @@ import org.apache.avro.util.Utf8
 import java.nio.ByteBuffer
 import kotlin.reflect.typeOf
 
-data class InvalidField(val reason: String)
+
+sealed interface DeserializationError {
+    data class InvalidField(val reason: String) : DeserializationError
+    data class Or(val a: List<DeserializationError>, val b: List<DeserializationError>) : DeserializationError
+
+    private fun tab(n: Int) = "    ".repeat(n)
+    fun reason(indent: Int = 0): String =
+        when (this) {
+            is InvalidField -> reason
+            is Or -> buildString {
+                appendLine(tab(indent) + "Either:")
+                appendLine(tab(indent + 1) + a.joinToString { it.reason(indent + 1) })
+                appendLine(tab(indent + 1) + b.joinToString { it.reason(indent + 1) })
+            }
+        }
+}
 
 object BinaryDeserialization {
     private val decoderFactory: DecoderFactory = DecoderFactory.get()
 
-    fun <A> Schema<A>.deserializeIgnoringSchemaId(payload: ByteArray?): Validation<InvalidField, A> =
+    fun <A> Schema<A>.deserializeIgnoringSchemaId(payload: ByteArray?): Validation<DeserializationError, A> =
         deserialize(payload) { toAvroSchema() }
 
     fun <A> Schema<A>.deserialize(
         payload: ByteArray?,
         getSchema: (Int) -> org.apache.avro.Schema
-    ): Validation<InvalidField, A> {
+    ): Validation<DeserializationError, A> {
         if (payload == null) return decode(null)
 
         val buffer = ByteBuffer.wrap(payload)
 
         if (buffer.get() != MAGIC_BYTE) {
-            return invalid(InvalidField("Unknown magic byte!"))
+            return invalid(DeserializationError.InvalidField("Unknown magic byte!"))
         }
 
         val id = buffer.int
@@ -54,7 +68,11 @@ object BinaryDeserialization {
 
             Validation
                 .runCatching { GenericDatumReader<Any>(writerSchema, toAvroSchema()).read(null, decoder) }
-                .mapInvalid { e -> InvalidField(e.message ?: "Unable to decode bytes: ${e.stackTraceToString()}") }
+                .mapInvalid { e ->
+                    DeserializationError.InvalidField(
+                        e.message ?: "Unable to decode bytes: ${e.stackTraceToString()}"
+                    )
+                }
                 .andThen { decode(it) }
         }
     }
@@ -63,7 +81,7 @@ object BinaryDeserialization {
     * Input is GenericData.Record, GenericData.Array, GenericData.EnumSymbol, Map, ByteBuffer, primitive (String, Int, etc), or null
     */
     @Suppress("UNCHECKED_CAST") // Due to type erasure
-    private fun <A> Schema<A>.decode(input: Any?): Validation<InvalidField, A> =
+    private fun <A> Schema<A>.decode(input: Any?): Validation<DeserializationError, A> =
         when (this) {
             is Schema.Empty ->
                 valid(null as A)
@@ -81,8 +99,10 @@ object BinaryDeserialization {
                 if (input == null) valid(this.default) else this.schema.decode(input)
 
             is Schema.OrElse ->
-                this.preferred.decode(input).orElse {
-                    this.fallback.decode(input)
+                this.preferred.decode(input).orElse { e1 ->
+                    this.fallback.decode(input).orElse { e2 ->
+                        invalid(DeserializationError.Or(e1, e2))
+                    }
                 }
 
             is Schema.Transform<A, *> ->
@@ -90,25 +110,25 @@ object BinaryDeserialization {
                     (this as Schema.Transform<A, Any?>).decode(b).fold({ decoded ->
                         valid(decoded)
                     }, { error ->
-                        invalid(InvalidField(error.message ?: "unable to transform"))
+                        invalid(DeserializationError.InvalidField(error.message ?: "unable to transform"))
                     })
                 }
 
             is Schema.Primitive ->
                 Validation.fromResult(this.decodePrimitiveString(input.toString())) {
-                    InvalidField("Unable to parse $input as ${this.name}")
+                    DeserializationError.InvalidField("Unable to parse $input as ${this.name}")
                 }
 
             is Schema.Collection<*> ->
                 read(input) { it as? GenericData.Array<*> }.andThen { array ->
-                    Validation.sequence(array.map { itemSchema.decode(it) }) as Validation<InvalidField, A>
+                    Validation.sequence(array.map { itemSchema.decode(it) }) as Validation<DeserializationError, A>
                 }
 
             is Schema.Union<*> ->
                 read(input) { input as? GenericRecord }.andThen { record: GenericRecord ->
                     val cases = unsafeCases()
                     Validation.requireNotNull(cases.find { it.name == record.schema.name }) {
-                        InvalidField("Invalid case for ${record.schema.name}, expected one of ${cases.map { it.name }}")
+                        DeserializationError.InvalidField("Invalid case for ${record.schema.name}, expected one of ${cases.map { it.name }}")
                     }.andThen { case ->
                         (case.schema as Schema<A>).decode(record)
                     }
@@ -119,7 +139,7 @@ object BinaryDeserialization {
                     Validation.sequence(
                         unsafeFields().map { field ->
                             Validation.requireNotNull(record.schema.getField(field.name)) {
-                                InvalidField("Field ${field.name} not found in schema ${record.schema.name}")
+                                DeserializationError.InvalidField("Field ${field.name} not found in schema ${record.schema.name}")
                             }.mapValid { schemaField ->
                                 record.get(schemaField.pos())
                             }.andThen { fieldValue ->
@@ -135,12 +155,12 @@ object BinaryDeserialization {
                         stringMap.map { (key, value) ->
                             valueSchema.decode(value).mapValid { key.toString() to it }
                         }
-                    ).mapValid { it.toMap() } as Validation<InvalidField, A>
+                    ).mapValid { it.toMap() } as Validation<DeserializationError, A>
                 }
         }
 
-    private inline fun <reified A> read(input: Any?, fromGeneric: (Any?) -> A?): Validation<InvalidField, A> =
+    private inline fun <reified A> read(input: Any?, fromGeneric: (Any?) -> A?): Validation<DeserializationError, A> =
         fromGeneric(input)
             ?.let { valid(it) }
-            ?: invalid(InvalidField("Expected ${typeOf<A>()} but found ${input?.javaClass}"))
+            ?: invalid(DeserializationError.InvalidField("Expected ${typeOf<A>()} but found ${input?.javaClass}"))
 }

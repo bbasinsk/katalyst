@@ -124,7 +124,7 @@ class BinarySerdeTest {
         value: A,
         readerSchema: Schema<A> = this,
         id: Int = 1
-    ): Validation<InvalidField, A> =
+    ): Validation<DeserializationError, A> =
         readerSchema.deserialize(serialize(id, value)) { toAvroSchema() }
 
     private fun <A> assertValid(expected: A, validation: Validation<*, A>) {

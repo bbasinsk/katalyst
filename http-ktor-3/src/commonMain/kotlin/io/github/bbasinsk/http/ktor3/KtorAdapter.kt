@@ -134,14 +134,14 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
 private suspend fun <A> RoutingCall.receiveAvro(schema: Schema<A>): Validation<SchemaError, A> =
     Validation.runCatching { receive<ByteArray>() }
         .mapInvalid { SchemaError(it.toString()) }
-        .andThen { bytes -> schema.deserializeIgnoringSchemaId(bytes).mapInvalid { SchemaError(it.reason) } }
+        .andThen { bytes -> schema.deserializeIgnoringSchemaId(bytes).mapInvalid { SchemaError(it.reason()) } }
 
 @Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
     when (schema) {
         is Schema.Optional<*> -> receiveJson(schema.schema).orElse { Validation.valid(null) } as Validation<InvalidJson, A>
         is Schema.Transform<A, *> -> receiveJson((schema as Schema.Transform<A, Any?>)).andThen {
-            Validation.fromResult(schema.decode(it)) {
+            Validation.fromResult(schema.decode(it)) { _ ->
                 InvalidJson(expected = schema.metadata.name, found = it.toString(), path = emptyList())
             }
         }
