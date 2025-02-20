@@ -68,7 +68,7 @@ class UnionSerdeTest {
     fun `union fails deserialize with invalid type field`() {
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "String",
                     found = "42",
                     path = listOf(Segment.Field("type"))
@@ -89,7 +89,7 @@ class UnionSerdeTest {
     fun `union fails deserialize with unknown type`() {
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "[IntExample, StringExample]",
                     found = "Other",
                     path = listOf(Segment.Field("type"))

@@ -97,7 +97,7 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
         val input = call.receiveSchema(endpoint.api.input.schema())
-            .mapInvalid { SchemaError(it.message()) }
+            .mapInvalid { SchemaError(it.reason()) }
             .getOrElse { errors ->
                 return@interceptor call.respondSchema(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
             }
@@ -138,7 +138,7 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         is Schema.Lazy -> receiveSchema(with(schema) { schema() })
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.fromResult(schema.decodePrimitiveString(raw)) {
-                InvalidJson(expected = schema.name, found = raw, path = emptyList())
+                InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
             }
         }
 

@@ -23,7 +23,10 @@ import kotlin.reflect.typeOf
 
 sealed interface DeserializationError {
     data class InvalidField(val reason: String) : DeserializationError
-    data class Or(val a: List<DeserializationError>, val b: List<DeserializationError>) : DeserializationError
+    data class Or(
+        val preferred: List<DeserializationError>,
+        val fallback: List<DeserializationError>
+    ) : DeserializationError
 
     private fun tab(n: Int) = "    ".repeat(n)
     fun reason(indent: Int = 0): String =
@@ -31,8 +34,8 @@ sealed interface DeserializationError {
             is InvalidField -> reason
             is Or -> buildString {
                 appendLine(tab(indent) + "Either:")
-                appendLine(tab(indent + 1) + a.joinToString { it.reason(indent + 1) })
-                appendLine(tab(indent + 1) + b.joinToString { it.reason(indent + 1) })
+                appendLine(tab(indent + 1) + preferred.joinToString { it.reason(indent + 1) })
+                appendLine(tab(indent + 1) + fallback.joinToString { it.reason(indent + 1) })
             }
         }
 }
@@ -99,9 +102,9 @@ object BinaryDeserialization {
                 if (input == null) valid(this.default) else this.schema.decode(input)
 
             is Schema.OrElse ->
-                this.preferred.decode(input).orElse { e1 ->
-                    this.fallback.decode(input).orElse { e2 ->
-                        invalid(DeserializationError.Or(e1, e2))
+                this.preferred.decode(input).orElse { preferredErrors ->
+                    this.fallback.decode(input).orElse { fallbackErrors ->
+                        invalid(DeserializationError.Or(preferredErrors, fallbackErrors))
                     }
                 }
 

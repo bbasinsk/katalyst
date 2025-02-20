@@ -124,7 +124,7 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
         is BodySchema.WithMetadata -> receiveRequest(request.schema)
         is BodySchema.Single -> when (request.contentType) {
             ContentType.Avro -> receiveAvro(request.schema())
-            ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.message()) }
+            ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.reason()) }
             ContentType.Plain -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
                 SchemaError(it.message ?: "Error decoding")
             }
@@ -142,7 +142,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Optional<*> -> receiveJson(schema.schema).orElse { Validation.valid(null) } as Validation<InvalidJson, A>
         is Schema.Transform<A, *> -> receiveJson((schema as Schema.Transform<A, Any?>)).andThen {
             Validation.fromResult(schema.decode(it)) { _ ->
-                InvalidJson(expected = schema.metadata.name, found = it.toString(), path = emptyList())
+                InvalidJson.FieldError(expected = schema.metadata.name, found = it.toString(), path = emptyList())
             }
         }
 
@@ -153,7 +153,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.fromResult(schema.decodePrimitiveString(raw)) {
-                InvalidJson(expected = schema.name, found = raw, path = emptyList())
+                InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
             }
         }
 

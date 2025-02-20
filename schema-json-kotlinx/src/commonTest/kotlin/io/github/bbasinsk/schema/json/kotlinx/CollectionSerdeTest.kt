@@ -35,12 +35,12 @@ class CollectionSerdeTest {
         val schema = Schema.list(Schema.int())
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = """"not-an-int"""",
                     path = listOf(Segment.Index(0))
                 ),
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = "null",
                     path = listOf(Segment.Index(2))
@@ -70,12 +70,12 @@ class CollectionSerdeTest {
         val schema = Schema.stringMap(Schema.int())
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = """"not-an-int"""",
                     path = listOf(Segment.Field("a"))
                 ),
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = "null",
                     path = listOf(Segment.Field("b"))

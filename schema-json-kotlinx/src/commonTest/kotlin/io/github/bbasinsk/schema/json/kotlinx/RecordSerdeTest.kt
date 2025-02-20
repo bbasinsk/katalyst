@@ -36,7 +36,7 @@ class RecordSerdeTest {
     fun `record fails deserialize with invalid value`() {
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = """"not-an-int"""",
                     path = listOf(Segment.Field("value"))
@@ -50,7 +50,7 @@ class RecordSerdeTest {
     fun `record fails deserialize with missing field`() {
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = "null",
                     path = listOf(Segment.Field("value"))

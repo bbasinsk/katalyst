@@ -65,7 +65,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Int",
                     found = """"not-an-int"""",
                     path = listOf()
@@ -97,7 +97,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "String",
                     found = "42",
                     path = listOf()
@@ -128,7 +128,7 @@ class PrimitiveSerdeTest {
         val schema = Schema.boolean()
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Boolean",
                     found = "42",
                     path = listOf()
@@ -160,7 +160,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Double",
                     found = "not-a-number",
                     path = listOf()
@@ -192,7 +192,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Float",
                     found = "not-a-number",
                     path = listOf()
@@ -224,7 +224,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Long",
                     found = "42.0",
                     path = listOf()
@@ -260,7 +260,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Color",
                     found = """"BAD"""",
                     path = listOf()
@@ -276,7 +276,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "Color",
                     found = "[]",
                     path = listOf()
@@ -383,7 +383,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.invalid(
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = "UUID",
                     found = """"Invalid UUID string: not-a-uuid"""",
                     path = listOf()

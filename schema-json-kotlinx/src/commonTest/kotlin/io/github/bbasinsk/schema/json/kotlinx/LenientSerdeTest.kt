@@ -24,7 +24,7 @@ class LenientSerdeTest {
             Schema.lenientDouble().decodeFromJsonString(rawString)
         )
         assertEquals(
-            Validation.invalid(InvalidJson(expected = "Double", found = "\"12.123\"", path = emptyList())),
+            Validation.invalid(InvalidJson.FieldError(expected = "Double", found = "\"12.123\"", path = emptyList())),
             Schema.double().decodeFromJsonString(rawString)
         )
     }
@@ -33,7 +33,12 @@ class LenientSerdeTest {
     fun `returns error`() {
         val rawString = "{}"
         assertEquals(
-            Validation.invalid(InvalidJson(expected = "String", found = "{}", path = emptyList())),
+            Validation.invalid(
+                InvalidJson.Or(
+                    preferred = listOf(InvalidJson.FieldError(expected = "Double", found = "{}", path = emptyList())),
+                    fallback = listOf(InvalidJson.FieldError(expected = "String", found = "{}", path = emptyList()))
+                )
+            ),
             Schema.lenientDouble().decodeFromJsonString(rawString)
         )
     }

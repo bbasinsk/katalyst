@@ -43,7 +43,11 @@ private fun <A> Validation.Companion.decode(
         is Schema.Primitive -> decodePrimitive(schema, json, path)
         is Schema.Default -> decodeDefault(schema, json, path)
         is Schema.Optional<*> -> decodeOptional(schema, json, path) as Validation<InvalidJson, A>
-        is Schema.OrElse -> decode(schema.preferred, json, path).orElse { decode(schema.fallback, json, path) }
+        is Schema.OrElse -> decode(schema.preferred, json, path).orElse { preferredErrors ->
+            decode(schema.fallback, json, path).orElse { fallbackErrors ->
+                invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
+            }
+        }
         is Schema.Transform<A, *> -> decodeTransform(schema, json, path)
         is Schema.Collection<*> -> decodeList(schema, json, path) as Validation<InvalidJson, A>
         is Schema.StringMap<*> -> stringMap(schema, json, path) as Validation<InvalidJson, A>
@@ -56,7 +60,7 @@ private fun <A> Validation.Companion.decodePrimitive(
     json: JsonElement,
     path: List<Segment>
 ): Validation<InvalidJson, A> {
-    val error = InvalidJson(schema.name, json.toString(), path)
+    val error = InvalidJson.FieldError(schema.name, json.toString(), path)
     return if (json is JsonNull) {
         invalid(error)
     } else {
@@ -74,7 +78,7 @@ private fun Validation.Companion.decodeBytes(
     @OptIn(ExperimentalEncodingApi::class)
     runCatching { json.jsonPrimitive.content }
         .andThen { runCatching { Base64.decode(it) } }
-        .mapInvalid { InvalidJson("base64 encoded", json.toString(), path) }
+        .mapInvalid { InvalidJson.FieldError("base64 encoded", json.toString(), path) }
 
 private fun <A> Schema.Primitive<A>.validateIsString(
     json: JsonPrimitive,
@@ -112,7 +116,7 @@ private fun <A, B> Validation.Companion.decodeTransform(
         .andThen { b ->
             schema.decode(b).fold(
                 { valid(it) },
-                { e -> invalid(InvalidJson(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path)) }
+                { e -> invalid(InvalidJson.FieldError(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path)) }
             )
         }
 
@@ -122,7 +126,7 @@ private fun <A> Validation.Companion.decodeList(
     path: List<Segment>
 ): Validation<InvalidJson, List<A>> =
     runCatching { json.jsonArray }
-        .mapInvalid { InvalidJson("JsonArray", json::class.simpleName.toString(), path) }
+        .mapInvalid { InvalidJson.FieldError("JsonArray", json::class.simpleName.toString(), path) }
         .andThen {
             sequence(
                 it.mapIndexed { i, json -> decode(schema.itemSchema, json, path + Segment.Index(i)) }
@@ -135,7 +139,7 @@ private fun <V> Validation.Companion.stringMap(
     path: List<Segment>
 ): Validation<InvalidJson, Map<String, V>> =
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson("JsonObject", json::class.simpleName.toString(), path) }.andThen { jsonObject ->
+        .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }.andThen { jsonObject ->
             sequence(
                 jsonObject.entries.map { (key, value) ->
                     decode(schema.valueSchema, value, path + Segment.Field(key)).mapValid { key to it }
@@ -149,7 +153,7 @@ private fun <A> Validation.Companion.decodeRecord(
     path: List<Segment>
 ): Validation<InvalidJson, A> =
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson("JsonObject", json::class.simpleName.toString(), path) }
+        .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }
         .andThen { jsonObject ->
             sequence(
                 schema.unsafeFields().map {
@@ -166,11 +170,11 @@ private fun <A> Validation.Companion.decodeUnion(
 ): Validation<InvalidJson, A> =
     @Suppress("UNCHECKED_CAST")
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson("JsonObject", json::class.simpleName.toString(), path) }
+        .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }
         .andThen { decode(Schema.string(), it[schema.key] ?: JsonNull, path + Segment.Field(schema.key)) }
         .andThen { identifier ->
             requireNotNull(schema.unsafeCases().find { it.name == identifier }) {
-                InvalidJson(
+                InvalidJson.FieldError(
                     expected = schema.unsafeCases().map { it.name }.joinToListString(),
                     found = identifier,
                     path = path + Segment.Field(schema.key)
