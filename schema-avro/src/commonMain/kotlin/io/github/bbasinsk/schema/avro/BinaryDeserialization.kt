@@ -101,13 +101,9 @@ object BinaryDeserialization {
             is Schema.Default ->
                 if (input == null) valid(this.default) else this.schema.decode(input)
 
-            is Schema.OrElse<A, *> ->
-                preferred.decode(input).orElse { preferredErrors ->
-                    fallback.decode(input).andThen { b ->
-                        Validation.fromResult(unsafeDecode(b)) {
-                            DeserializationError.InvalidField(it.message ?: "unable to decode")
-                        }
-                    }.orElse { fallbackErrors ->
+            is Schema.OrElse ->
+                this.preferred.decode(input).orElse { preferredErrors ->
+                    this.fallback.decode(input).orElse { fallbackErrors ->
                         invalid(DeserializationError.Or(preferredErrors, fallbackErrors))
                     }
                 }

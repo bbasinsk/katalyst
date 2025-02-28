@@ -130,12 +130,8 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<A, *> -> receiveSchema(schema.preferred).orElse { preferredErrors ->
-            receiveSchema(schema.fallback).andThen { b ->
-                Validation.fromResult(schema.unsafeDecode(b)) {
-                    InvalidJson.FieldError(it.message ?: "unable to decode", found = b.toString(), path = emptyList())
-                }
-            }.orElse { fallbackErrors ->
+        is Schema.OrElse -> receiveSchema(schema.preferred).orElse { preferredErrors ->
+            receiveSchema(schema.fallback).orElse { fallbackErrors ->
                 Validation.invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
             }
         }
@@ -160,7 +156,7 @@ private suspend fun <A> ApplicationCall.respondSchema(status: HttpStatusCode, sc
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<A, *> -> respond(status, schema.encodeToJsonElement(value))
+        is Schema.OrElse -> respond(status, schema.encodeToJsonElement(value))
         is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.Record -> respond(status, schema.encodeToJsonElement(value))

@@ -12,6 +12,6 @@ fun Schema<*>.isRequired(): Boolean =
         is Schema.StringMap<*> -> true
         is Schema.Collection<*> -> true
         is Schema.Lazy<*> -> schema().isRequired()
-        is Schema.OrElse<*, *> -> preferred.isRequired()
+        is Schema.OrElse<*> -> preferred.isRequired()
         is Schema.Transform<*, *> -> schema.isRequired()
     }

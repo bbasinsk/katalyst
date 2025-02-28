@@ -2,7 +2,6 @@ package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.InvalidJson
-import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test
@@ -10,8 +9,11 @@ import kotlin.test.assertEquals
 
 class LenientSerdeTest {
 
+    fun Schema.Companion.quotedDouble(): Schema<Double> =
+        string().transform({ it.toDouble() }) { it.toString() }
+
     fun Schema.Companion.lenientDouble(): Schema<Double> =
-        double().orElse(string()) { it.toDouble() }
+        double().orElse(quotedDouble())
 
     @Test
     fun `deserializes string of double to double`() {

@@ -69,34 +69,29 @@ object ConfigParser {
         conf: ConfigWrapper
     ): Validation<ConfigParseError, A> =
         when (parser) {
-            is Schema.Empty -> valid(null) as Validation<ConfigParseError, A>
-            is Record -> parseRecord(parser, conf)
-            is Union -> parseUnion(parser, conf)
-            is Schema.Collection<*> -> parseList(parser, conf) as Validation<ConfigParseError, A>
-            is Schema.Lazy -> parse(parser.schema(), conf)
-            is Schema.Optional<*> -> parse(parser.schema, conf)
-                .orElse { valid(null) } as Validation<ConfigParseError, A>
+            is Schema.Empty -> valid(null)
 
-            is Schema.OrElse<A, *> -> parse(parser.preferred, conf).orElse { errors ->
-                parse(parser.fallback, conf).andThen { b ->
-                    Validation.fromResult(parser.unsafeDecode(b)) {
-                        FormatError(
-                            path = conf.path,
-                            value = b.toString(),
-                            format = parser.metadata.name
-                        )
-                    }
-                }.orElse {
-                    Validation.Invalid(errors)
-                }
+            is Record<*> -> parseRecord(parser, conf)
+            is Union<*> -> parseUnion(parser, conf)
+            is Schema.Collection<*> -> parseList(parser, conf)
+            is Schema.Lazy -> parse(parser.schema(), conf)
+            is Schema.Optional<*> -> parse(parser.schema, conf).orElse {
+                valid(null)
             }
 
-            is Schema.Default -> parse(parser.schema, conf).orElse { valid(parser.default) }
-            is Schema.Bytes -> conf.getString().mapValid { it.toByteArray() }  as Validation<ConfigParseError, A>
+            is Schema.OrElse -> parse(parser.preferred, conf).orElse {
+                parse(parser.fallback, conf)
+            }
+
+            is Schema.Default -> parse(parser.schema, conf).orElse {
+                valid(parser.default)
+            }
+
+            is Schema.Bytes -> conf.getString().mapValid { it.toByteArray() }
             is Schema.Primitive -> parsePrimitive(parser, conf)
-            is Schema.StringMap<*> -> parseStringMap(parser, conf) as Validation<ConfigParseError, A>
-            is Schema.Transform<A, *> -> parseTransform(parser, conf)
-        }
+            is Schema.StringMap<*> -> parseStringMap(parser, conf)
+            is Schema.Transform<*, *> -> parseTransform(parser, conf)
+        } as Validation<ConfigParseError, A>
 
     private fun <A> parseUnion(
         parser: Union<A>,
