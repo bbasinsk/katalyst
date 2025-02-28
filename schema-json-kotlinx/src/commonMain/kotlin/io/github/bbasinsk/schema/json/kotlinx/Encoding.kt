@@ -25,7 +25,7 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): Json
         is Schema.Lazy -> schema().encodeToJsonElement(value, json)
         is Schema.Optional<*> -> encodeOptional(value, json)
         is Schema.Default -> schema.encodeToJsonElement(value, json)
-        is Schema.OrElse -> preferred.encodeToJsonElement(value, json)
+        is Schema.OrElse<A, *> -> preferred.encodeToJsonElement(value, json)
         is Schema.Transform<A, *> -> encodeTransform(value, json)
         is Schema.Collection<*> -> encodeList(value as List<*>, json)
         is Schema.StringMap<*> -> encodeStringMap(value as Map<*, *>, json)

@@ -17,7 +17,9 @@ fun <A> Schema<A>.decodePrimitiveString(str: String): Result<A> =
         is Schema.Empty -> Result.success(null as A)
         is Schema.Lazy -> schema().decodePrimitiveString(str)
         is Schema.Optional<*> -> schema.decodePrimitiveString(str).recoverCatching { null } as Result<A>
-        is Schema.OrElse -> preferred.decodePrimitiveString(str).recoverCatching { fallback.decodePrimitiveString(str).getOrThrow() }
+        is Schema.OrElse<A, *> -> preferred.decodePrimitiveString(str).recoverCatching {
+            unsafeDecode(fallback.decodePrimitiveString(str).getOrThrow()).getOrThrow()
+        }
         is Schema.Transform<A, *> -> schema.decodePrimitiveString(str).mapCatching { (this as Schema.Transform<A, Any?>).decode(it).getOrThrow() }
         is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot decode StringMap from String"))
         is Schema.Record -> Result.failure(IllegalStateException("Cannot decode Record from String"))
@@ -34,7 +36,7 @@ fun <A> Schema<A>.encodePrimitiveString(value: A): Result<String> =
         is Schema.Empty -> Result.success("")
         is Schema.Lazy -> schema().encodePrimitiveString(value)
         is Schema.Optional<*> -> (schema as Schema<Any?>).encodePrimitiveString(value).recoverCatching { "" }
-        is Schema.OrElse -> preferred.encodePrimitiveString(value).recoverCatching { fallback.encodePrimitiveString(value).getOrThrow() }
+        is Schema.OrElse<A, *> -> preferred.encodePrimitiveString(value)
         is Schema.Transform<A, *> -> runCatching { (this as Schema.Transform<A, Any?>).encode(value).let { schema.encodePrimitiveString(it).getOrThrow() } }
         is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot encode StringMap to String"))
         is Schema.Record -> Result.failure(IllegalStateException("Cannot encode Record to String"))

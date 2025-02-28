@@ -15,9 +15,7 @@ import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.schema.transform
-import io.github.bbasinsk.validation.Validation
-import io.github.bbasinsk.validation.getOrElse
-import io.github.bbasinsk.validation.mapInvalid
+import io.github.bbasinsk.validation.*
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.HttpStatusCode.Companion.UnprocessableEntity
 import io.ktor.server.application.ApplicationCall
@@ -132,7 +130,15 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<*> -> TODO()
+        is Schema.OrElse<A, *> -> receiveSchema(schema.preferred).orElse { preferredErrors ->
+            receiveSchema(schema.fallback).andThen { b ->
+                Validation.fromResult(schema.unsafeDecode(b)) {
+                    InvalidJson.FieldError(it.message ?: "unable to decode", found = b.toString(), path = emptyList())
+                }
+            }.orElse { fallbackErrors ->
+                Validation.invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
+            }
+        }
         is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveSchema(with(schema) { schema() })
@@ -154,11 +160,11 @@ private suspend fun <A> ApplicationCall.respondSchema(status: HttpStatusCode, sc
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<*> -> TODO()
+        is Schema.OrElse<A, *> -> respond(status, schema.encodeToJsonElement(value))
         is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
-        is Schema.Record<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
-        is Schema.Union<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
+        is Schema.Record -> respond(status, schema.encodeToJsonElement(value))
+        is Schema.Union -> respond(status, schema.encodeToJsonElement(value))
         is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
         is Schema.Empty -> respond(status)
         is Schema.Lazy -> respondSchema(status, with(schema) { schema() }, value)

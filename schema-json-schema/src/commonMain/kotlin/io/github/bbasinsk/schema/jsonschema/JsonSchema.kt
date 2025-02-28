@@ -56,7 +56,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(): JsonSchema {
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl()
         is Schema.Default -> this.schema.toJsonSchemaImpl()
-        is Schema.OrElse -> this.preferred.toJsonSchemaImpl()
+        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl()
 
         is Schema.Primitive ->
             when (this) {

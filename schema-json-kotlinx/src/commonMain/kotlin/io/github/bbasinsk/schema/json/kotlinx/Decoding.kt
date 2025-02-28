@@ -7,7 +7,6 @@ import io.github.bbasinsk.schema.json.Segment
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.Validation.Companion.invalid
 import io.github.bbasinsk.validation.Validation.Companion.valid
-import io.github.bbasinsk.validation.Validation.Invalid
 import io.github.bbasinsk.validation.andThen
 import io.github.bbasinsk.validation.mapInvalid
 import io.github.bbasinsk.validation.mapValid
@@ -43,8 +42,12 @@ private fun <A> Validation.Companion.decode(
         is Schema.Primitive -> decodePrimitive(schema, json, path)
         is Schema.Default -> decodeDefault(schema, json, path)
         is Schema.Optional<*> -> decodeOptional(schema, json, path) as Validation<InvalidJson, A>
-        is Schema.OrElse -> decode(schema.preferred, json, path).orElse { preferredErrors ->
-            decode(schema.fallback, json, path).orElse { fallbackErrors ->
+        is Schema.OrElse<A, *> -> decode(schema.preferred, json, path).orElse { preferredErrors ->
+            decode(schema.fallback, json, path).andThen { b ->
+                fromResult(schema.unsafeDecode(b)) { e ->
+                    InvalidJson.FieldError(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path)
+                }
+            }.orElse { fallbackErrors ->
                 invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
             }
         }
@@ -139,7 +142,8 @@ private fun <V> Validation.Companion.stringMap(
     path: List<Segment>
 ): Validation<InvalidJson, Map<String, V>> =
     runCatching { json.jsonObject }
-        .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }.andThen { jsonObject ->
+        .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }
+        .andThen { jsonObject ->
             sequence(
                 jsonObject.entries.map { (key, value) ->
                     decode(schema.valueSchema, value, path + Segment.Field(key)).mapValid { key to it }
