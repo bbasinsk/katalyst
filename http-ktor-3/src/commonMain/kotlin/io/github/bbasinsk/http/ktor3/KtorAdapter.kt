@@ -147,7 +147,15 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         }
 
         is Schema.Default -> receiveJson(schema.schema).orElse { Validation.valid(schema.default) }
-        is Schema.OrElse -> receiveJson(schema.preferred).orElse { receiveJson(schema.fallback) }
+        is Schema.OrElse<A, *> -> receiveJson(schema.preferred).orElse { preferredErrors ->
+            receiveJson(schema.fallback).andThen { b ->
+                Validation.fromResult(schema.unsafeDecode(b)) {
+                    InvalidJson.FieldError(expected = it.message ?: "unable to decode", found = b.toString(), path = emptyList())
+                }
+            }.orElse { fallbackErrors ->
+                Validation.invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
+            }
+        }
         is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
@@ -179,7 +187,7 @@ private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: 
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse -> respond(status, schema.encodeToJsonElement(value))
+        is Schema.OrElse<A, *> -> respond(status, schema.encodeToJsonElement(value))
         is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.Record -> respond(status, schema.encodeToJsonElement(value))
@@ -196,9 +204,9 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse -> respond(status, schema.serialize(1, value)!!)
-        is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).serialize(1, value)!!)
-        is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).serialize(1, value)!!)
+        is Schema.OrElse<A, *> -> respond(status, schema.serialize(1, value)!!)
+        is Schema.Collection<*> -> respond(status, (schema as Schema<A>).serialize(1, value)!!)
+        is Schema.StringMap<*> -> respond(status, (schema as Schema<A>).serialize(1, value)!!)
         is Schema.Record -> respond(status, schema.serialize(1, value)!!)
         is Schema.Union -> respond(status, schema.serialize(1, value)!!)
         is Schema.Bytes -> respondBytes(value as ByteArray, null, status)

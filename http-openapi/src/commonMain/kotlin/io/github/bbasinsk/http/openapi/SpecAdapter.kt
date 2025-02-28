@@ -125,7 +125,7 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Empty -> mapOf()
         is Schema.Lazy -> schema().toContentTypeObject(contentType, examples)
         is Schema.Optional<*> -> schema.toContentTypeObject(contentType, examples)
-        is Schema.OrElse<*> -> preferred.toContentTypeObject(contentType, examples)
+        is Schema.OrElse<A, *> -> preferred.toContentTypeObject(contentType, examples)
         is Schema.Primitive -> mapOf(
             "text/plain" to MediaTypeObject(
                 schema = toSchemaObjectImpl(FieldOptions(), OutputOptions()),
@@ -193,7 +193,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
         is Schema.Primitive.Int -> SchemaObject(nullable = fieldOptions.nullable, type = "integer", format = "int32")
         is Schema.Primitive.Long -> SchemaObject(nullable = fieldOptions.nullable, type = "integer", format = "int64")
         is Schema.Primitive.Enumeration<*> -> SchemaObject(nullable = fieldOptions.nullable, type = "string", enum = values.map { it.toString() })
-        is Schema.OrElse<*> -> preferred.toSchemaObjectImpl(fieldOptions, outputOptions)
+        is Schema.OrElse<A, *> -> preferred.toSchemaObjectImpl(fieldOptions, outputOptions)
         is Schema.Transform<*, *> ->   when (metadata.name.lowercase()) {
             "uuid" -> SchemaObject(type = "string", format = "uuid", nullable = fieldOptions.nullable)
             "localdate" -> SchemaObject(type = "string", format = "date", nullable = fieldOptions.nullable)
@@ -267,7 +267,7 @@ private fun Schema<*>.byRefName(nullable: Boolean? = null, outputOptions: Output
         is Schema.Collection<*> -> itemSchema.byRefName(outputOptions = outputOptions)
         is Schema.Default -> schema.byRefName(outputOptions = outputOptions)
         is Schema.Optional<*> -> schema.byRefName(nullable = true, outputOptions = outputOptions)
-        is Schema.OrElse<*> -> preferred.byRefName(outputOptions = outputOptions)
+        is Schema.OrElse<*, *> -> preferred.byRefName(outputOptions = outputOptions)
         is Schema.Primitive -> emptyMap()
         is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
         is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)

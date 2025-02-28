@@ -1,6 +1,6 @@
 package io.github.bbasinsk.schema
 
-import io.github.bbasinsk.schema.Schema.Default
+import io.github.bbasinsk.schema.Schema.OrElse
 
 
 sealed interface Schema<A> {
@@ -22,9 +22,18 @@ sealed interface Schema<A> {
     data class Lazy<A>(val schema: () -> Schema<A>) : Schema<A>
     data class Optional<A>(val schema: Schema<A>) : Schema<A?>
     data class Default<A>(val schema: Schema<A>, val default: A) : Schema<A>
-    data class OrElse<A>(val preferred: Schema<A>, val fallback: Schema<A>) : Schema<A>
     data class Collection<A>(val itemSchema: Schema<A>) : Schema<List<A>>
     data class StringMap<B>(val valueSchema: Schema<B>) : Schema<Map<String, B>>
+
+    data class OrElse<A, B>(
+        val preferred: Schema<A>,
+        val fallback: Schema<B>,
+        val metadata: Metadata<B>,
+        val decode: (B) -> Result<A>
+    ) : Schema<A> {
+        @Suppress("UNCHECKED_CAST")
+        fun unsafeDecode(value: Any?): Result<A> = (decode as (Any?) -> Result<A>)(value)
+    }
 
     data class Transform<A, B>(
         val metadata: Metadata<A>,
@@ -47,7 +56,6 @@ sealed interface Schema<A> {
 
     fun optional(): Schema<A?> = Optional(this)
     fun default(default: A): Schema<A> = Default(this, default)
-    fun orElse(fallback: Schema<A>): Schema<A> = OrElse(this, fallback)
 
     companion object {
         fun <A> lazy(schema: () -> Schema<A>): Schema<A> = Lazy(schema)
@@ -585,3 +593,6 @@ inline fun <A, reified B> Schema<A>.transform(noinline decode: (A) -> B, noinlin
         encode = encode,
         decode = { runCatching { decode(it) } }
     )
+
+inline fun <A, reified B> Schema<A>.orElse(fallback: Schema<B>, crossinline decode: (B) -> A): Schema<A> =
+    OrElse(this, fallback, B::class.toMetadata()) { runCatching { decode(it) } }
