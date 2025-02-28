@@ -83,25 +83,25 @@ sealed interface Schema<A> {
                 deconstruct = deconstruct
             )
 
-        inline fun <reified A : Any, B1> record(
+        inline fun <reified A, B1> record(
             field1: Field<A, B1>,
             noinline construct: (B1) -> (A)
         ): Schema<A> = Record1(A::class.toMetadata(), field1, construct)
 
-        inline fun <reified A : Any, B1, B2> record(
+        inline fun <reified A, B1, B2> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             noinline construct: (B1, B2) -> (A)
         ): Schema<A> = Record2(A::class.toMetadata(), field1, field2, construct)
 
-        inline fun <reified A : Any, B1, B2, B3> record(
+        inline fun <reified A, B1, B2, B3> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
             noinline construct: (B1, B2, B3) -> (A)
         ): Schema<A> = Record3(A::class.toMetadata(), field1, field2, field3, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4> record(
+        inline fun <reified A, B1, B2, B3, B4> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -109,7 +109,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4) -> (A)
         ): Schema<A> = Record4(A::class.toMetadata(), field1, field2, field3, field4, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5> record(
+        inline fun <reified A, B1, B2, B3, B4, B5> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -118,7 +118,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5) -> (A)
         ): Schema<A> = Record5(A::class.toMetadata(), field1, field2, field3, field4, field5, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -128,7 +128,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6) -> (A)
         ): Schema<A> = Record6(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -139,7 +139,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7) -> (A)
         ): Schema<A> = Record7(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -152,7 +152,7 @@ sealed interface Schema<A> {
         ): Schema<A> =
             Record8(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -165,7 +165,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9) -> (A)
         ): Schema<A> = Record9(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -179,7 +179,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10) -> (A)
         ): Schema<A> = Record10(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -194,7 +194,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11) -> (A)
         ): Schema<A> = Record11(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -210,7 +210,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12) -> (A)
         ): Schema<A> = Record12(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -227,7 +227,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13) -> (A)
         ): Schema<A> = Record13(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -245,7 +245,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14) -> (A)
         ): Schema<A> = Record14(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -264,7 +264,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15) -> (A)
         ): Schema<A> = Record15(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -284,7 +284,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16) -> (A)
         ): Schema<A> = Record16(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -305,7 +305,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17) -> (A)
         ): Schema<A> = Record17(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -327,7 +327,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18) -> (A)
         ): Schema<A> = Record18(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -350,7 +350,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19) -> (A)
         ): Schema<A> = Record19(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -374,7 +374,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20) -> (A)
         ): Schema<A> = Record20(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -399,7 +399,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21) -> (A)
         ): Schema<A> = Record21(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -425,7 +425,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22) -> (A)
         ): Schema<A> = Record22(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21, field22, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -452,7 +452,7 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23) -> (A)
         ): Schema<A> = Record23(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21, field22, field23, construct)
 
-        inline fun <reified A : Any, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24> record(
+        inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
@@ -480,25 +480,25 @@ sealed interface Schema<A> {
             noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24) -> (A)
         ): Schema<A> = Record24(A::class.toMetadata(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12, field13, field14, field15, field16, field17, field18, field19, field20, field21, field22, field23, field24, construct)
 
-        inline fun <reified A : Any, B1 : A> union(
+        inline fun <reified A, B1 : A> union(
             case1: Case<A, B1>,
             key: String = "type"
         ): Schema<A> = Union1(A::class.toMetadata(), key, case1)
 
-        inline fun <reified A : Any, B1 : A, B2 : A> union(
+        inline fun <reified A, B1 : A, B2 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             key: String = "type"
         ): Schema<A> = Union2(A::class.toMetadata(), key, case1, case2)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
             key: String = "type"
         ): Schema<A> = Union3(A::class.toMetadata(), key, case1, case2, case3)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -506,7 +506,7 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> = Union4(A::class.toMetadata(), key, case1, case2, case3, case4)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -515,7 +515,7 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> = Union5(A::class.toMetadata(), key, case1, case2, case3, case4, case5)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -525,7 +525,7 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> = Union6(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -536,7 +536,7 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> = Union7(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -548,7 +548,7 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> = Union8(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -561,7 +561,7 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> = Union9(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9)
 
-        inline fun <reified A : Any, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A> union(
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
@@ -578,7 +578,7 @@ sealed interface Schema<A> {
     }
 }
 
-inline fun <A, reified B : Any> Schema<A>.transform(noinline decode: (A) -> B, noinline encode: (B) -> A): Schema<B> =
+inline fun <A, reified B> Schema<A>.transform(noinline decode: (A) -> B, noinline encode: (B) -> A): Schema<B> =
     Schema.Transform(
         metadata = B::class.toMetadata(),
         schema = this,

@@ -10,7 +10,7 @@ data class Metadata<A>(
         if (namespace == null) name else "$namespace.$name"
 }
 
-fun <A : Any> KClass<A>.toMetadata(): Metadata<A> =
+fun <A> KClass<*>.toMetadata(): Metadata<A> =
     if (qualifiedName == null) {
         Metadata(
             name = simpleName ?: "Unknown",
