@@ -1,7 +1,5 @@
 package io.github.bbasinsk.schema
 
-import kotlin.coroutines.EmptyCoroutineContext.fold
-
 
 // TODO: Test this!
 
@@ -29,15 +27,15 @@ fun <A> Schema<A>.decodePrimitiveString(str: String): Result<A> =
     }
 
 @Suppress("UNCHECKED_CAST")
-fun <A> Schema<A>.encodeString(value: A): Result<String> =
+fun <A> Schema<A>.encodePrimitiveString(value: A): Result<String> =
     when (this) {
         is Schema.Primitive -> Result.success(value.toString())
-        is Schema.Default -> schema.encodeString(value)
+        is Schema.Default -> schema.encodePrimitiveString(value)
         is Schema.Empty -> Result.success("")
-        is Schema.Lazy -> schema().encodeString(value)
-        is Schema.Optional<*> -> (schema as Schema<Any?>).encodeString(value).recoverCatching { "" }
-        is Schema.OrElse -> preferred.encodeString(value).recoverCatching { fallback.encodeString(value).getOrThrow() }
-        is Schema.Transform<A, *> -> runCatching { (this as Schema.Transform<A, Any?>).encode(value).let { schema.encodeString(it).getOrThrow() } }
+        is Schema.Lazy -> schema().encodePrimitiveString(value)
+        is Schema.Optional<*> -> (schema as Schema<Any?>).encodePrimitiveString(value).recoverCatching { "" }
+        is Schema.OrElse -> preferred.encodePrimitiveString(value).recoverCatching { fallback.encodePrimitiveString(value).getOrThrow() }
+        is Schema.Transform<A, *> -> runCatching { (this as Schema.Transform<A, Any?>).encode(value).let { schema.encodePrimitiveString(it).getOrThrow() } }
         is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot encode StringMap to String"))
         is Schema.Record -> Result.failure(IllegalStateException("Cannot encode Record to String"))
         is Schema.Union -> Result.failure(IllegalStateException("Cannot encode Union to String"))

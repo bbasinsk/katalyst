@@ -15,7 +15,7 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.decodePrimitiveString
-import io.github.bbasinsk.schema.encodeString
+import io.github.bbasinsk.schema.encodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -209,9 +209,8 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
 }
 
 private suspend fun <A> RoutingCall.respondPlain(status: HttpStatusCode, schema: Schema<A>, value: A) {
-    respondText(schema.encodeString(value).getOrThrow(), io.ktor.http.ContentType.Text.Plain, status = status)
+    respondText(schema.encodePrimitiveString(value).getOrThrow(), io.ktor.http.ContentType.Text.Plain, status = status)
 }
-
 
 data class SchemaError(
     val message: String

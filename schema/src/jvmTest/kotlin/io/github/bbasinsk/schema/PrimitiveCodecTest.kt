@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalUuidApi::class)
-
 package io.github.bbasinsk.schema
 
 import io.github.bbasinsk.schema.kotlin.uuid
@@ -8,6 +6,7 @@ import kotlin.test.assertEquals
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@OptIn(ExperimentalUuidApi::class)
 class PrimitiveCodecTest {
 
     @Test
