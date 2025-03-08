@@ -222,8 +222,9 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             .map { it.schema.toSchemaObjectImpl(FieldOptions(), outputOptions) }
                             .map { childSchema ->
                                 childSchema.copy(
-                                    properties = childSchema.properties?.plus(key to SchemaObject(type = "string")),
-                                    required = childSchema.required?.plus(key)
+                                    properties = mapOf(key to SchemaObject(type = "string")).plus(childSchema.properties.orEmpty()),
+                                    required = listOf(key).plus(childSchema.required.orEmpty()),
+                                    propertyOrdering = childSchema.propertyOrdering?.let { listOf(key).plus(it) }
                                 )
                             },
                     )

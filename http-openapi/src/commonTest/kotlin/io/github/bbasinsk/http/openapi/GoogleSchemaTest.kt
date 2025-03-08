@@ -43,4 +43,80 @@ class GoogleSchemaTest {
             OpenApiJson.encodeToJsonElement(obj)
         )
     }
+
+    @Test
+    fun `should add propertyOrdering to union when configured`() {
+        val obj = Human.schema.toSchemaObject(
+            OutputOptions(
+                usePropertyOrdering = true,
+                useAnyOf = true
+            )
+        )
+
+        assertEquals(
+            OpenApiJson.parseToJsonElement(
+                """
+                {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "integer",
+                          "format": "int32"
+                        },
+                        "name": {
+                          "type": "string"
+                        }
+                      },
+                      "propertyOrdering": [
+                        "type",
+                        "id",
+                        "name"
+                      ],
+                      "required": [
+                        "type",
+                        "id",
+                        "name"
+                      ]
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "integer",
+                          "format": "int32"
+                        },
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "Admin",
+                            "User"
+                          ]
+                        }
+                      },
+                      "propertyOrdering": [
+                        "type",
+                        "id",
+                        "role"
+                      ],
+                      "required": [
+                        "type",
+                        "id",
+                        "role"
+                      ]
+                    }
+                  ]
+                }
+                """.trimIndent()
+            ),
+            OpenApiJson.encodeToJsonElement(obj)
+        )
+    }
 }
