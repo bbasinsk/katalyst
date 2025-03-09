@@ -554,8 +554,8 @@ sealed interface Human {
     companion object {
         val schema: Schema<Human> = with(Schema.Companion) {
             union(
-                case(Customer.schema),
-                case(Employee.schema)
+                case(Customer.schema, "Customer"),
+                case(Employee.schema, "Employee"),
             )
         }
     }

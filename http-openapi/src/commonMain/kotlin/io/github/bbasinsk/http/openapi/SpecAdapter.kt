@@ -218,15 +218,15 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 if (outputOptions.useAnyOf) {
                     SchemaObject(
                         nullable = fieldOptions.nullable,
-                        anyOf = unsafeCases()
-                            .map { it.schema.toSchemaObjectImpl(FieldOptions(), outputOptions) }
-                            .map { childSchema ->
-                                childSchema.copy(
-                                    properties = mapOf(key to SchemaObject(type = "string")).plus(childSchema.properties.orEmpty()),
-                                    required = listOf(key).plus(childSchema.required.orEmpty()),
-                                    propertyOrdering = childSchema.propertyOrdering?.let { listOf(key).plus(it) }
-                                )
-                            },
+                        anyOf = unsafeCases().map { case ->
+                            val keySchema = SchemaObject(type = "string", enum = listOf(case.name))
+                            val childSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions)
+                            childSchema.copy(
+                                properties = mapOf(key to keySchema).plus(childSchema.properties.orEmpty()),
+                                required = listOf(key).plus(childSchema.required.orEmpty()),
+                                propertyOrdering = childSchema.propertyOrdering?.let { listOf(key).plus(it) }
+                            )
+                        },
                     )
                 } else {
                     SchemaObject(

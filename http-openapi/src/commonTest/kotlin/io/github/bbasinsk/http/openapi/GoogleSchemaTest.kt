@@ -62,7 +62,8 @@ class GoogleSchemaTest {
                       "type": "object",
                       "properties": {
                         "type": {
-                          "type": "string"
+                          "type": "string",
+                          "enum": [ "Customer" ]
                         },
                         "id": {
                           "type": "integer",
@@ -87,7 +88,8 @@ class GoogleSchemaTest {
                       "type": "object",
                       "properties": {
                         "type": {
-                          "type": "string"
+                          "type": "string",
+                          "enum": [ "Employee" ]
                         },
                         "id": {
                           "type": "integer",
