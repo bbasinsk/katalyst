@@ -16,8 +16,8 @@ fun Route.stoplight(path: String = "stoplight", specPath: String) =
                 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
                 <title>Elements in HTML</title>
                 <!-- Embed elements Elements via Web Component -->
-                <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
-                <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
+                <script src="https://cdn.jsdelivr.net/npm/@stoplight/elements/web-components.min.js"></script>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stoplight/elements/styles.min.css">
               </head>
               <body>
                 <elements-api
@@ -43,11 +43,11 @@ fun Route.swagger(path: String = "swagger", specPath: String) =
               <meta name="viewport" content="width=device-width, initial-scale=1" />
               <meta name="description" content="SwaggerUI" />
               <title>SwaggerUI</title>
-              <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css" />
+              <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui.css" />
             </head>
             <body>
             <div id="swagger-ui"></div>
-            <script src="https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js" crossorigin></script>
+            <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist/swagger-ui-bundle.js" crossorigin></script>
             <script>
               window.onload = () => {
                 window.ui = SwaggerUIBundle({
