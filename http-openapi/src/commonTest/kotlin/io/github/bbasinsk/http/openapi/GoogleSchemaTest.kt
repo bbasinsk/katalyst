@@ -8,12 +8,7 @@ class GoogleSchemaTest {
 
     @Test
     fun `should add propertyOrdering when configured`() {
-        val obj = Customer.schema.toSchemaObject(
-            OutputOptions(
-                usePropertyOrdering = true,
-                useAnyOf = true
-            )
-        )
+        val obj = Customer.schema.toSchemaObject(OutputOptions.gemini)
 
         assertEquals(
             OpenApiJson.parseToJsonElement(
@@ -46,12 +41,7 @@ class GoogleSchemaTest {
 
     @Test
     fun `should add propertyOrdering to union when configured`() {
-        val obj = Human.schema.toSchemaObject(
-            OutputOptions(
-                usePropertyOrdering = true,
-                useAnyOf = true
-            )
-        )
+        val obj = Human.schema.toSchemaObject(OutputOptions.gemini)
 
         assertEquals(
             OpenApiJson.parseToJsonElement(

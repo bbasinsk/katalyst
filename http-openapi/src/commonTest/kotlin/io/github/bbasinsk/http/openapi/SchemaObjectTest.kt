@@ -47,40 +47,10 @@ class SchemaObjectTest {
             {
                 "oneOf": [
                     {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "format": "int32"
-                            },
-                            "name": {
-                                "type": "string"
-                            }
-                        },
-                        "required": [
-                            "id",
-                            "name"
-                        ]
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
                     },
                     {
-                        "type": "object",
-                        "properties": {
-                            "id": {
-                                "type": "integer",
-                                "format": "int32"
-                            },
-                            "role": {
-                                "type": "string",
-                                "enum": [
-                                    "Admin",
-                                    "User"
-                                ]
-                            }
-                        },
-                        "required": [
-                            "id",
-                            "role"
-                        ]
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
                     }
                 ],
                 "discriminator": {

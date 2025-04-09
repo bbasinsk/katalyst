@@ -491,44 +491,46 @@ class SpecAdapterTest {
               },
               "components": {
                 "schemas": {
-                  "io.github.bbasinsk.http.openapi.Human": {
-                    "oneOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int32"
-                          },
-                          "name": {
-                            "type": "string"
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "name"
-                        ]
+                  "io.github.bbasinsk.http.openapi.Customer": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
                       },
-                      {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "integer",
-                            "format": "int32"
-                          },
-                          "role": {
-                            "type": "string",
-                            "enum": [
-                              "Admin",
-                              "User"
-                            ]
-                          }
-                        },
-                        "required": [
-                          "id",
-                          "role"
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Employee": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "Admin",
+                          "User"
                         ]
                       }
+                    },
+                    "required": [
+                      "id",
+                      "role"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human": {
+                    "oneOf": [
+                      { "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer" },
+                      { "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee" }
                     ],
                     "discriminator":{
                         "propertyName":"type",
