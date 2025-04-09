@@ -169,7 +169,11 @@ data class OutputOptions(
     val usePropertyOrdering: Boolean = false
 ) {
     companion object {
-        val gemini = OutputOptions(inlineRefs = true, useAnyOf = true, usePropertyOrdering = true)
+        val gemini = OutputOptions(
+            inlineRefs = true, // because it's a single SchemaObject
+            useAnyOf = true, // Does not support oneOf / discriminator
+            usePropertyOrdering = true // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output#fields
+        )
     }
 }
 
