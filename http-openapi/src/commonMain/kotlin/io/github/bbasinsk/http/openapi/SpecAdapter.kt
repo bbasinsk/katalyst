@@ -282,11 +282,14 @@ private fun Schema<*>.byRefName(nullable: Boolean? = null, outputOptions: Output
         is Schema.Primitive -> emptyMap()
         is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
         is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
+
         is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, case ->
             acc + case.schema.byRefName(nullable, outputOptions)
         }
 
-        is Schema.Record<*> -> mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))
+        is Schema.Record<*> -> unsafeFields().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, field ->
+            acc + field.schema.byRefName(nullable, outputOptions)
+        }
     }
 
 private fun refPath(name: String): String = "#/components/schemas/$name"

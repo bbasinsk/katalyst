@@ -550,6 +550,121 @@ class SpecAdapterTest {
             OpenApiJson.encodeToJsonElement(result)
         )
     }
+
+    @Test
+    fun `it uses refs for nested records`() {
+        val http = Http.get { Root / "nested-test" }
+            .input { json { Business.schema } }
+            .output { status(Ok) { json { int() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+        val expected = """
+            {
+              "openapi": "3.0.0",
+              "info": {
+                "title": "API",
+                "version": "1.0.0"
+              },
+              "servers": [],
+              "paths": {
+                "/nested-test": {
+                  "get": {
+                    "parameters": [],
+                    "requestBody": {
+                      "required": true,
+                      "content": {
+                        "application/json": {
+                          "schema": {
+                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Business"
+                          }
+                        }
+                      }
+                    },
+                    "responses": {
+                      "200": {
+                        "description": "OK",
+                        "content": {
+                          "text/plain": {
+                            "schema": {
+                              "type": "integer",
+                              "format": "int32"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "components": {
+                "schemas": {
+                  "io.github.bbasinsk.http.openapi.Business": {
+                    "type": "object",
+                    "properties": {
+                      "employees": {
+                        "type": "array",
+                        "items": {
+                          "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                        }
+                      },
+                      "customers": {
+                        "type": "array",
+                        "items": {
+                          "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
+                        }
+                      }
+                    },
+                    "required": [
+                      "employees",
+                      "customers"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Employee": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "Admin",
+                          "User"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "role"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Customer": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  }
+                }
+              }
+            }
+        """.trimIndent()
+
+        assertEquals(
+            OpenApiJson.parseToJsonElement(expected),
+            OpenApiJson.encodeToJsonElement(result)
+        )
+    }
 }
 
 sealed interface Human {
@@ -598,3 +713,17 @@ data class Employee(
     }
 }
 
+data class Business(
+    val employees: List<Employee>,
+    val customers: List<Customer>
+) {
+    companion object {
+        val schema: Schema<Business> = with(Schema.Companion) {
+            record(
+                field(list(Employee.schema), "employees") { employees },
+                field(list(Customer.schema), "customers") { customers },
+                ::Business
+            )
+        }
+    }
+}
