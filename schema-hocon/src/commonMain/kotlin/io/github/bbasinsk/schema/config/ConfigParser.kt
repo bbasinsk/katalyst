@@ -74,6 +74,7 @@ object ConfigParser {
             is Union -> parseUnion(parser, conf)
             is Schema.Collection<*> -> parseList(parser, conf) as Validation<ConfigParseError, A>
             is Schema.Lazy -> parse(parser.schema(), conf)
+            is Schema.Metadata -> parse(parser.schema, conf)
             is Schema.Optional<*> -> parse(parser.schema, conf)
                 .orElse { valid(null) } as Validation<ConfigParseError, A>
 

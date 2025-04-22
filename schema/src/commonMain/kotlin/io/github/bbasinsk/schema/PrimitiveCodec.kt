@@ -15,6 +15,7 @@ fun <A> Schema<A>.decodePrimitiveString(str: String): Result<A> =
         is Schema.Primitive.Enumeration -> runCatching { values.first { it.toString() == str } }
         is Schema.Default -> schema.decodePrimitiveString(str).recoverCatching { default }
         is Schema.Empty -> Result.success(null as A)
+        is Schema.Metadata -> schema.decodePrimitiveString(str)
         is Schema.Lazy -> schema().decodePrimitiveString(str)
         is Schema.Optional<*> -> schema.decodePrimitiveString(str).recoverCatching { null } as Result<A>
         is Schema.OrElse<A, *> -> preferred.decodePrimitiveString(str).recoverCatching {
@@ -35,6 +36,7 @@ fun <A> Schema<A>.encodePrimitiveString(value: A): Result<String> =
         is Schema.Default -> schema.encodePrimitiveString(value)
         is Schema.Empty -> Result.success("")
         is Schema.Lazy -> schema().encodePrimitiveString(value)
+        is Schema.Metadata -> schema.encodePrimitiveString(value)
         is Schema.Optional<*> -> (schema as Schema<Any?>).encodePrimitiveString(value).recoverCatching { "" }
         is Schema.OrElse<A, *> -> preferred.encodePrimitiveString(value)
         is Schema.Transform<A, *> -> runCatching { (this as Schema.Transform<A, Any?>).encode(value).let { schema.encodePrimitiveString(it).getOrThrow() } }

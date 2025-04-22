@@ -159,6 +159,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
+        is Schema.Metadata -> receiveJson(schema.schema)
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.fromResult(schema.decodePrimitiveString(raw)) {
                 InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
@@ -195,6 +196,7 @@ private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: 
         is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
         is Schema.Empty -> respond(status)
         is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
+        is Schema.Metadata -> respondJson(status, schema.schema, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
 }
@@ -212,6 +214,7 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
         is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
         is Schema.Empty -> respond(status)
         is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
+        is Schema.Metadata -> respondJson(status, schema.schema, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
 }

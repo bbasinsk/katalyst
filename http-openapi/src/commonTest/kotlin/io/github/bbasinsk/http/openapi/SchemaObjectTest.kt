@@ -91,6 +91,39 @@ class SchemaObjectTest {
             OpenApiJson.encodeToString(obj)
         )
     }
+
+    @Test
+    fun `should convert descriptions to SchemaObject`() {
+        val schema: Schema<Customer> = record(
+            field(int().description("id int desc"), "id") { id },
+            field(string().description("name str desc"), "name") { name },
+            ::Customer
+        )
+
+        assertEquals(
+            """
+            {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "format": "int32",
+                        "description": "id int desc"
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "name str desc"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name"
+                ]
+            }
+            """.trimIndent(),
+            OpenApiJson.encodeToString(schema.toSchemaObject())
+        )
+    }
 }
 
 data class OptionalRecord(

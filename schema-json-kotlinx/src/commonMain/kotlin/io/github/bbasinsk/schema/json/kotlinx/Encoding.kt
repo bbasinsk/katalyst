@@ -23,6 +23,7 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): Json
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value)
         is Schema.Lazy -> schema().encodeToJsonElement(value, json)
+        is Schema.Metadata -> schema.encodeToJsonElement(value, json)
         is Schema.Optional<*> -> encodeOptional(value, json)
         is Schema.Default -> schema.encodeToJsonElement(value, json)
         is Schema.OrElse<A, *> -> preferred.encodeToJsonElement(value, json)

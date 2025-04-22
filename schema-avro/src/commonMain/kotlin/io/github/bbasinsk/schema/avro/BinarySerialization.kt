@@ -47,6 +47,7 @@ object BinarySerialization {
             }
 
             is Schema.Lazy -> this.schema().encode(value)
+            is Schema.Metadata -> this.schema.encode(value)
             is Schema.OrElse<A, *> -> this.preferred.encode(value)
             is Schema.Optional<*> -> if (value == null) null else (schema as Schema<Any>).encode(value)
             is Schema.Default -> if (value == null) default else schema.encode(value)

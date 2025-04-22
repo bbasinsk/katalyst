@@ -39,6 +39,7 @@ private fun <A> Validation.Companion.decode(
         is Schema.Empty -> valid(null as A)
         is Schema.Bytes -> decodeBytes(json, path) as Validation<InvalidJson, A>
         is Schema.Lazy<A> -> decode(schema.schema(), json, path)
+        is Schema.Metadata -> decode(schema.schema, json, path)
         is Schema.Primitive -> decodePrimitive(schema, json, path)
         is Schema.Default -> decodeDefault(schema, json, path)
         is Schema.Optional<*> -> decodeOptional(schema, json, path) as Validation<InvalidJson, A>

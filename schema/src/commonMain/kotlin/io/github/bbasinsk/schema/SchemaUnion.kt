@@ -1,7 +1,7 @@
 package io.github.bbasinsk.schema
 
 data class Union1<A, B1 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>
 ) : Schema.Union<A> {
@@ -11,7 +11,7 @@ data class Union1<A, B1 : A>(
 }
 
 data class Union2<A, B1 : A, B2 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>
@@ -23,7 +23,7 @@ data class Union2<A, B1 : A, B2 : A>(
 }
 
 data class Union3<A, B1 : A, B2 : A, B3 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -37,7 +37,7 @@ data class Union3<A, B1 : A, B2 : A, B3 : A>(
 }
 
 data class Union4<A, B1 : A, B2 : A, B3 : A, B4 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -53,7 +53,7 @@ data class Union4<A, B1 : A, B2 : A, B3 : A, B4 : A>(
 }
 
 data class Union5<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -71,7 +71,7 @@ data class Union5<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A>(
 }
 
 data class Union6<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -91,7 +91,7 @@ data class Union6<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A>(
 }
 
 data class Union7<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -113,7 +113,7 @@ data class Union7<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A>(
 }
 
 data class Union8<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -137,7 +137,7 @@ data class Union8<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 
 }
 
 data class Union9<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,
@@ -163,7 +163,7 @@ data class Union9<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 
 }
 
 data class Union10<A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     override val key: String,
     val case1: Case<A, B1>,
     val case2: Case<A, B2>,

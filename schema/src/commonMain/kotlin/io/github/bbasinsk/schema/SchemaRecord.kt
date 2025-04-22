@@ -1,7 +1,7 @@
 package io.github.bbasinsk.schema
 
 data class Record1<A, B1>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val construct: (B1) -> (A)
 ) : Schema.Record<A> {
@@ -14,7 +14,7 @@ data class Record1<A, B1>(
 }
 
 data class Record2<A, B1, B2>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val construct: (B1, B2) -> (A)
@@ -28,7 +28,7 @@ data class Record2<A, B1, B2>(
 }
 
 data class Record3<A, B1, B2, B3>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -43,7 +43,7 @@ data class Record3<A, B1, B2, B3>(
 }
 
 data class Record4<A, B1, B2, B3, B4>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -59,7 +59,7 @@ data class Record4<A, B1, B2, B3, B4>(
 }
 
 data class Record5<A, B1, B2, B3, B4, B5>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -76,7 +76,7 @@ data class Record5<A, B1, B2, B3, B4, B5>(
 }
 
 data class Record6<A, B1, B2, B3, B4, B5, B6>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -94,7 +94,7 @@ data class Record6<A, B1, B2, B3, B4, B5, B6>(
 }
 
 data class Record7<A, B1, B2, B3, B4, B5, B6, B7>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -121,7 +121,7 @@ data class Record7<A, B1, B2, B3, B4, B5, B6, B7>(
 }
 
 data class Record8<A, B1, B2, B3, B4, B5, B6, B7, B8>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -150,7 +150,7 @@ data class Record8<A, B1, B2, B3, B4, B5, B6, B7, B8>(
 }
 
 data class Record9<A, B1, B2, B3, B4, B5, B6, B7, B8, B9>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -181,7 +181,7 @@ data class Record9<A, B1, B2, B3, B4, B5, B6, B7, B8, B9>(
 }
 
 data class Record10<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -214,7 +214,7 @@ data class Record10<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10>(
 }
 
 data class Record11<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -249,7 +249,7 @@ data class Record11<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11>(
 }
 
 data class Record12<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -286,7 +286,7 @@ data class Record12<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12>(
 }
 
 data class Record13<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -339,7 +339,7 @@ data class Record13<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13>(
 }
 
 data class Record14<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -395,7 +395,7 @@ data class Record14<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 }
 
 data class Record15<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -454,7 +454,7 @@ data class Record15<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 }
 
 data class Record16<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -516,7 +516,7 @@ data class Record16<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 }
 
 data class Record17<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -582,7 +582,7 @@ data class Record17<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 
 
 data class Record18<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -651,7 +651,7 @@ data class Record18<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 
 
 data class Record19<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -723,7 +723,7 @@ data class Record19<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 
 
 data class Record20<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -798,7 +798,7 @@ data class Record20<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 
 
 data class Record21<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -875,7 +875,7 @@ data class Record21<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 }
 
 data class Record22<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -955,7 +955,7 @@ data class Record22<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 }
 
 data class Record23<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,
@@ -1038,7 +1038,7 @@ data class Record23<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
 }
 
 data class Record24<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24>(
-    override val metadata: Metadata<A>,
+    override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
     val field2: Field<A, B2>,
     val field3: Field<A, B3>,

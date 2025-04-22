@@ -12,6 +12,7 @@ fun Schema<*>.toAvroSchema(): AvroSchema =
         is Schema.Empty -> AvroSchema.create(AvroType.NULL)
         is Schema.Bytes -> AvroSchema.create(AvroType.BYTES)
         is Schema.Lazy -> schema().toAvroSchema()
+        is Schema.Metadata -> schema.toAvroSchema()
         is Schema.Default -> schema.toAvroSchema()
         is Schema.OrElse<*, *> -> preferred.toAvroSchema()
         is Primitive -> when (this) {

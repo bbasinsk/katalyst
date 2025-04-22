@@ -92,8 +92,8 @@ object BinaryDeserialization {
             is Schema.Bytes ->
                 read(input) { it as? ByteBuffer? }.mapValid { it.array() as A }
 
-            is Schema.Lazy ->
-                this.schema().decode(input)
+            is Schema.Lazy -> this.schema().decode(input)
+            is Schema.Metadata -> this.schema.decode(input)
 
             is Schema.Optional<*> ->
                 if (input == null) valid(null as A) else (schema as Schema<A>).decode(input)

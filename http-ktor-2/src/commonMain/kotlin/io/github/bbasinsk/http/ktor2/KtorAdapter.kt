@@ -142,6 +142,7 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveSchema(with(schema) { schema() })
+        is Schema.Metadata -> receiveSchema(schema.schema)
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.fromResult(schema.decodePrimitiveString(raw)) {
                 InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
@@ -168,6 +169,7 @@ private suspend fun <A> ApplicationCall.respondSchema(status: HttpStatusCode, sc
         is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
         is Schema.Empty -> respond(status)
         is Schema.Lazy -> respondSchema(status, with(schema) { schema() }, value)
+        is Schema.Metadata -> respondSchema(status, schema.schema, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
 }

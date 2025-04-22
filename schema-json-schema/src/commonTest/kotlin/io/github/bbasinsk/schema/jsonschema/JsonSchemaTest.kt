@@ -49,6 +49,39 @@ class JsonSchemaTest {
     }
 
     @Test
+    fun `record with description schema`() {
+        val schema = with(Schema.Companion) {
+            record(
+                field(long().description("a desc"), "a") { a },
+                field(string().description("b desc"), "b") { b },
+                ::RecordSmall
+            )
+        }
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                    {
+                        "type": "object",
+                        "required": ["a", "b"],
+                        "properties": {
+                            "a": { 
+                                "type": "integer" ,
+                                "description": "a desc"
+                                },
+                            "b": { 
+                                "type": "string",
+                                "description": "b desc"
+                             }
+                        }
+                    }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
     fun `record collection`() {
         assertEquals(
             Json.parseToJsonElement(

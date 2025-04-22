@@ -2,7 +2,7 @@ package io.github.bbasinsk.schema
 
 import kotlin.reflect.KClass
 
-data class Metadata<A>(
+data class ObjectMetadata<A>(
     val name: String,
     val namespace: String?
 ) {
@@ -10,14 +10,14 @@ data class Metadata<A>(
         if (namespace == null) name else "$namespace.$name"
 }
 
-fun <A> KClass<*>.toMetadata(): Metadata<A> =
+fun <A> KClass<*>.toMetadata(): ObjectMetadata<A> =
     if (qualifiedName == null) {
-        Metadata(
+        ObjectMetadata(
             name = simpleName ?: "Unknown",
             namespace = null
         )
     } else {
-        Metadata(
+        ObjectMetadata(
             name = qualifiedName!!.substringAfterLast("."),
             namespace = qualifiedName!!.substringBeforeLast(".")
         )
