@@ -175,7 +175,7 @@ val generationConfig = GeminiGenerationConfig(
 
 Check out the full examples in the codebase:
 - [HTTP Example](http-ktor-3/src/jvmMain/kotlin/io/github/bbasinsk/http/ktor3/Example.kt)
-- [Schema Tests](schema/src/commonTest)
+- [Gemini Example](http-openapi/src/commonTest/kotlin/io/github/bbasinsk/http/openapi/GoogleSchemaTest.kt)
 
 ## TODO
 
