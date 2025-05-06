@@ -163,13 +163,25 @@ data class OutputOptions(
     // Really for google gemini structured output
     val inlineRefs: Boolean = false,
     val useAnyOf: Boolean = false,
-    val usePropertyOrdering: Boolean = false
+    val usePropertyOrdering: Boolean = false,
+    val supportsStringFormat: (String) -> Boolean = { true }
 ) {
     companion object {
         val gemini = OutputOptions(
             inlineRefs = true, // because it's a single SchemaObject
             useAnyOf = true, // Does not support oneOf / discriminator
-            usePropertyOrdering = true // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output#fields
+            usePropertyOrdering = true, // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output#fields
+            supportsStringFormat = {
+                when (it) {
+                    // https://ai.google.dev/api/caching#Schema
+                    // Supported formats:
+                    // for NUMBER type: float, double
+                    // for INTEGER type: int32, int64
+                    // for STRING type: enum, date-time
+                    "enum", "date-time" -> true
+                    else -> false
+                }
+            }
         )
     }
 }
@@ -219,13 +231,26 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             SchemaObject(nullable = field.nullable, type = "integer", format = "int64", description = field.description)
 
         is Schema.Primitive.Enumeration<*> ->
-            SchemaObject(nullable = field.nullable, type = "string", enum = values.map { it.toString() }, description = field.description)
+            SchemaObject(
+                nullable = field.nullable,
+                type = "string",
+                format = "enum",
+                enum = values.map { it.toString() },
+                description = field.description
+            )
 
         is Schema.OrElse<A, *> -> preferred.toSchemaObjectImpl(field, outputOptions)
-        is Schema.Transform<*, *> -> when (metadata.name.lowercase()) {
-            "uuid" -> SchemaObject(type = "string", format = "uuid", nullable = field.nullable)
-            "localdate" -> SchemaObject(type = "string", format = "date", nullable = field.nullable)
-            "instant" -> SchemaObject(type = "string", format = "date-time", nullable = field.nullable)
+
+        is Schema.Transform<*, *> -> when {
+            metadata.name.lowercase() == "uuid" && outputOptions.supportsStringFormat("uuid") ->
+                SchemaObject(type = "string", format = "uuid", nullable = field.nullable)
+
+            metadata.name.lowercase() == "localdate" && outputOptions.supportsStringFormat("date") ->
+                SchemaObject(type = "string", format = "date", nullable = field.nullable)
+
+            metadata.name.lowercase() == "instant" && outputOptions.supportsStringFormat("date-time") ->
+                SchemaObject(type = "string", format = "date-time", nullable = field.nullable)
+
             else -> schema.toSchemaObjectImpl(field, outputOptions)
         }
 
