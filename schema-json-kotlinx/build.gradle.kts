@@ -12,7 +12,7 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation(project(":validation"))
+                api(project(":validation"))
                 api(project(":schema-json"))
                 api(libs.kotlinx.serialization.json)
             }

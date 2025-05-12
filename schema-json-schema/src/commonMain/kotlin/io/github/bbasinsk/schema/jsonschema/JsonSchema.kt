@@ -1,12 +1,12 @@
 package io.github.bbasinsk.schema.jsonschema
 
-import io.github.bbasinsk.schema.FieldMetadata
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.isRequired
-import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
+import io.github.bbasinsk.schema.Schema.Primitive
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.encodeToJsonElement
 
 // TODO: Probably a non-kotlinx encodeNull?
 private val json = Json {
@@ -14,92 +14,163 @@ private val json = Json {
 }
 
 fun JsonSchema.encodeToJsonElement(): JsonElement =
-    JsonSchema.schema.encodeToJsonElement(this, json)
+    Json.encodeToJsonElement(this)
 
 fun JsonSchema.encodeToJsonString(): String =
     json.encodeToString(encodeToJsonElement())
 
+@Serializable
 data class JsonSchema(
     val type: String? = null,
     val description: String? = null,
     val enum: List<String>? = null,
+    val format: String? = null,
+    val contentEncoding: String? = null,
     val items: JsonSchema? = null,
     val properties: Map<String, JsonSchema>? = null,
-    val additionalProperties: JsonSchema? = null,
+//    val additionalProperties: JsonSchema? = null,
+    val additionalProperties: Boolean? = null,
+    val anyOf: List<JsonSchema>? = null,
     val oneOf: List<JsonSchema>? = null,
     val required: List<String>? = null,
     val const: String? = null,
-) {
-    companion object {
-        val schema: Schema<JsonSchema> = with(Schema.Companion) {
-            record(
-                field(string().optional(), "type") { type },
-                field(string().optional(), "description") { description },
-                field(list(string()).optional(), "enum") { enum },
-                field(lazy { schema }.optional(), "items") { items },
-                field(stringMap(lazy { schema }).optional(), "properties") { properties },
-                field(lazy { schema }.optional(), "additionalProperties") { additionalProperties },
-                field(list(lazy { schema }).optional(), "oneOf") { oneOf },
-                field(list(string()).optional(), "required") { required },
-                field(string().optional(), "const") { const },
-                ::JsonSchema
-            )
-        }
-    }
+    val `$ref`: String? = null,
+    val `$defs`: Map<String, JsonSchema>? = null,
+)
+
+data class JsonOptions(
+    val description: String? = null,
+    val optional: Boolean = false,
+    val unionKey: Pair<String, JsonSchema>? = null
+)
+
+fun Schema<*>.toJsonSchema(): JsonSchema {
+    val definitions = mutableMapOf<String, JsonSchema>()
+    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true)
+    return schema.copy(`$defs` = definitions.takeIf { it.isNotEmpty() })
 }
 
-fun Schema<*>.toJsonSchema(): JsonSchema =
-    toJsonSchemaImpl(FieldMetadata())
+private fun String.typeOrNull(metadata: JsonOptions): String =
+    this
+//    listOfNotNull(this, "null".takeIf { metadata.optional })
 
-private fun <A> Schema<A>.toJsonSchemaImpl(metadata: FieldMetadata): JsonSchema {
+private fun <A> Schema<A>.toJsonSchemaImpl(
+    options: JsonOptions,
+    definitions: MutableMap<String, JsonSchema>,
+    inlineRefs: Boolean,
+): JsonSchema {
     return when (this) {
-        is Schema.Empty -> JsonSchema(type = "null", description = metadata.description)
-        is Schema.Bytes -> JsonSchema(type = "string", description = metadata.description)
-        // contentEncoding?
-//            .defaultValue(default)
+        is Schema.Empty -> JsonSchema(type = "null", description = options.description)
+        is Schema.Bytes -> JsonSchema(type = "string".typeOrNull(options), contentEncoding = "base64", description = options.description)
 
-        is Schema.Lazy -> this.schema().toJsonSchemaImpl(metadata)
-        is Schema.Metadata -> this.schema.toJsonSchemaImpl(this.metadata)
+        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs)
+        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs)
 
-        is Schema.Default -> this.schema.toJsonSchemaImpl(metadata)
-        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(metadata)
+        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs)
+        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(options, definitions, inlineRefs)
 
-        is Schema.Primitive ->
+        is Primitive ->
             when (this) {
-                is Schema.Primitive.Boolean -> JsonSchema(type = "boolean", description = metadata.description)
-                is Schema.Primitive.Double -> JsonSchema(type = "number", description = metadata.description)
-                is Schema.Primitive.Float -> JsonSchema(type = "number", description = metadata.description)
-                is Schema.Primitive.Int -> JsonSchema(type = "integer", description = metadata.description)
-                is Schema.Primitive.Long -> JsonSchema(type = "integer", description = metadata.description)
-                is Schema.Primitive.String -> JsonSchema(type = "string", description = metadata.description)
-                is Schema.Primitive.Enumeration<*> ->
-                    JsonSchema(type = "string", enum = values.map { it.toString() }, description = metadata.description)
+                is Primitive.Boolean -> JsonSchema(type = "boolean".typeOrNull(options), description = options.description)
+                is Primitive.Double -> JsonSchema(type = "number".typeOrNull(options), description = options.description)
+                is Primitive.Float -> JsonSchema(type = "number".typeOrNull(options), description = options.description)
+                is Primitive.Int -> JsonSchema(type = "integer".typeOrNull(options), description = options.description)
+                is Primitive.Long -> JsonSchema(type = "integer".typeOrNull(options), description = options.description)
+                is Primitive.String -> JsonSchema(type = "string".typeOrNull(options), description = options.description)
+                is Primitive.Enumeration<*> -> JsonSchema(
+                    type = "string".typeOrNull(options),
+                    enum = values.map { it.toString() },
+                    description = options.description
+                )
             }
 
-        is Schema.Transform<*, *> -> schema.toJsonSchemaImpl(metadata)
-        is Schema.Optional<*> -> schema.toJsonSchemaImpl(metadata)
+//        is Schema.Transform<*, *> -> when {
+//            metadata.name.lowercase() == "uuid" && outputOptions.supportsStringFormat("uuid") ->
+//                SchemaObject(type = "string", format = "uuid", nullable = field.nullable)
+//
+//            metadata.name.lowercase() == "localdate" && outputOptions.supportsStringFormat("date") ->
+//                SchemaObject(type = "string", format = "date", nullable = field.nullable)
+//
+//            metadata.name.lowercase() == "instant" && outputOptions.supportsStringFormat("date-time") ->
+//                SchemaObject(type = "string", format = "date-time", nullable = field.nullable)
+//
+//            else -> schema.toSchemaObjectImpl(field, outputOptions)
+//        }
+
+        is Schema.Transform<*, *> -> when {
+//            metadata.name.lowercase() == "duration" ->
+//                JsonSchema(type = "string".typeOrNull(options), format = "duration", description = options.description)
+//
+//            metadata.name.lowercase() == "uuid" ->
+//                JsonSchema(type = "string".typeOrNull(options), format = "uuid", description = options.description)
+//
+//            metadata.name.lowercase() == "localdate" ->
+//                JsonSchema(type = "string".typeOrNull(options), format = "date", description = options.description)
+//
+//            metadata.name.lowercase() == "instant" ->
+//                JsonSchema(type = "string".typeOrNull(options), format = "date-time", description = options.description)
+
+            else -> schema.toJsonSchemaImpl(options, definitions, inlineRefs)
+        }
+
+        is Schema.Optional<*> ->
+            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs)
 
         is Schema.Collection<*> -> JsonSchema(
-            type = "array",
-            items = itemSchema.toJsonSchemaImpl(metadata)
+            type = "array".typeOrNull(options),
+            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs)
         )
 
         is Schema.StringMap<*> -> JsonSchema(
-            type = "object",
-            additionalProperties = valueSchema.toJsonSchemaImpl(metadata)
+            type = "object".typeOrNull(options),
+//            additionalProperties = valueSchema.toJsonSchemaImpl(metadata, definitions)
         )
 
-        is Schema.Union<*> -> JsonSchema(
-            type = "object",
-            oneOf = unsafeCases().map { it to it.schema.toJsonSchemaImpl(FieldMetadata()) }.map { (case, jsonSchema) ->
-                jsonSchema.copy(properties = jsonSchema.properties?.plus(key to JsonSchema(const = case.name)))
+        is Schema.Union<*> -> {
+            val typeName = this.metadata.qualifiedName()
+            if (!definitions.containsKey(typeName)) {
+                definitions[typeName] = JsonSchema(type = "object".typeOrNull(options)) // temporary placeholder for recursive record
+                val computedUnionSchema = JsonSchema(
+//                    type = "object",
+                    anyOf = unsafeCases().map { case ->
+                        case.schema.toJsonSchemaImpl(
+                            JsonOptions(unionKey = this.key to JsonSchema(enum = listOf(case.name))),
+                            definitions,
+                            inlineRefs = false,
+                        )
+                    }
+                )
+                definitions[typeName] = computedUnionSchema
             }
-        )
+            val unionSchema = definitions[typeName]!!
+            if (inlineRefs) unionSchema.also { definitions.remove(typeName) }
+            else JsonSchema(`$ref` = "#/${'$'}defs/$typeName")
+        }
 
-        is Schema.Record<*> -> JsonSchema(
-            type = "object",
-            properties = unsafeFields().associate { it.name to it.schema.toJsonSchemaImpl(FieldMetadata()) },
-            required = unsafeFields().filter { it.schema.isRequired() }.map { it.name }
-        )
+        is Schema.Record<*> -> {
+            val typeName = this.metadata.qualifiedName()
+            if (!definitions.containsKey(typeName)) {
+                definitions[typeName] = JsonSchema(type = "object".typeOrNull(options)) // temporary placeholder for recursive records
+
+                val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
+                val properties = unionKeyProperty + unsafeFields().associate { field ->
+                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false)
+                }
+
+                val computedRecordSchema = JsonSchema(
+                    type = "object".typeOrNull(options),
+                    properties = properties,
+                    required = properties
+//                        .filter { it.schema.isRequired() }
+                        .map { it.key },
+                    additionalProperties = false,
+                    description = options.description
+                )
+                definitions[typeName] = computedRecordSchema
+            }
+            val recordSchema = definitions[typeName]!!
+            if (inlineRefs) recordSchema.also { definitions.remove(typeName) }
+            else JsonSchema(`$ref` = "#/${'$'}defs/$typeName")
+        }
     }
 }

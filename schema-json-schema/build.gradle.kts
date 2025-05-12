@@ -2,6 +2,7 @@ import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     id("module.publication")
+    id("module.serialization")
 }
 
 kotlin {
