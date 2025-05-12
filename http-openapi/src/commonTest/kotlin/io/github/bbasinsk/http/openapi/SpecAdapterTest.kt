@@ -516,6 +516,7 @@ class SpecAdapterTest {
                       },
                       "role": {
                         "type": "string",
+                        "format": "enum",
                         "enum": [
                           "Admin",
                           "User"
@@ -628,6 +629,7 @@ class SpecAdapterTest {
                       },
                       "role": {
                         "type": "string",
+                        "format": "enum",
                         "enum": [
                           "Admin",
                           "User"

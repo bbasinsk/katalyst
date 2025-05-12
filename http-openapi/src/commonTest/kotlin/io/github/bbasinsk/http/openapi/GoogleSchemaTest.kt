@@ -87,6 +87,7 @@ class GoogleSchemaTest {
                         },
                         "role": {
                           "type": "string",
+                          "format": "enum",
                           "enum": [
                             "Admin",
                             "User"

@@ -2,6 +2,7 @@ package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Primitive
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -34,8 +35,8 @@ data class JsonSchema(
     val oneOf: List<JsonSchema>? = null,
     val required: List<String>? = null,
     val const: String? = null,
-    val `$ref`: String? = null,
-    val `$defs`: Map<String, JsonSchema>? = null,
+    @SerialName("${'$'}ref") val ref: String? = null,
+    @SerialName("${'$'}defs") val defs: Map<String, JsonSchema>? = null
 )
 
 data class JsonOptions(
@@ -47,7 +48,7 @@ data class JsonOptions(
 fun Schema<*>.toJsonSchema(): JsonSchema {
     val definitions = mutableMapOf<String, JsonSchema>()
     val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true)
-    return schema.copy(`$defs` = definitions.takeIf { it.isNotEmpty() })
+    return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
 private fun String.typeOrNull(metadata: JsonOptions): String =
@@ -144,7 +145,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             }
             val unionSchema = definitions[typeName]!!
             if (inlineRefs) unionSchema.also { definitions.remove(typeName) }
-            else JsonSchema(`$ref` = "#/${'$'}defs/$typeName")
+            else JsonSchema(ref = "#/${'$'}defs/$typeName")
         }
 
         is Schema.Record<*> -> {
@@ -170,7 +171,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             }
             val recordSchema = definitions[typeName]!!
             if (inlineRefs) recordSchema.also { definitions.remove(typeName) }
-            else JsonSchema(`$ref` = "#/${'$'}defs/$typeName")
+            else JsonSchema(ref = "#/${'$'}defs/$typeName")
         }
     }
 }
