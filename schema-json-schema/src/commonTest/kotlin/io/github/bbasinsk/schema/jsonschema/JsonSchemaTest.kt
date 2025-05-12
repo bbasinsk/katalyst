@@ -34,18 +34,13 @@ class JsonSchemaTest {
             Json.parseToJsonElement(
                 """
                 {
-                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordSmall",
-                  "${'$'}defs": {
-                    "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
-                      "type": "object",
-                      "properties": {
-                        "a": { "type": "integer" },
-                        "b": { "type": "string" }
-                      },
-                      "required": ["a", "b"],
-                      "additionalProperties": false
-                    }
-                  }
+                  "type": "object",
+                  "properties": {
+                    "a": { "type": "integer" },
+                    "b": { "type": "string" }
+                  },
+                  "required": ["a", "b"],
+                  "additionalProperties": false
                 }
                 """.trimIndent()
             ),
@@ -60,32 +55,28 @@ class JsonSchemaTest {
                 field(long().description("a desc"), "a") { a },
                 field(string().description("b desc"), "b") { b },
                 ::RecordSmall
-            )
+            ).description("record desc")
         }
 
         assertEquals(
             Json.parseToJsonElement(
                 """
-                    {
-                      "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordSmall",
-                      "${'$'}defs": {
-                        "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
-                          "type": "object",
-                          "properties": {
-                            "a": { 
-                              "type": "integer",
-                              "description": "a desc"
-                            },
-                            "b": { 
-                              "type": "string",
-                              "description": "b desc"
-                            }
-                          },
-                          "required": ["a", "b"],
-                          "additionalProperties": false
-                        }
-                      }
+                {
+                  "type": "object",
+                  "properties": {
+                    "a": { 
+                      "type": "integer",
+                      "description": "a desc"
+                    },
+                    "b": { 
+                      "type": "string",
+                      "description": "b desc"
                     }
+                  },
+                  "required": ["a", "b"],
+                  "additionalProperties": false,
+                  "description": "record desc"
+                }
                 """.trimIndent()
             ),
             schema.toJsonSchema().encodeToJsonElement()
@@ -98,19 +89,16 @@ class JsonSchemaTest {
             Json.parseToJsonElement(
                 """
                     {
-                      "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordCollection",
+                      "type": "object",
+                      "properties": {
+                        "value": {
+                          "type": "array",
+                          "items": { "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordSmall" }
+                        }
+                      },
+                      "required": ["value"],
+                      "additionalProperties": false,
                       "${'$'}defs": {
-                        "io.github.bbasinsk.schema.jsonschema.RecordCollection": {
-                          "type": "object",
-                          "properties": {
-                            "value": {
-                              "type": "array",
-                              "items": { "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordSmall" }
-                            }
-                          },
-                          "required": ["value"],
-                          "additionalProperties": false
-                        },
                         "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
                           "type": "object",
                           "properties": {
@@ -219,18 +207,15 @@ class JsonSchemaTest {
     fun `union works`() {
         val expected = Json.parseToJsonElement("""
             {
-              "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Person",
-              "${'$'}defs": {
-                "io.github.bbasinsk.schema.jsonschema.Person": {
-                  "anyOf": [
-                    {
-                      "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Customer"
-                    },
-                    {
-                      "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Employee"
-                    }
-                  ]
+              "anyOf": [
+                {
+                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Customer"
                 },
+                {
+                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Employee"
+                }
+              ],
+              "${'$'}defs": {
                 "io.github.bbasinsk.schema.jsonschema.Customer": {
                   "type": "object",
                   "properties": {
@@ -239,7 +224,8 @@ class JsonSchemaTest {
                     "email": {"type": "string"}
                   },
                   "additionalProperties": false,
-                  "required": ["type","id","email"]
+                  "required": ["type","id","email"],
+                  "description": "A customer description"
                 },
                 "io.github.bbasinsk.schema.jsonschema.Employee": {
                   "type": "object",
@@ -248,7 +234,8 @@ class JsonSchemaTest {
                     "id": {"type": "integer"}
                   },
                   "additionalProperties": false,
-                  "required": ["type","id"]
+                  "required": ["type","id"],
+                  "description": "An employee description"
                 }
               }
             }
