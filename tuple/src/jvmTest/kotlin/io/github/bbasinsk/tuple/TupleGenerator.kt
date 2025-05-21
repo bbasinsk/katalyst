@@ -4,11 +4,13 @@ import com.squareup.kotlinpoet.*
 import com.squareup.kotlinpoet.ParameterizedTypeName.Companion.parameterizedBy
 import java.io.File
 import kotlin.jvm.JvmName
+import kotlin.test.Ignore
 import kotlin.test.Test
 
 class TupleGenerator {
 
     @Test
+    @Ignore // Uncomment to run
     fun generate() {
         val maxArity = 10  // <-- change to your highest N
         val pkg = "io.github.bbasinsk.tuple" // <-- your package
