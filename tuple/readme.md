@@ -11,14 +11,14 @@ A small Kotlin utility library and code generator to make working with deeply ne
 ## Example
 
 ```kotlin
-val someNestedTuples = Pair(42, Pair("Hello world", 3.1415))
+val someNestedTuples = Pair(Pair("Hello world", 3.1415), 42)
 
 // Destructure as a 3-tuple
 val (a, b, c) = tupleValues(someNestedTuples)
 
-println(a) // 42     : Int
-println(b) // Hello world : String
-println(c) // 3.1415 : Double
+println(a) // Hello world : String
+println(b) // 3.1415 : Double
+println(c) // 42     : Int
 ````
 
 Under the hood you get:

@@ -12,7 +12,7 @@ class TupleGenerator {
     @Test
     @Ignore // Uncomment to run
     fun generate() {
-        val maxArity = 10  // <-- change to your highest N
+        val maxArity = 9 // <-- change to your highest N
         val pkg = "io.github.bbasinsk.tuple" // <-- your package
         val outputDir = File("src/commonMain/kotlin")  // <-- where to write files
 
@@ -34,27 +34,27 @@ class TupleGenerator {
             return result
         }
 
-        // helper: nested Pair<A_or_Unit, …> type of depth n, with real type-vars at 'vars'
+        // helper: nested Pair<…,A_or_Unit> type of depth n, with real type-vars at 'vars'
         fun nestedPairType(n: Int, vars: Set<Int>): TypeName {
-            val unit = UNIT
-            fun nest(pos: Int): TypeName {
-                return if (pos == n) {
-                    if (vars.contains(pos)) TypeVariableName("A$pos") else unit
-                } else {
-                    val left = if (vars.contains(pos)) TypeVariableName("A$pos") else unit
-                    val right = nest(pos + 1)
-                    Pair::class.asClassName().parameterizedBy(left, right)
-                }
+            var t: TypeName = if (vars.contains(1)) TypeVariableName("A1") else UNIT
+            for (i in 2..n) {
+                val right = if (vars.contains(i)) TypeVariableName("A$i") else UNIT
+                t = Pair::class.asClassName().parameterizedBy(t, right)
             }
-            return nest(1)
+            return t
         }
 
         // helper: build the extractor chain for position 'pos' in 1..n
-        fun extractExpr(pos: Int, n: Int): String {
-            val sb = StringBuilder("tuples")
-            repeat(pos - 1) { sb.append(".second") }
-            if (pos < n) sb.append(".first")
-            return sb.toString()
+        fun extractExpr(pos: Int, n: Int): String = buildString {
+            append("tuples")
+            for (level in n downTo 2) {
+                if (level == pos) {
+                    append(".second")
+                    return@buildString
+                } else {
+                    append(".first")
+                }
+            }
         }
 
         for (n in 1..maxArity) {
