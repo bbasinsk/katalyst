@@ -18,6 +18,7 @@ kotlin {
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
+                implementation("com.squareup:kotlinpoet:2.2.0")
             }
         }
     }
