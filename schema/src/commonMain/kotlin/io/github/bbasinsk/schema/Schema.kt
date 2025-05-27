@@ -857,6 +857,252 @@ sealed interface Schema<A> {
             key: String = "type"
         ): Schema<A> =
             Union10(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            key: String = "type"
+        ): Schema<A> = Union11(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            key: String = "type"
+        ): Schema<A> = Union12(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            key: String = "type"
+        ): Schema<A> = Union13(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            key: String = "type"
+        ): Schema<A> = Union14(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            key: String = "type"
+        ): Schema<A> = Union15(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            key: String = "type"
+        ): Schema<A> = Union16(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            case17: Case<A, B17>,
+            key: String = "type"
+        ): Schema<A> = Union17(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            case17: Case<A, B17>,
+            case18: Case<A, B18>,
+            key: String = "type"
+        ): Schema<A> = Union18(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            case17: Case<A, B17>,
+            case18: Case<A, B18>,
+            case19: Case<A, B19>,
+            key: String = "type"
+        ): Schema<A> = Union19(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18, case19)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A, B20 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            case17: Case<A, B17>,
+            case18: Case<A, B18>,
+            case19: Case<A, B19>,
+            case20: Case<A, B20>,
+            key: String = "type"
+        ): Schema<A> = Union20(A::class.toMetadata(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18, case19 ,case20)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A, B20 : A, B21 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            case17: Case<A, B17>,
+            case18: Case<A, B18>,
+            case19: Case<A, B19>,
+            case20: Case<A, B20>,
+            case21: Case<A, B21>,
+            key: String = "type"
+        ): Schema<A> = Union21(A::class.toMetadata(), key, case1, case2, case3, case4, case5 ,case6 ,case7 ,case8 ,case9 ,case10 ,case11 ,case12 ,case13 ,case14 ,case15 ,case16 ,case17 ,case18 ,case19 ,case20 ,case21)
+
+        inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A, B20 : A, B21 : A, B22 : A> union(
+            case1: Case<A, B1>,
+            case2: Case<A, B2>,
+            case3: Case<A, B3>,
+            case4: Case<A, B4>,
+            case5: Case<A, B5>,
+            case6: Case<A, B6>,
+            case7: Case<A, B7>,
+            case8: Case<A, B8>,
+            case9: Case<A, B9>,
+            case10: Case<A, B10>,
+            case11: Case<A, B11>,
+            case12: Case<A, B12>,
+            case13: Case<A, B13>,
+            case14: Case<A, B14>,
+            case15: Case<A, B15>,
+            case16: Case<A, B16>,
+            case17: Case<A, B17>,
+            case18: Case<A, B18>,
+            case19: Case<A, B19>,
+            case20: Case<A, B20>,
+            case21: Case<A, B21>,
+            case22: Case<A, B22>,
+            key: String = "type"
+        ): Schema<A> = Union22(A::class.toMetadata(), key, case1 ,case2 ,case3 ,case4 ,case5 ,case6 ,case7 ,case8 ,case9 ,case10 ,case11 ,case12 ,case13 ,case14 ,case15 ,case16 ,case17 ,case18 ,case19 ,case20 ,case21 ,case22)
     }
 }
 
