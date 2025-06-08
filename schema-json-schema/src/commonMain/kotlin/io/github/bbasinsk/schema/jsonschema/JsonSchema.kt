@@ -22,7 +22,7 @@ fun JsonSchema.encodeToJsonString(): String =
 
 @Serializable
 data class JsonSchema(
-    val type: String? = null,
+    @Serializable(with = TypeListSerializer::class) val type: List<String>? = null,
     val description: String? = null,
     val enum: List<String>? = null,
     val format: String? = null,
@@ -51,9 +51,8 @@ fun Schema<*>.toJsonSchema(): JsonSchema {
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
-private fun String.typeOrNull(metadata: JsonOptions): String =
-    this
-//    listOfNotNull(this, "null".takeIf { metadata.optional })
+private fun String.typeOrNull(metadata: JsonOptions): List<String> =
+    listOfNotNull(this, "null".takeIf { metadata.optional })
 
 private fun <A> Schema<A>.toJsonSchemaImpl(
     options: JsonOptions,
@@ -61,7 +60,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
     inlineRefs: Boolean,
 ): JsonSchema {
     return when (this) {
-        is Schema.Empty -> JsonSchema(type = "null", description = options.description)
+        is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
         is Schema.Bytes -> JsonSchema(type = "string".typeOrNull(options), contentEncoding = "base64", description = options.description)
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs)
@@ -175,3 +174,4 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         }
     }
 }
+

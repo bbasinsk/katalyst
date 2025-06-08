@@ -146,25 +146,23 @@ class JsonSchemaTest {
     }
 
     @Test
-    @Ignore
     fun `optional field`() {
         assertEquals(
             Json.parseToJsonElement(
                 """
-                    {
-                      "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordOptional",
-                      "${'$'}defs": {
-                        "io.github.bbasinsk.schema.jsonschema.RecordOptional": {
-                          "type": "object",
-                          "properties": {
-                            "a": { "type": ["integer", "null"] },
-                            "b": { "type": ["string", "null"] }
-                          },
-                          "required": ["a", "b"],
-                          "additionalProperties": false
-                        }
-                      }
+                {
+                  "type": "object",
+                  "properties": {
+                    "a": { 
+                      "type": ["integer", "null"]
+                    },
+                    "b": { 
+                      "type": ["string", "null"]
                     }
+                  },
+                  "required": ["a", "b"],
+                  "additionalProperties": false
+                }
                 """.trimIndent()
             ),
             Schema.recordOptional().toJsonSchema().encodeToJsonElement()
@@ -221,7 +219,7 @@ class JsonSchemaTest {
                   "properties": {
                     "type": {"enum": ["Customer"]},
                     "id": {"type": "integer"},
-                    "email": {"type": "string"}
+                    "email": {"type": ["string", "null"]}
                   },
                   "additionalProperties": false,
                   "required": ["type","id","email"],
