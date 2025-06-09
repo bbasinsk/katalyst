@@ -154,10 +154,12 @@ class JsonSchemaTest {
                   "type": "object",
                   "properties": {
                     "a": { 
-                      "type": ["integer", "null"]
+                      "type": "integer",
+                      "nullable": true
                     },
                     "b": { 
-                      "type": ["string", "null"]
+                      "type": "string",
+                      "nullable": true
                     }
                   },
                   "required": ["a", "b"],
@@ -219,7 +221,10 @@ class JsonSchemaTest {
                   "properties": {
                     "type": {"enum": ["Customer"]},
                     "id": {"type": "integer"},
-                    "email": {"type": ["string", "null"]}
+                    "email": {
+                      "type": "string",
+                      "nullable": true
+                    }
                   },
                   "additionalProperties": false,
                   "required": ["type","id","email"],
