@@ -320,7 +320,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
 private fun Schema<*>.byRefName(nullable: Boolean? = null, outputOptions: OutputOptions): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
-        is Schema.Lazy<*> -> schema().byRefName(outputOptions = outputOptions)
+        is Schema.Lazy<*> -> emptyMap()
         is Schema.Metadata -> schema.byRefName(outputOptions = outputOptions)
         is Schema.Bytes -> emptyMap()
         is Schema.Collection<*> -> itemSchema.byRefName(outputOptions = outputOptions)
