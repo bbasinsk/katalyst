@@ -154,12 +154,10 @@ class JsonSchemaTest {
                   "type": "object",
                   "properties": {
                     "a": { 
-                      "type": "integer",
-                      "nullable": true
+                      "type": ["integer", "null"]
                     },
                     "b": { 
-                      "type": "string",
-                      "nullable": true
+                      "type": ["string", "null"]
                     }
                   },
                   "required": ["a", "b"],
@@ -209,28 +207,17 @@ class JsonSchemaTest {
             {
               "anyOf": [
                 {
-                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Customer"
-                },
-                {
-                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Employee"
-                }
-              ],
-              "${'$'}defs": {
-                "io.github.bbasinsk.schema.jsonschema.Customer": {
                   "type": "object",
                   "properties": {
                     "type": {"enum": ["Customer"]},
                     "id": {"type": "integer"},
-                    "email": {
-                      "type": "string",
-                      "nullable": true
-                    }
+                    "email": {"type": ["string", "null"]}
                   },
                   "additionalProperties": false,
                   "required": ["type","id","email"],
                   "description": "A customer description"
                 },
-                "io.github.bbasinsk.schema.jsonschema.Employee": {
+                {
                   "type": "object",
                   "properties": {
                     "type": {"enum": ["Employee"]},
@@ -240,7 +227,7 @@ class JsonSchemaTest {
                   "required": ["type","id"],
                   "description": "An employee description"
                 }
-              }
+              ]
             }
         """.trimIndent())
         val actual = Schema.person().toJsonSchema().encodeToJsonElement()
