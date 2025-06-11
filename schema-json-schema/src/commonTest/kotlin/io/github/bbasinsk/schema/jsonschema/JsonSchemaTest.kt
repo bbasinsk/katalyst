@@ -233,6 +233,101 @@ class JsonSchemaTest {
         val actual = Schema.person().toJsonSchema().encodeToJsonElement()
         assertEquals(expected, actual)
     }
+
+    @Test
+    fun `nullable record type is object or null`() {
+        data class WithNullableRecordField(
+            val record: RecordSmall?
+        )
+        val schema = Schema.record(
+            Schema.field(Schema.recordSmall().optional(), "record") { record },
+            ::WithNullableRecordField
+        )
+
+        val expected = Json.parseToJsonElement(
+            """
+            {
+              "type": "object",
+              "properties": {
+                "record": {
+                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordSmall"
+                }
+              },
+              "required": ["record"],
+              "additionalProperties": false,
+              "${'$'}defs": {
+                "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
+                  "type": ["object", "null"],
+                  "properties": {
+                    "a": {"type": "integer"},
+                    "b": {"type": "string"}
+                  },
+                  "required": ["a", "b"],
+                  "additionalProperties": false
+                }
+              }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+    }
+
+    @Test
+    fun `nullable union adds subtype of null type`() {
+        data class WithNullableUnionField(
+            val person: Person?
+        )
+        val schema = Schema.record(
+            Schema.field(Schema.person().optional(), "person") { person },
+            ::WithNullableUnionField
+        )
+
+        val expected = Json.parseToJsonElement(
+            """
+            {
+              "type": "object",
+              "properties": {
+                "person": {
+                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Person"
+                }
+              },
+              "additionalProperties": false,
+              "required": ["person"],
+              "${'$'}defs": {
+                "io.github.bbasinsk.schema.jsonschema.Person": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "description": "A customer description",
+                      "properties": {
+                        "type": {"enum": ["Customer"]},
+                        "id": {"type": "integer"},
+                        "email": {"type": ["string", "null"]}
+                      },
+                      "additionalProperties": false,
+                      "required": ["type","id","email"]
+                    },
+                    {
+                      "type": "object",
+                      "description": "An employee description",
+                      "properties": {
+                        "type": {"enum": ["Employee"]},
+                        "id": {"type": "integer"}
+                      },
+                      "additionalProperties": false,
+                      "required": ["type","id"]
+                    },
+                    {"type": "null"}
+                  ]
+                }
+              }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+    }
 }
 
 data class RecordOptional(

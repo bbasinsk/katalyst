@@ -138,7 +138,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                             definitions,
                             inlineRefs = true,
                         )
-                    }
+                    }.plus(listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional }))
                 )
                 definitions[typeName] = computedUnionSchema
             }
