@@ -127,10 +127,12 @@ private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
         HttpMethod.OPTIONS -> io.ktor.http.HttpMethod.Options
     }
 
+@Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Validation<SchemaError, A> =
     when (request) {
         is BodySchema.WithMetadata -> receiveRequest(request.schema)
         is BodySchema.Single -> when (request.contentType) {
+            is ContentType.Image -> Validation.valid(receive<ByteArray>()) as Validation<SchemaError, A>
             ContentType.Avro -> receiveAvro(request.schema())
             ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.reason()) }
             ContentType.MultipartFormData -> Validation.requireNotNull(request.schema() as? Schema.Record<A>) {
@@ -258,6 +260,7 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
     when (schema) {
         is BodySchema.WithMetadata -> respondSchema(status, schema.schema, value)
         is BodySchema.Single -> when (schema.contentType) {
+            is ContentType.Image -> respondBytes(contentType = schema.contentType.toKtorContentType(), status = status, bytes = value as ByteArray)
             ContentType.Json -> respondJson(status, schema.schema(), value)
             ContentType.Avro -> respondAvro(status, schema.schema(), value)
             ContentType.Plain -> respondPlain(status, schema.schema(), value)
@@ -266,6 +269,10 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
     }
 }
 
+private fun ContentType.toKtorContentType(): io.ktor.http.ContentType =
+    io.ktor.http.ContentType(this.contentType, this.contentSubtype)
+
+@Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: Schema<A>, value: A) {
     when (schema) {
         is Schema.Default -> TODO()

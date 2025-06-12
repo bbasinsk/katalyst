@@ -108,7 +108,12 @@ private fun <A> Schema<A>.toContentTypeObject(
     examples: Map<String, ExampleObject>
 ): Map<String, MediaTypeObject> {
     return when (this) {
-        is Schema.Bytes -> TODO()
+        is Schema.Bytes -> mapOf(
+            contentType to MediaTypeObject(
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                examples = examples.ifEmpty { null }
+            )
+        )
         is Schema.Collection<*> -> mapOf(
             contentType to MediaTypeObject(
                 schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),

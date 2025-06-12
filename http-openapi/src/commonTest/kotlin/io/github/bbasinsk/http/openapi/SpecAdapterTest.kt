@@ -1,8 +1,8 @@
 package io.github.bbasinsk.http.openapi
 
+import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.Schema.Companion.string
 import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.encodeToJsonElement
@@ -668,6 +668,66 @@ class SpecAdapterTest {
             OpenApiJson.parseToJsonElement(expected),
             OpenApiJson.encodeToJsonElement(result)
         )
+    }
+
+    @Test
+    fun `handles plain image request body`() {
+        val http = Http.post { Root / "image-test" }
+            .input { bytes(ContentType.Image.Jpeg) }
+            .output { status(Ok) { json { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToJsonElement(result)
+
+        val expected = OpenApiJson.parseToJsonElement(
+            """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/image-test": {
+                        "post": {
+                            "parameters": [],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "image/jpeg": {
+                                        "schema": {
+                                            "type": "string",
+                                            "format": "binary"
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "text/plain": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, json)
     }
 
     @Test
