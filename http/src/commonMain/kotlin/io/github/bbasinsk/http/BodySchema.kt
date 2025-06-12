@@ -56,12 +56,15 @@ sealed interface BodySchema<A> {
     companion object {
         fun empty(): BodySchema<Nothing?> = Single(Schema.empty(), ContentType.Plain)
 
+        fun <A> plain(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =
+            Single(Schema.Companion.schema(), ContentType.Plain)
+
+        fun <A> multipart(record: Schema.Companion.() -> Schema<A>): BodySchema<A> =
+            Single(Schema.Companion.record(), ContentType.MultipartFormData)
+
         // TODO: move out of http module into http-json, http-avro, etc.
         fun <A> json(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =
             Single(Schema.Companion.schema(), ContentType.Json)
-
-        fun <A> plain(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =
-            Single(Schema.Companion.schema(), ContentType.Plain)
 
         fun <A> avro(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =
             Single(Schema.Companion.schema(), ContentType.Avro)

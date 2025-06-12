@@ -202,7 +202,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             outputOptions = outputOptions
         )
 
-        is Schema.Bytes -> SchemaObject(nullable = field.nullable, type = "string", format = "byte")
+        is Schema.Bytes -> SchemaObject(nullable = field.nullable, type = "string", format = "binary")
         is Schema.Collection<*> -> SchemaObject(
             nullable = field.nullable,
             type = "array",

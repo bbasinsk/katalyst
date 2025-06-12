@@ -84,6 +84,18 @@ val emptyResponse =
         .output { status(Ok) { empty() } }
         .error { status(NoContent) { empty() } }
 
+val multiPartInput =
+    Http.post { Root / "multipart" / "record" }
+        .tag("Multipart")
+        .input { multipart { multipartInput() } }
+        .output { status(Ok) { plain { string() } } }
+
+val multiPartList =
+    Http.post { Root / "import" / "recipes" }
+        .tag("Multipart")
+        .input { multipart { multipartList() } }
+        .output { status(Ok) { plain { string() } } }
+
 val avroPersonEcho =
     Http.post { Root / "person" / "avro" / "echo" }
         .tag("Person")
@@ -119,6 +131,30 @@ fun Schema.Companion.badRequestSchema(): Schema<MultipleErrors.BadRequest> =
         MultipleErrors::BadRequest
     )
 
+data class MultipartInput(
+    val id: PersonId?,
+    val name: String,
+    val age: Int
+)
+
+fun Schema.Companion.multipartInput(): Schema<MultipartInput> =
+    record(
+        field(personId().optional(), "id") { id },
+        field(string(), "name") { name },
+        field(int(), "age") { age },
+        ::MultipartInput
+    )
+
+data class MultipartList(
+    val images: List<ByteArray>
+)
+
+fun Schema.Companion.multipartList(): Schema<MultipartList> =
+    record(
+        field(list(byteArray()), "images") { images },
+        ::MultipartList
+    )
+
 fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints("Example") {
     handle(findPersonById) { request ->
         val (name) = tupleValues(request.params)
@@ -152,6 +188,18 @@ fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints("E
 
     handle(emptyResponse) {
         if (Random.nextBoolean()) success() else error()
+    }
+
+    handle(multiPartInput) { request ->
+        val (id, name, age) = request.input
+        println("id: $id, name: $name, age: $age")
+        success("Received multipart input with id: $id, name: $name, age: $age")
+    }
+
+    handle(multiPartList) { request ->
+        val files = request.input.images
+        println("Handling ${files.size} files: ${files.map { it.size }}")
+        success("Received files: ${files.size}, first file size: ${files.first().size} bytes")
     }
 
     handle(avroPersonEcho) { request ->

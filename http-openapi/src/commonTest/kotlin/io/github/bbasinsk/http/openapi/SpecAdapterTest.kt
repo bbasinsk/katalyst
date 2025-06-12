@@ -2,6 +2,8 @@ package io.github.bbasinsk.http.openapi
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.Schema.Companion.string
+import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
@@ -257,7 +259,7 @@ class SpecAdapterTest {
         }
 
         val http = Http.get { Root / "test" }
-            .input { json { list(personSchema)  } }
+            .input { json { list(personSchema) } }
             .output { status(Ok) { plain { string() } } }
 
         val result = listOf(http).toOpenApiSpec(info)
@@ -666,6 +668,188 @@ class SpecAdapterTest {
             OpenApiJson.parseToJsonElement(expected),
             OpenApiJson.encodeToJsonElement(result)
         )
+    }
+
+    @Test
+    fun `handles multipart request body`() {
+        data class MyByteArray(val bytes: List<Byte>)
+        data class MultipartData(val fileName: String, val contents: MyByteArray)
+
+        fun Schema.Companion.myByteArray(): Schema<MyByteArray> =
+            byteArray().transform(
+                decode = { MyByteArray(it.toList()) },
+                encode = { it.bytes.toByteArray() }
+            )
+
+        fun Schema.Companion.multipartData(): Schema<MultipartData> = with(Schema.Companion) {
+            record(
+                field(string(), "fileName") { fileName },
+                field(myByteArray(), "contents") { contents },
+                ::MultipartData
+            )
+        }
+
+        val http = Http.post { Root / "multipart-test" }
+            .input { multipart { multipartData() } }
+            .output { status(Ok) { json { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToJsonElement(result)
+
+        val expected = OpenApiJson.parseToJsonElement(
+            """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/multipart-test": {
+                        "post": {
+                            "parameters": [],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "multipart/form-data": {
+                                        "schema": {
+                                            "${'$'}ref":"#/components/schemas/MultipartData"
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "text/plain": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "MultipartData": { 
+                            "type": "object",
+                            "properties": {
+                                "fileName": {
+                                    "type": "string"
+                                },
+                                "contents": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            },
+                            "required": [
+                                "fileName",
+                                "contents"
+                            ]
+                        }
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, json)
+    }
+
+    @Test
+    fun `handles multipart list request body`() {
+        data class MyByteArray(val bytes: List<Byte>)
+        data class MultipartData(val images: List<MyByteArray>)
+
+        fun Schema.Companion.myByteArray(): Schema<MyByteArray> =
+            byteArray().transform(
+                decode = { MyByteArray(it.toList()) },
+                encode = { it.bytes.toByteArray() }
+            )
+
+        fun Schema.Companion.multipartData(): Schema<MultipartData> = with(Schema.Companion) {
+            record(
+                field(list(myByteArray()), "images") { images },
+                ::MultipartData
+            )
+        }
+
+        val http = Http.post { Root / "multipart-list" }
+            .input { multipart { multipartData() } }
+            .output { status(Ok) { json { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToJsonElement(result)
+
+        val expected = OpenApiJson.parseToJsonElement(
+            """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/multipart-list": {
+                        "post": {
+                            "parameters": [],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "multipart/form-data": {
+                                        "schema": {
+                                            "${'$'}ref":"#/components/schemas/MultipartData"
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "text/plain": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "MultipartData": {
+                            "type": "object",
+                            "properties": {
+                                "images": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string",
+                                        "format": "binary"
+                                    }
+                                }
+                            },
+                            "required": [
+                                "images"
+                            ]
+                        }
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, json)
     }
 }
 

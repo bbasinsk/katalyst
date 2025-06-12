@@ -11,6 +11,7 @@ import io.github.bbasinsk.http.BodySchema
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.parseCatching
+import io.github.bbasinsk.schema.Field
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
@@ -18,18 +19,23 @@ import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
+import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.andThen
 import io.github.bbasinsk.validation.getOrElse
 import io.github.bbasinsk.validation.mapInvalid
+import io.github.bbasinsk.validation.mapValid
 import io.github.bbasinsk.validation.orElse
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.HttpStatusCode.Companion.UnprocessableEntity
+import io.ktor.http.content.PartData
+import io.ktor.http.content.forEachPart
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveMultipart
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
@@ -43,6 +49,8 @@ import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingHandler
 import io.ktor.server.routing.RoutingNode
 import io.ktor.util.flattenEntries
+import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonElement
 
 fun <Path, Input, Error, Output> RoutingNode.httpEndpointToRoute(
@@ -125,6 +133,12 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
         is BodySchema.Single -> when (request.contentType) {
             ContentType.Avro -> receiveAvro(request.schema())
             ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.reason()) }
+            ContentType.MultipartFormData -> Validation.requireNotNull(request.schema() as? Schema.Record<A>) {
+                SchemaError("MultipartFormData must be Schema.Record, found ${request.schema()::class.simpleName}")
+            }.andThen {
+                receiveMultipart(it)
+            }
+
             ContentType.Plain -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
                 SchemaError(it.message ?: "Error decoding")
             }
@@ -156,6 +170,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
                 Validation.invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
             }
         }
+
         is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
@@ -172,6 +187,73 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.StringMap<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
     }
 
+private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): Validation<SchemaError, A> {
+    val schemaFields = schema.unsafeFields()
+    val partValues = buildMap<Field<A, *>, Any?> {
+        receiveMultipart().forEachPart { part ->
+            val field = schemaFields.find { it.name == part.name } ?: return@forEachPart
+            when (val fieldSchema = field.schema) {
+                is Schema.Collection<*> -> {
+                    val prev = get(field) as? List<Any?> ?: emptyList()
+                    part.receivePart(fieldSchema.itemSchema).mapValid { put(field, prev.plus(it)) }
+                }
+
+                else -> part.receivePart(fieldSchema).mapValid { put(field, it) }
+            }
+        }
+    }
+    return Validation.valid(schema.unsafeConstruct(schemaFields.map { partValues[it] }))
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> {
+    return when (schema) {
+        is Schema.Bytes -> {
+            when (this) {
+                is PartData.FileItem -> Validation.valid(provider().toInputStream().readBytes()) as Validation<String, A>
+                is PartData.BinaryItem -> Validation.valid(provider().readByteArray()) as Validation<String, A>
+                is PartData.BinaryChannelItem -> Validation.valid(provider().toInputStream().readBytes()) as Validation<String, A>
+                is PartData.FormItem -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FileItem or BinaryItem for Bytes schema")
+                null -> Validation.invalid("Missing required part for schema")
+            }
+        }
+
+        is Schema.Default -> receivePart(schema.schema)
+        is Schema.Empty -> Validation.valid(null as A)
+        is Schema.Lazy -> receivePart(schema.schema())
+        is Schema.Metadata -> receivePart(schema.schema)
+        is Schema.Primitive -> when (this) {
+            is PartData.FormItem -> Validation.fromResult(schema.decodePrimitiveString(value)) { e -> e.message ?: "Error decoding part value" }
+            null -> Validation.invalid("Missing required part for schema")
+            else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
+        }
+
+        is Schema.Union, is Schema.Record, is Schema.StringMap<*> -> when (this) {
+            is PartData.FormItem -> schema.decodeFromJsonString(value).mapInvalid { it.reason() }
+            null -> Validation.invalid("Missing required part for schema")
+            else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
+        }
+
+        is Schema.Collection<*> -> when (this) {
+            is PartData.FormItem -> TODO()
+            null -> Validation.invalid("Missing required part for schema")
+            else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
+        }
+
+        is Schema.Optional<*> -> when (this) {
+            null -> Validation.valid(null as A)
+            else -> this.receivePart(schema.schema) as Validation<String, A>
+        }
+
+        is Schema.OrElse<A, *> -> receivePart(schema.preferred)
+        is Schema.Transform<A, *> -> receivePart(schema.schema).andThen {
+            Validation.fromResult(schema.unsafeDecode(it)) { e ->
+                e.message ?: "Error decoding part value"
+            }
+        }
+    }
+}
+
 private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema: BodySchema<A>, value: A) {
     when (schema) {
         is BodySchema.WithMetadata -> respondSchema(status, schema.schema, value)
@@ -179,6 +261,7 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
             ContentType.Json -> respondJson(status, schema.schema(), value)
             ContentType.Avro -> respondAvro(status, schema.schema(), value)
             ContentType.Plain -> respondPlain(status, schema.schema(), value)
+            ContentType.MultipartFormData -> error("MultipartFormData is not supported as response type")
         }
     }
 }

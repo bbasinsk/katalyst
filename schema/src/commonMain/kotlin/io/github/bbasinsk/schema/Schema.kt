@@ -39,7 +39,10 @@ sealed interface Schema<A> {
         val schema: Schema<B>,
         val encode: (A) -> B,
         val decode: (B) -> Result<A>
-    ) : Schema<A>
+    ) : Schema<A> {
+        @Suppress("UNCHECKED_CAST")
+        fun unsafeDecode(b: Any?): Result<A> = (decode as (Any?) -> Result<A>)(b)
+    }
 
     sealed interface Union<A> : Schema<A> {
         val metadata: ObjectMetadata<A>
