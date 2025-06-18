@@ -911,6 +911,115 @@ class SpecAdapterTest {
 
         assertEquals(expected, json)
     }
+
+    @Test
+    fun `handles mix of json and bytes`() {
+        data class MyByteArray(val bytes: List<Byte>)
+
+        fun Schema.Companion.myByteArray(): Schema<MyByteArray> =
+            byteArray().transform(
+                decode = { MyByteArray(it.toList()) },
+                encode = { it.bytes.toByteArray() }
+            )
+
+        data class MixedData(
+            val json: Customer,
+            val image: MyByteArray
+        )
+
+        fun Schema.Companion.mixedData(): Schema<MixedData> = with(Schema.Companion) {
+            record(
+                field(Customer.schema, "json") { json },
+                field(myByteArray(), "image") { image },
+                ::MixedData
+            )
+        }
+
+        val http = Http.post { Root / "multi-part" / "mixed-test" }
+            .input { multipart { mixedData() } }
+            .output { status(Ok) { json { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToJsonElement(result)
+
+        val expected = OpenApiJson.parseToJsonElement(
+            """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/multi-part/mixed-test": {
+                        "post": {
+                            "parameters": [],
+                            "requestBody": {
+                                "required": true,
+                                "content": {
+                                    "multipart/form-data": {
+                                        "schema": {
+                                            "${'$'}ref":"#/components/schemas/MixedData"
+                                        }
+                                    }
+                                }
+                            },
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "text/plain": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "MixedData": {
+                            "type": "object",
+                            "properties": {
+                                "json": {
+                                    "${'$'}ref":"#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
+                                },
+                                "image": {
+                                    "type":"string",
+                                    "format":"binary"
+                                }
+                            },
+                            "required": [
+                                "json",
+                                "image"
+                            ]
+                        },
+                        "io.github.bbasinsk.http.openapi.Customer":{
+                            "type":"object",
+                            "properties":{
+                                "id":{
+                                    "type":"integer",
+                                    "format":"int32"
+                                },
+                                "name":{
+                                    "type":"string"
+                                }
+                            },
+                            "required":["id","name"]
+                        }
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, json)
+    }
 }
 
 sealed interface Human {
