@@ -496,6 +496,12 @@ class SpecAdapterTest {
                   "io.github.bbasinsk.http.openapi.Customer": {
                     "type": "object",
                     "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "Customer"
+                        ]
+                      },
                       "id": {
                         "type": "integer",
                         "format": "int32"
@@ -505,6 +511,7 @@ class SpecAdapterTest {
                       }
                     },
                     "required": [
+                      "type",
                       "id",
                       "name"
                     ]
@@ -512,6 +519,12 @@ class SpecAdapterTest {
                   "io.github.bbasinsk.http.openapi.Employee": {
                     "type": "object",
                     "properties": {
+                      "type": {
+                        "type": "string",
+                        "enum": [
+                          "Employee"
+                        ]
+                      },
                       "id": {
                         "type": "integer",
                         "format": "int32"
@@ -526,6 +539,7 @@ class SpecAdapterTest {
                       }
                     },
                     "required": [
+                      "type",
                       "id",
                       "role"
                     ]

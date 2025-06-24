@@ -114,6 +114,7 @@ private fun <A> Schema<A>.toContentTypeObject(
                 examples = examples.ifEmpty { null }
             )
         )
+
         is Schema.Collection<*> -> mapOf(
             contentType to MediaTypeObject(
                 schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
@@ -162,6 +163,7 @@ data class FieldOptions(
     val ref: Boolean = false,
     val nullable: Boolean? = null,
     val description: String? = null,
+    val discriminator: Pair<String, String>? = null // for union schemas, key and value
 )
 
 data class OutputOptions(
@@ -275,23 +277,23 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     ref = refPath(metadata.qualifiedName())
                 )
             } else {
+                val cases = unsafeCases().map { case ->
+                    val field = FieldOptions(
+                        ref = !outputOptions.inlineRefs,
+                        discriminator = key to case.name
+                    )
+                    case.schema.toSchemaObjectImpl(field, outputOptions)
+                }
+
                 if (outputOptions.useAnyOf) {
                     SchemaObject(
                         nullable = field.nullable,
-                        anyOf = unsafeCases().map { case ->
-                            val keySchema = SchemaObject(type = "string", enum = listOf(case.name))
-                            val childSchema = case.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions)
-                            childSchema.copy(
-                                properties = mapOf(key to keySchema).plus(childSchema.properties.orEmpty()),
-                                required = listOf(key).plus(childSchema.required.orEmpty()),
-                                propertyOrdering = childSchema.propertyOrdering?.let { listOf(key).plus(it) }
-                            )
-                        },
+                        anyOf = cases,
                     )
                 } else {
                     SchemaObject(
                         nullable = field.nullable,
-                        oneOf = unsafeCases().map { it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions) },
+                        oneOf = cases,
                         discriminator = DiscriminatorObject(
                             propertyName = key,
                             mapping = unsafeCases().mapNotNull { case ->
@@ -317,12 +319,27 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     },
                     required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name },
                     propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields().map { it.name } else null
-                )
+                ).let { obj ->
+                    if (field.discriminator == null) obj
+                    else {
+                        val (key, name) = field.discriminator
+                        val keySchema = SchemaObject(type = "string", enum = listOf(name))
+                        obj.copy(
+                            properties = mapOf(key to keySchema).plus(obj.properties.orEmpty()),
+                            required = listOf(key).plus(obj.required.orEmpty()),
+                            propertyOrdering = obj.propertyOrdering?.let { listOf(key).plus(it) }
+                        )
+                    }
+                }
             }
         }
     }
 
-private fun Schema<*>.byRefName(nullable: Boolean? = null, outputOptions: OutputOptions): Map<String, SchemaObject> =
+private fun Schema<*>.byRefName(
+    nullable: Boolean? = null,
+    outputOptions: OutputOptions,
+    discriminator: Pair<String, String>? = null,
+): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
         is Schema.Lazy<*> -> emptyMap()
@@ -337,10 +354,12 @@ private fun Schema<*>.byRefName(nullable: Boolean? = null, outputOptions: Output
         is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
 
         is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, case ->
-            acc + case.schema.byRefName(nullable, outputOptions)
+            acc + case.schema.byRefName(nullable, outputOptions, discriminator = key to case.name)
         }
 
-        is Schema.Record<*> -> unsafeFields().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, field ->
+        is Schema.Record<*> -> unsafeFields().fold(
+            mapOf(metadata.qualifiedName() to toSchemaObjectImpl(FieldOptions(discriminator = discriminator), outputOptions))
+        ) { acc, field ->
             acc + field.schema.byRefName(nullable, outputOptions)
         }
     }
