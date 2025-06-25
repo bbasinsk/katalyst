@@ -49,6 +49,8 @@ import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingHandler
 import io.ktor.server.routing.RoutingNode
 import io.ktor.util.flattenEntries
+import io.ktor.utils.io.availableForRead
+import io.ktor.utils.io.core.remaining
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonElement
@@ -242,8 +244,8 @@ private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> 
             else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
         }
 
-        is Schema.Optional<*> -> when (this) {
-            null -> Validation.valid(null as A)
+        is Schema.Optional<*> -> when {
+            isNullOrEmpty() -> Validation.valid(null as A)
             else -> this.receivePart(schema.schema) as Validation<String, A>
         }
 
@@ -255,6 +257,15 @@ private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> 
         }
     }
 }
+
+private fun PartData?.isNullOrEmpty(): Boolean =
+    when (this) {
+        null -> true
+        is PartData.FileItem -> provider().availableForRead == 0
+        is PartData.BinaryItem -> provider().remaining == 0L
+        is PartData.BinaryChannelItem -> provider().availableForRead == 0
+        is PartData.FormItem -> value.isEmpty()
+    }
 
 private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema: BodySchema<A>, value: A) {
     when (schema) {
