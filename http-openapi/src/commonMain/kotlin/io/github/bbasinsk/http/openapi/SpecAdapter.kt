@@ -297,7 +297,10 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                         discriminator = DiscriminatorObject(
                             propertyName = key,
                             mapping = unsafeCases().mapNotNull { case ->
-                                case.schema.byRefName(outputOptions = outputOptions).toList().singleOrNull()?.run { case.name to refPath(first) }
+                                val caseSchemas = case.schema.byRefName(outputOptions = outputOptions)
+                                val caseSchema = caseSchemas.toList().firstOrNull()
+                                val childFieldSchemas = caseSchemas.toList().drop(1) // Should these get attached to the root components?
+                                caseSchema?.run { case.name to refPath(first) }
                             }.toMap()
                         )
                     )
