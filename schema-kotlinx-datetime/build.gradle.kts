@@ -9,6 +9,10 @@ kotlin {
     macosArm64()
     linuxX64()
 
+    compilerOptions {
+        optIn = listOf("kotlin.time.ExperimentalTime")
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
