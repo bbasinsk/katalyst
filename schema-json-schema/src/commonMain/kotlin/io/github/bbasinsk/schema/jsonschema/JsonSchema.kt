@@ -54,6 +54,19 @@ fun Schema<*>.toJsonSchema(): JsonSchema {
 private fun String.typeOrNull(metadata: JsonOptions): List<String> =
     listOfNotNull(this, "null".takeIf { metadata.optional })
 
+private fun JsonSchema.orNull(metadata: JsonOptions): JsonSchema =
+    if (metadata.optional) {
+        copy(
+            type = null,
+            anyOf = listOf(
+                JsonSchema(type = this.type),
+                JsonSchema(type = listOf("null")),
+            )
+        )
+    } else {
+        this
+    }
+
 private fun <A> Schema<A>.toJsonSchemaImpl(
     options: JsonOptions,
     definitions: MutableMap<String, JsonSchema>,
@@ -61,7 +74,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 ): JsonSchema {
     return when (this) {
         is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
-        is Schema.Bytes -> JsonSchema(type = "string".typeOrNull(options), contentEncoding = "base64", description = options.description)
+        is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description).orNull(options)
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs)
         is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs)
@@ -71,17 +84,17 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
         is Primitive ->
             when (this) {
-                is Primitive.Boolean -> JsonSchema(type = "boolean".typeOrNull(options), description = options.description)
-                is Primitive.Double -> JsonSchema(type = "number".typeOrNull(options), description = options.description)
-                is Primitive.Float -> JsonSchema(type = "number".typeOrNull(options), description = options.description)
-                is Primitive.Int -> JsonSchema(type = "integer".typeOrNull(options), description = options.description)
-                is Primitive.Long -> JsonSchema(type = "integer".typeOrNull(options), description = options.description)
-                is Primitive.String -> JsonSchema(type = "string".typeOrNull(options), description = options.description)
+                is Primitive.Boolean -> JsonSchema(type = listOf("boolean"), description = options.description).orNull(options)
+                is Primitive.Double -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
+                is Primitive.Float -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
+                is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
+                is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
+                is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description).orNull(options)
                 is Primitive.Enumeration<*> -> JsonSchema(
-                    type = "string".typeOrNull(options),
+                    type = listOf("string"),
                     enum = values.map { it.toString() },
                     description = options.description
-                )
+                ).orNull(options)
             }
 
 //        is Schema.Transform<*, *> -> when {
@@ -117,19 +130,19 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs)
 
         is Schema.Collection<*> -> JsonSchema(
-            type = "array".typeOrNull(options),
+            type = listOf("array"),
             items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs)
-        )
+        ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
-            type = "object".typeOrNull(options),
+            type = listOf("object"),
 //            additionalProperties = valueSchema.toJsonSchemaImpl(metadata, definitions)
-        )
+        ).orNull(options)
 
         is Schema.Union<*> -> {
             val typeName = this.metadata.qualifiedName()
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = "object".typeOrNull(options)) // temporary placeholder for recursive record
+                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive record
                 val computedUnionSchema = JsonSchema(
 //                    type = "object",
                     anyOf = unsafeCases().map { case ->
@@ -150,7 +163,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         is Schema.Record<*> -> {
             val typeName = this.metadata.qualifiedName()
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = "object".typeOrNull(options)) // temporary placeholder for recursive records
+                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive records
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
                 val properties = unionKeyProperty + unsafeFields().associate { field ->
@@ -158,14 +171,14 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 }
 
                 val computedRecordSchema = JsonSchema(
-                    type = "object".typeOrNull(options),
+                    type = listOf("object"),
                     properties = properties,
                     required = properties
 //                        .filter { it.schema.isRequired() }
                         .map { it.key },
                     additionalProperties = false,
                     description = options.description
-                )
+                ).orNull(options)
                 definitions[typeName] = computedRecordSchema
             }
             val recordSchema = definitions[typeName]!!

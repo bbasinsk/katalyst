@@ -153,12 +153,8 @@ class JsonSchemaTest {
                 {
                   "type": "object",
                   "properties": {
-                    "a": { 
-                      "type": ["integer", "null"]
-                    },
-                    "b": { 
-                      "type": ["string", "null"]
-                    }
+                    "a": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
+                    "b": {"anyOf": [{"type": "string"}, {"type": "null"}]}
                   },
                   "required": ["a", "b"],
                   "additionalProperties": false
@@ -211,7 +207,7 @@ class JsonSchemaTest {
                   "properties": {
                     "type": {"enum": ["Customer"]},
                     "id": {"type": "integer"},
-                    "email": {"type": ["string", "null"]}
+                    "email": {"anyOf": [{"type": "string"}, {"type": "null"}]}
                   },
                   "additionalProperties": false,
                   "required": ["type","id","email"],
@@ -257,7 +253,7 @@ class JsonSchemaTest {
               "additionalProperties": false,
               "${'$'}defs": {
                 "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
-                  "type": ["object", "null"],
+                  "anyOf": [{"type": "object"}, {"type": "null"}],
                   "properties": {
                     "a": {"type": "integer"},
                     "b": {"type": "string"}
@@ -303,7 +299,7 @@ class JsonSchemaTest {
                       "properties": {
                         "type": {"enum": ["Customer"]},
                         "id": {"type": "integer"},
-                        "email": {"type": ["string", "null"]}
+                        "email": {"anyOf": [{"type": "string"}, {"type": "null"}]}
                       },
                       "additionalProperties": false,
                       "required": ["type","id","email"]
