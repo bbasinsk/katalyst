@@ -38,6 +38,7 @@ sealed interface PathSchema<A> : ParamsSchema<A> {
     //      ie: Root / "users" / param("userId") { int() }
     operator fun div(segment: String): PathSchema<Pair<A, Unit>> = Combine(this, Segment(segment))
     operator fun <B> div(param: ParamSchema<B>): PathSchema<Pair<A, B>> = Combine(this, Parameter(param))
+    operator fun <B> div(other: PathSchema<B>): PathSchema<Pair<A, B>> = Combine(this, other)
 
     companion object {
         val Root: PathSchema<Unit> = RootSchema
