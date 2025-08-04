@@ -5,12 +5,12 @@ import io.github.bbasinsk.schema.transform
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DateTimePeriod
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
-import kotlin.time.Instant
 
 // https://github.com/Kotlin/kotlinx-datetime#types
 
