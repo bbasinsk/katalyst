@@ -42,6 +42,7 @@ sealed interface PathSchema<A> : ParamsSchema<A> {
 
     companion object {
         val Root: PathSchema<Unit> = RootSchema
+        fun segment(name: String): PathSchema<Unit> = Segment(name)
         fun <A> param(name: String, schema: Schema.Companion.() -> Schema<A>): ParamSchema<A> =
             ParamSchema.Single(name, Schema.Companion.schema())
     }
