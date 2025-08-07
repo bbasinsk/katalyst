@@ -185,11 +185,15 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
             }
         }
 
-        is Schema.Record -> schema.decodeFromJsonElement(receive<JsonElement>())
-        is Schema.Union -> schema.decodeFromJsonElement(receive<JsonElement>())
-        is Schema.Collection<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
-        is Schema.StringMap<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
+        is Schema.Record -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
+        is Schema.Union -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
+        is Schema.Collection<*> -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
+        is Schema.StringMap<*> -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
     }
+
+private suspend fun RoutingCall.receiveJsonElement(): Validation<InvalidJson, JsonElement> =
+    Validation.runCatching { receive<JsonElement>() }
+        .mapInvalid { InvalidJson.FieldError(expected = "JsonElement", found = it.toString(), path = emptyList()) }
 
 private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): Validation<SchemaError, A> {
     val schemaFields = schema.unsafeFields()
