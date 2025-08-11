@@ -346,15 +346,15 @@ private fun Schema<*>.byRefName(
     when (this) {
         is Schema.Empty -> emptyMap()
         is Schema.Lazy<*> -> emptyMap()
-        is Schema.Metadata -> schema.byRefName(outputOptions = outputOptions)
+        is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
         is Schema.Bytes -> emptyMap()
-        is Schema.Collection<*> -> itemSchema.byRefName(outputOptions = outputOptions)
-        is Schema.Default -> schema.byRefName(outputOptions = outputOptions)
+        is Schema.Collection<*> -> itemSchema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
+        is Schema.Default -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
         is Schema.Optional<*> -> schema.byRefName(nullable = true, outputOptions = outputOptions)
         is Schema.OrElse<*, *> -> preferred.byRefName(outputOptions = outputOptions)
         is Schema.Primitive -> emptyMap()
-        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
-        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
+        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
+        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
 
         is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, case ->
             acc + case.schema.byRefName(nullable, outputOptions, discriminator = key to case.name)
