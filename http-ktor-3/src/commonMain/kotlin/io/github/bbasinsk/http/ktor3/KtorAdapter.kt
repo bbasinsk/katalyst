@@ -97,8 +97,8 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
     }
 
     val rawPath = call.request.path().split("/").filter { it.isNotBlank() }
-    val headers = call.request.headers.flattenEntries().toMap()
-    val query = call.request.queryParameters.flattenEntries().toMap()
+    val headers = call.request.headers.entries().associate { it.key to it.value }
+    val query = call.request.queryParameters.entries().associate { it.key to it.value }
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
     val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->

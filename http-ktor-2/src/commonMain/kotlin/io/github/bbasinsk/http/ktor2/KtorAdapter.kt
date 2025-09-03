@@ -90,8 +90,8 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         }
 
         val rawPath = context.request.path().split("/").filter { it.isNotBlank() }
-        val headers = context.request.headers.flattenEntries().toMap()
-        val query = context.request.queryParameters.flattenEntries().toMap()
+        val headers = context.request.headers.entries().associate { it.key to it.value }
+        val query = context.request.queryParameters.entries().associate { it.key to it.value }
         val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
         val input = call.receiveSchema(endpoint.api.input.schema())

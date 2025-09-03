@@ -48,24 +48,32 @@ sealed interface PathSchema<A> : ParamsSchema<A> {
 
 fun <A> ParamsSchema<A>.parseCatching(
     path: List<String>,
-    headers: Map<String, String>,
-    queryParams: Map<String, String>
+    headers: Map<String, List<String>>,
+    queryParams: Map<String, List<String>>
 ): Result<A> =
     runCatching {
         parse(path.toMutableList(), headers, queryParams)
     }
 
-fun <A> ParamSchema<A>.parse(getValue: (String) -> String?): A =
+fun <A> ParamSchema<A>.parse(getValue: (String) -> List<String>?): A =
     when (this) {
-        is ParamSchema.Single -> schema.decodePrimitiveString(getValue(name) ?: "").getOrThrow()
         is ParamSchema.WithMetadata -> schema.parse(getValue)
+        is ParamSchema.Single -> when (schema) {
+            is Schema.Collection<*> ->
+                @Suppress("UNCHECKED_CAST")
+                getValue(name).orEmpty().map { raw ->
+                    schema.itemSchema.decodePrimitiveString(raw).getOrThrow()
+                } as A
+
+            else -> schema.decodePrimitiveString(getValue(name)?.firstOrNull() ?: "").getOrThrow()
+        }
     }
 
 // TODO: Validation<A, B>?
 fun <A> ParamsSchema<A>.parse(
     rawPath: MutableList<String>,
-    rawHeaders: Map<String, String>,
-    rawQueryParams: Map<String, String>,
+    rawHeaders: Map<String, List<String>>,
+    rawQueryParams: Map<String, List<String>>,
 ): A {
     return when (this) {
         is ParamsSchema.HeaderSchema -> this.param.parse(rawHeaders::get)
