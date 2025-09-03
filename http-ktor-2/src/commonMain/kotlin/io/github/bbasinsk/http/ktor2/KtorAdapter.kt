@@ -97,6 +97,7 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         val input = call.receiveSchema(endpoint.api.input.schema())
             .mapInvalid { SchemaError(it.reason()) }
             .getOrElse { errors ->
+                errors.onEach { call.application.environment.log.warn(it.message) }
                 return@interceptor call.respondSchema(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
             }
 

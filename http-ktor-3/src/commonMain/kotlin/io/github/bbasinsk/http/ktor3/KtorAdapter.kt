@@ -102,6 +102,7 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
     val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
+        errors.onEach { call.application.environment.log.warn(it.message) }
         return@interceptor call.respondJson(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
     }
 
