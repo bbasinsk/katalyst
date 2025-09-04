@@ -48,7 +48,6 @@ import io.ktor.server.routing.RouteSelector
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingHandler
 import io.ktor.server.routing.RoutingNode
-import io.ktor.util.flattenEntries
 import io.ktor.utils.io.availableForRead
 import io.ktor.utils.io.core.remaining
 import io.ktor.utils.io.jvm.javaio.toInputStream
