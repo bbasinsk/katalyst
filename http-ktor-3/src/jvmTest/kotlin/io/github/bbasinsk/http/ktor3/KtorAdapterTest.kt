@@ -3,6 +3,7 @@ package io.github.bbasinsk.http.ktor3
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.java.instant
 import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -76,5 +77,23 @@ class KtorAdapterTest {
 
         val response = client.get("/some/path?name=a&name=b&name=c")
         assertEquals("[a,b,c]", response.bodyAsText())
+    }
+
+    @Test
+    fun pathParamsArePercentDecoded() = testApplication {
+        val api = Http.get { Root / "items" / param("since") { instant() } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (since) = tupleValues(request.params)
+                    Response.success(since.toString())
+                }
+            }
+        }
+
+        val response = client.get("/items/2000-01-01T00%3A00%3A00Z")
+        assertEquals("2000-01-01T00:00:00Z", response.bodyAsText())
     }
 }
