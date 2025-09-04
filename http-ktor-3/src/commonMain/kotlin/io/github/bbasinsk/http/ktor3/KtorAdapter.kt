@@ -48,6 +48,7 @@ import io.ktor.server.routing.RouteSelector
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingHandler
 import io.ktor.server.routing.RoutingNode
+import io.ktor.http.decodeURLPart
 import io.ktor.utils.io.availableForRead
 import io.ktor.utils.io.core.remaining
 import io.ktor.utils.io.jvm.javaio.toInputStream
@@ -95,7 +96,10 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
         return@interceptor call.respond(HttpStatusCode.MethodNotAllowed)
     }
 
-    val rawPath = call.request.path().split("/").filter { it.isNotBlank() }
+    val rawPath = call.request.path()
+        .split("/")
+        .filter { it.isNotBlank() }
+        .map { it.decodeURLPart() }
     val headers = call.request.headers.entries().associate { it.key to it.value }
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
