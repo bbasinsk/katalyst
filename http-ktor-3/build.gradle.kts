@@ -32,6 +32,12 @@ kotlin {
                 implementation(libs.ktor3.serialization.kotlinx.json) // For example / main
             }
         }
+        val jvmTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.ktor3.server.test.host)
+            }
+        }
     }
 }
 
