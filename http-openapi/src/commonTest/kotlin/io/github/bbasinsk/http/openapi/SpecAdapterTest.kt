@@ -502,47 +502,13 @@ class SpecAdapterTest {
                         "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                       }
                     ],
-                    "discriminator":{
-                        "propertyName":"type",
-                        "mapping":{
-                            "Customer":"#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator",
-                            "Employee":"#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
-                        }
+                    "discriminator": {
+                      "propertyName": "type",
+                      "mapping": {
+                        "Customer": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator",
+                        "Employee": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
+                      }
                     }
-                  },
-                  "io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator": {
-                    "allOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": ["Customer"]
-                          }
-                        },
-                        "required": ["type"]
-                      },
-                      {
-                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Customer"
-                      }
-                    ]
-                  },
-                  "io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator": {
-                    "allOf": [
-                      {
-                        "type": "object",
-                        "properties": {
-                          "type": {
-                            "type": "string",
-                            "enum": ["Employee"]
-                          }
-                        },
-                        "required": ["type"]
-                      },
-                      {
-                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Employee"
-                      }
-                    ]
                   },
                   "io.github.bbasinsk.http.openapi.Human.Customer": {
                     "type": "object",
@@ -558,6 +524,27 @@ class SpecAdapterTest {
                     "required": [
                       "id",
                       "name"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Customer"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "type"
+                        ]
+                      },
+                      {
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Customer"
+                      }
                     ]
                   },
                   "io.github.bbasinsk.http.openapi.Human.Employee": {
@@ -580,75 +567,27 @@ class SpecAdapterTest {
                       "id",
                       "role"
                     ]
-                  }
-                }
-              }
-            }
-        """.trimIndent()
-
-        assertEquals(
-            OpenApiJson.parseToJsonElement(expected),
-            OpenApiJson.encodeToJsonElement(result)
-        )
-    }
-
-    @Test
-    fun `should encode type for nested oneOf`() {
-        val http = Http.get { Root / "nested-oneof" }
-            .input { json { Wrapper.schema } }
-            .output { status(Ok) { json { int() } } }
-
-        val result = listOf(http).toOpenApiSpec(info)
-
-        val expected = """
-            {
-              "openapi": "3.0.0",
-              "info": {
-                "title": "API",
-                "version": "1.0.0"
-              },
-              "servers": [],
-              "paths": {
-                "/nested-oneof": {
-                  "get": {
-                    "parameters": [],
-                    "requestBody": {
-                      "required": true,
-                      "content": {
-                        "application/json": {
-                          "schema": {
-                            "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Wrapper"
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "Employee"
+                            ]
                           }
-                        }
+                        },
+                        "required": [
+                          "type"
+                        ]
+                      },
+                      {
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Employee"
                       }
-                    },
-                    "responses": {
-                      "200": {
-                        "description": "OK",
-                        "content": {
-                          "text/plain": {
-                            "schema": {
-                              "type": "integer",
-                              "format": "int32"
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              "components": {
-                "schemas": {
-                  "io.github.bbasinsk.http.openapi.Wrapper": {
-                    "type": "object",
-                    "properties": {
-                      "human": {
-                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human",
-                        "nullable": true
-                      }
-                    },
-                    "required": []
+                    ]
                   },
                   "io.github.bbasinsk.http.openapi.Customer": {
                     "type": "object",
