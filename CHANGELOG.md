@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.3...katalyst-v0.1.4) (2025-09-21)
+
+
+### Bug Fixes
+
+* remove dupe test ([d91c41c](https://github.com/bbasinsk/katalyst/commit/d91c41c898e54c5b4f9e71c8003690c011af9acd))
+
 ## [0.1.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.2...katalyst-v0.1.3) (2025-09-21)
 
 
