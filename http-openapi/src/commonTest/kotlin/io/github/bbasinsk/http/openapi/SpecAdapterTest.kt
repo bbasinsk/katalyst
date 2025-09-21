@@ -496,43 +496,90 @@ class SpecAdapterTest {
                   "io.github.bbasinsk.http.openapi.Human": {
                     "oneOf": [
                       {
-                        "allOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": ["Customer"]
-                              }
-                            },
-                            "required": ["type"]
-                          },
-                          { "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer" }
-                        ]
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator"
                       },
                       {
-                        "allOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": ["Employee"]
-                              }
-                            },
-                            "required": ["type"]
-                          },
-                          { "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee" }
-                        ]
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                       }
                     ],
                     "discriminator":{
                         "propertyName":"type",
                         "mapping":{
-                            "Customer":"#/components/schemas/io.github.bbasinsk.http.openapi.Customer",
-                            "Employee":"#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                            "Customer":"#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator",
+                            "Employee":"#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                         }
                     }
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["Customer"]
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      {
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Customer"
+                      }
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["Employee"]
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      {
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Employee"
+                      }
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.Customer": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.Employee": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "role": {
+                        "type": "string",
+                        "format": "enum",
+                        "enum": [
+                          "Admin",
+                          "User"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "role"
+                    ]
                   },
                   "io.github.bbasinsk.http.openapi.Customer": {
                     "type": "object",
@@ -643,43 +690,90 @@ class SpecAdapterTest {
                   "io.github.bbasinsk.http.openapi.Human": {
                     "oneOf": [
                       {
-                        "allOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": ["Customer"]
-                              }
-                            },
-                            "required": ["type"]
-                          },
-                          { "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer" }
-                        ]
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator"
                       },
                       {
-                        "allOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "type": {
-                                "type": "string",
-                                "enum": ["Employee"]
-                              }
-                            },
-                            "required": ["type"]
-                          },
-                          { "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee" }
-                        ]
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                       }
                     ],
                     "discriminator":{
                         "propertyName":"type",
                         "mapping":{
-                            "Customer":"#/components/schemas/io.github.bbasinsk.http.openapi.Customer",
-                            "Employee":"#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                            "Customer":"#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator",
+                            "Employee":"#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                         }
                     }
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["Customer"]
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      {
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Customer"
+                      }
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator": {
+                    "allOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "type": {
+                            "type": "string",
+                            "enum": ["Employee"]
+                          }
+                        },
+                        "required": ["type"]
+                      },
+                      {
+                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.Employee"
+                      }
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.Customer": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "name": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name"
+                    ]
+                  },
+                  "io.github.bbasinsk.http.openapi.Human.Employee": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "format": "int32"
+                      },
+                      "role": {
+                        "type": "string",
+                        "format": "enum",
+                        "enum": [
+                          "Admin",
+                          "User"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "role"
+                    ]
                   },
                   "io.github.bbasinsk.http.openapi.Customer": {
                     "type": "object",
