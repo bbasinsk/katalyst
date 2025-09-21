@@ -162,8 +162,7 @@ private fun <A> Schema<A>.toContentTypeObject(
 data class FieldOptions(
     val ref: Boolean = false,
     val nullable: Boolean? = null,
-    val description: String? = null,
-    val discriminator: Pair<String, String>? = null // for union schemas, key and value
+    val description: String? = null
 )
 
 data class OutputOptions(
@@ -278,11 +277,25 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 )
             } else {
                 val cases = unsafeCases().map { case ->
-                    val field = FieldOptions(
-                        ref = !outputOptions.inlineRefs,
-                        discriminator = key to case.name
+                    val commonPropertiesSchema = SchemaObject(
+                        type = "object",
+                        properties = mapOf(
+                            key to SchemaObject(
+                                type = "string",
+                                enum = listOf(case.name)
+                            )
+                        ),
+                        required = listOf(key)
                     )
-                    case.schema.toSchemaObjectImpl(field, outputOptions)
+
+                    val childSchema = case.schema.toSchemaObjectImpl(
+                        FieldOptions(ref = !outputOptions.inlineRefs),
+                        outputOptions
+                    )
+
+                    SchemaObject(
+                        allOf = listOf(commonPropertiesSchema, childSchema)
+                    )
                 }
 
                 if (outputOptions.useAnyOf) {
@@ -299,7 +312,6 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             mapping = unsafeCases().mapNotNull { case ->
                                 val caseSchemas = case.schema.byRefName(outputOptions = outputOptions)
                                 val caseSchema = caseSchemas.toList().firstOrNull()
-                                val childFieldSchemas = caseSchemas.toList().drop(1) // Should these get attached to the root components?
                                 caseSchema?.run { case.name to refPath(first) }
                             }.toMap()
                         )
@@ -322,18 +334,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     },
                     required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name },
                     propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields().map { it.name } else null
-                ).let { obj ->
-                    if (field.discriminator == null) obj
-                    else {
-                        val (key, name) = field.discriminator
-                        val keySchema = SchemaObject(type = "string", enum = listOf(name))
-                        obj.copy(
-                            properties = mapOf(key to keySchema).plus(obj.properties.orEmpty()),
-                            required = listOf(key).plus(obj.required.orEmpty()),
-                            propertyOrdering = obj.propertyOrdering?.let { listOf(key).plus(it) }
-                        )
-                    }
-                }
+                )
             }
         }
     }
@@ -341,27 +342,26 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
 private fun Schema<*>.byRefName(
     nullable: Boolean? = null,
     outputOptions: OutputOptions,
-    discriminator: Pair<String, String>? = null,
 ): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
         is Schema.Lazy<*> -> emptyMap()
-        is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
+        is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
         is Schema.Bytes -> emptyMap()
-        is Schema.Collection<*> -> itemSchema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
-        is Schema.Default -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
+        is Schema.Collection<*> -> itemSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
+        is Schema.Default -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
         is Schema.Optional<*> -> schema.byRefName(nullable = true, outputOptions = outputOptions)
         is Schema.OrElse<*, *> -> preferred.byRefName(outputOptions = outputOptions)
         is Schema.Primitive -> emptyMap()
-        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
-        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, discriminator = discriminator)
+        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
+        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
 
         is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, case ->
-            acc + case.schema.byRefName(nullable, outputOptions, discriminator = key to case.name)
+            acc + case.schema.byRefName(nullable, outputOptions)
         }
 
         is Schema.Record<*> -> unsafeFields().fold(
-            mapOf(metadata.qualifiedName() to toSchemaObjectImpl(FieldOptions(discriminator = discriminator), outputOptions))
+            mapOf(metadata.qualifiedName() to toSchemaObjectImpl(FieldOptions(), outputOptions))
         ) { acc, field ->
             acc + field.schema.byRefName(nullable, outputOptions)
         }
