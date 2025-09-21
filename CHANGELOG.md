@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.2...katalyst-v0.1.3) (2025-09-21)
+
+
+### Bug Fixes
+
+* try to define *WithDiscriminator schemas ([#10](https://github.com/bbasinsk/katalyst/issues/10)) ([2ce855d](https://github.com/bbasinsk/katalyst/commit/2ce855de7c06a8f73d59d000bb280a96b3e1ef1b))
+
 ## [0.1.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.1...katalyst-v0.1.2) (2025-09-21)
 
 
