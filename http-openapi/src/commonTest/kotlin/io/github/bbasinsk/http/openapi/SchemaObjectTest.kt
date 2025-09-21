@@ -47,52 +47,24 @@ class SchemaObjectTest {
         assertEquals(
             Json.decodeFromString(
                 """
-            {
-                "oneOf": [
+                {
+                  "oneOf": [
                     {
-                        "allOf": [
-                            {
-                                "type": "object",
-                                "properties": {
-                                    "type": {
-                                        "type": "string",
-                                        "enum": ["Customer"]
-                                    }
-                                },
-                                "required": ["type"]
-                            },
-                            {
-                                "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
-                            }
-                        ]
+                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator"
                     },
                     {
-                        "allOf": [
-                            {
-                                "type": "object",
-                                "properties": {
-                                    "type": {
-                                        "type": "string",
-                                        "enum": ["Employee"]
-                                    }
-                                },
-                                "required": ["type"]
-                            },
-                            {
-                                "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
-                            }
-                        ]
+                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                     }
-                ],
-                "discriminator": {
+                  ],
+                  "discriminator": {
                     "propertyName": "type",
                     "mapping": {
-                        "Customer": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer",
-                        "Employee": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                      "Customer": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator",
+                      "Employee": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
                     }
+                  }
                 }
-            }
-            """.trimIndent()
+                """.trimIndent()
             ),
             OpenApiJson.encodeToJsonElement(obj)
         )

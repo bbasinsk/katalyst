@@ -276,46 +276,72 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     ref = refPath(metadata.qualifiedName())
                 )
             } else {
-                val cases = unsafeCases().map { case ->
-                    val commonPropertiesSchema = SchemaObject(
-                        type = "object",
-                        properties = mapOf(
-                            key to SchemaObject(
-                                type = "string",
-                                enum = listOf(case.name)
-                            )
-                        ),
-                        required = listOf(key)
-                    )
-
-                    val childSchema = case.schema.toSchemaObjectImpl(
-                        FieldOptions(ref = !outputOptions.inlineRefs),
-                        outputOptions
-                    )
-
-                    SchemaObject(
-                        allOf = listOf(commonPropertiesSchema, childSchema)
-                    )
-                }
-
-                if (outputOptions.useAnyOf) {
-                    SchemaObject(
-                        nullable = field.nullable,
-                        anyOf = cases,
-                    )
-                } else {
-                    SchemaObject(
-                        nullable = field.nullable,
-                        oneOf = cases,
-                        discriminator = DiscriminatorObject(
-                            propertyName = key,
-                            mapping = unsafeCases().mapNotNull { case ->
-                                val caseSchemas = case.schema.byRefName(outputOptions = outputOptions)
-                                val caseSchema = caseSchemas.toList().firstOrNull()
-                                caseSchema?.run { case.name to refPath(first) }
-                            }.toMap()
+                if (outputOptions.inlineRefs) {
+                    // Original inline behavior for Gemini/inlineRefs mode
+                    val cases = unsafeCases().map { case ->
+                        val commonPropertiesSchema = SchemaObject(
+                            type = "object",
+                            properties = mapOf(
+                                key to SchemaObject(
+                                    type = "string",
+                                    enum = listOf(case.name)
+                                )
+                            ),
+                            required = listOf(key)
                         )
-                    )
+
+                        val childSchema = case.schema.toSchemaObjectImpl(
+                            FieldOptions(ref = false),
+                            outputOptions
+                        )
+
+                        SchemaObject(
+                            allOf = listOf(commonPropertiesSchema, childSchema)
+                        )
+                    }
+
+                    if (outputOptions.useAnyOf) {
+                        SchemaObject(
+                            nullable = field.nullable,
+                            anyOf = cases,
+                        )
+                    } else {
+                        SchemaObject(
+                            nullable = field.nullable,
+                            oneOf = cases,
+                            discriminator = DiscriminatorObject(
+                                propertyName = key,
+                                mapping = unsafeCases().mapNotNull { case ->
+                                    val caseSchemas = case.schema.byRefName(outputOptions = outputOptions)
+                                    val caseSchema = caseSchemas.toList().firstOrNull()
+                                    caseSchema?.run { case.name to refPath(first) }
+                                }.toMap()
+                            )
+                        )
+                    }
+                } else {
+                    // New ref-based behavior for code generators
+                    val withDiscriminatorRefs = unsafeCases().map { case ->
+                        SchemaObject(ref = refPath("${metadata.qualifiedName()}.${case.name}WithDiscriminator"))
+                    }
+
+                    if (outputOptions.useAnyOf) {
+                        SchemaObject(
+                            nullable = field.nullable,
+                            anyOf = withDiscriminatorRefs,
+                        )
+                    } else {
+                        SchemaObject(
+                            nullable = field.nullable,
+                            oneOf = withDiscriminatorRefs,
+                            discriminator = DiscriminatorObject(
+                                propertyName = key,
+                                mapping = unsafeCases().associate { case ->
+                                    case.name to refPath("${metadata.qualifiedName()}.${case.name}WithDiscriminator")
+                                }
+                            )
+                        )
+                    }
                 }
             }
 
@@ -356,8 +382,53 @@ private fun Schema<*>.byRefName(
         is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
         is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
 
-        is Schema.Union<*> -> unsafeCases().fold(mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))) { acc, case ->
-            acc + case.schema.byRefName(nullable, outputOptions)
+        is Schema.Union<*> -> {
+            val mainSchema = mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))
+
+            if (outputOptions.inlineRefs) {
+                // For inline mode, only generate nested schemas from cases
+                val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                    acc + case.schema.byRefName(nullable, outputOptions)
+                }
+                mainSchema + nestedSchemas
+            } else {
+                // For ref mode, generate WithDiscriminator and base schemas
+                val unionSpecificSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                    val baseSchemaName = "${metadata.qualifiedName()}.${case.name}"
+                    val withDiscriminatorSchemaName = "${baseSchemaName}WithDiscriminator"
+
+                    val baseSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions)
+
+                    val discriminatorSchema = SchemaObject(
+                        type = "object",
+                        properties = mapOf(
+                            key to SchemaObject(
+                                type = "string",
+                                enum = listOf(case.name)
+                            )
+                        ),
+                        required = listOf(key)
+                    )
+
+                    val withDiscriminatorSchema = SchemaObject(
+                        allOf = listOf(
+                            discriminatorSchema,
+                            SchemaObject(ref = refPath(baseSchemaName))
+                        )
+                    )
+
+                    acc + mapOf(
+                        baseSchemaName to baseSchema,
+                        withDiscriminatorSchemaName to withDiscriminatorSchema
+                    )
+                }
+
+                val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                    acc + case.schema.byRefName(nullable, outputOptions)
+                }
+
+                mainSchema + unionSpecificSchemas + nestedSchemas
+            }
         }
 
         is Schema.Record<*> -> unsafeFields().fold(
