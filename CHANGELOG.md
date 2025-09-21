@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.1...katalyst-v0.1.2) (2025-09-21)
+
+
+### Bug Fixes
+
+* move discriminator from child record to union object ([#8](https://github.com/bbasinsk/katalyst/issues/8)) ([a2e9a23](https://github.com/bbasinsk/katalyst/commit/a2e9a23ee2242817f941562c4b753bdf3460eedf))
+
 ## [0.1.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.0...katalyst-v0.1.1) (2025-09-05)
 
 
