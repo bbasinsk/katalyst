@@ -90,6 +90,7 @@ data class SchemaObject(
     val enum: List<String>? = null,
     val oneOf: List<SchemaObject>? = null,
     val anyOf: List<SchemaObject>? = null,
+    val allOf: List<SchemaObject>? = null,
     val discriminator: DiscriminatorObject? = null,
     val additionalProperties: SchemaObject? = null,
     val description: String? = null, // TODO

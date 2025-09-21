@@ -6,6 +6,8 @@ import io.github.bbasinsk.schema.Schema.Companion.int
 import io.github.bbasinsk.schema.Schema.Companion.record
 import io.github.bbasinsk.schema.Schema.Companion.string
 import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -43,14 +45,43 @@ class SchemaObjectTest {
         val obj = Human.schema.toSchemaObject()
 
         assertEquals(
-            """
+            Json.decodeFromString(
+                """
             {
                 "oneOf": [
                     {
-                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
+                        "allOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["Customer"]
+                                    }
+                                },
+                                "required": ["type"]
+                            },
+                            {
+                                "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Customer"
+                            }
+                        ]
                     },
                     {
-                        "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                        "allOf": [
+                            {
+                                "type": "object",
+                                "properties": {
+                                    "type": {
+                                        "type": "string",
+                                        "enum": ["Employee"]
+                                    }
+                                },
+                                "required": ["type"]
+                            },
+                            {
+                                "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Employee"
+                            }
+                        ]
                     }
                 ],
                 "discriminator": {
@@ -61,8 +92,9 @@ class SchemaObjectTest {
                     }
                 }
             }
-            """.trimIndent(),
-            OpenApiJson.encodeToString(obj)
+            """.trimIndent()
+            ),
+            OpenApiJson.encodeToJsonElement(obj)
         )
     }
 

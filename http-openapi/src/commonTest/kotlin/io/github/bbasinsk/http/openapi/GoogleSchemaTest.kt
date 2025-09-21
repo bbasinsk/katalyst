@@ -49,60 +49,76 @@ class GoogleSchemaTest {
                 {
                   "anyOf": [
                     {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [ "Customer" ]
+                      "allOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["Customer"]
+                            }
+                          },
+                          "required": ["type"]
                         },
-                        "id": {
-                          "type": "integer",
-                          "format": "int32"
-                        },
-                        "name": {
-                          "type": "string"
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "format": "int32"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "propertyOrdering": [
+                            "id",
+                            "name"
+                          ],
+                          "required": [
+                            "id",
+                            "name"
+                          ]
                         }
-                      },
-                      "propertyOrdering": [
-                        "type",
-                        "id",
-                        "name"
-                      ],
-                      "required": [
-                        "type",
-                        "id",
-                        "name"
                       ]
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "type": {
-                          "type": "string",
-                          "enum": [ "Employee" ]
+                      "allOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "type": "string",
+                              "enum": ["Employee"]
+                            }
+                          },
+                          "required": ["type"]
                         },
-                        "id": {
-                          "type": "integer",
-                          "format": "int32"
-                        },
-                        "role": {
-                          "type": "string",
-                          "format": "enum",
-                          "enum": [
-                            "Admin",
-                            "User"
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer",
+                              "format": "int32"
+                            },
+                            "role": {
+                              "type": "string",
+                              "format": "enum",
+                              "enum": [
+                                "Admin",
+                                "User"
+                              ]
+                            }
+                          },
+                          "propertyOrdering": [
+                            "id",
+                            "role"
+                          ],
+                          "required": [
+                            "id",
+                            "role"
                           ]
                         }
-                      },
-                      "propertyOrdering": [
-                        "type",
-                        "id",
-                        "role"
-                      ],
-                      "required": [
-                        "type",
-                        "id",
-                        "role"
                       ]
                     }
                   ]
