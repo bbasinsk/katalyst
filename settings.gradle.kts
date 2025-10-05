@@ -28,6 +28,7 @@ include(":http")
 include(":http-ktor-2")
 include(":http-ktor-3")
 include(":http-openapi")
+include(":http-openapi-gradle-plugin")
 
 include(":tuple")
 include(":validation")
