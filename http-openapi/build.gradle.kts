@@ -1,8 +1,8 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-    id("module.publication")
-    id("module.serialization")
+    id("katalyst.library")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 kotlin {

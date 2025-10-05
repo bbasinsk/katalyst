@@ -2,220 +2,18 @@
 
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
-import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.kotlin.uuid
-import io.github.bbasinsk.schema.transform
-import io.github.bbasinsk.tuple.tupleValues
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.install
-import io.ktor.server.cio.CIO
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.plugins.calllogging.CallLogging
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.*
+import io.ktor.server.application.*
+import io.ktor.server.cio.*
+import io.ktor.server.engine.*
+import io.ktor.server.plugins.calllogging.*
+import io.ktor.server.plugins.contentnegotiation.*
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-
-
-data class PersonId(val value: Uuid)
-
-data class Person(
-    val id: PersonId,
-    val name: String,
-    val age: Int,
-)
-
-fun Schema.Companion.personId(): Schema<PersonId> =
-    uuid().transform(::PersonId) { it.value }
-
-fun Schema.Companion.person(): Schema<Person> =
-    record(
-        field(personId(), "id") { id },
-        field(string(), "name") { name },
-        field(int(), "age") { age },
-        ::Person
-    )
-
-val updatePerson =
-    Http.put { Root / "person" }
-        .tag("Person")
-        .summary("Update a person")
-        .deprecated("some reason")
-        .query { schema("id") { uuid().optional() } }
-        .header {
-            schema("name") { string() }
-                .example("asdf", "fds")
-                .example("two", "2")
-                .deprecated("some reason")
-                .description("blah blah")
-        }
-        .header {
-            schema("age") { int() }
-                .example("blah", 123)
-                .deprecated("some reason")
-                .description("blah blah")
-        }
-        .input { json { person() } }
-        .output { status(Ok) { json { person() } } }
-        .error { status(NotFound) { json { int() } } }
-
-val findPersonById =
-    Http.get { Root / "person" / param("personId") { string() } }
-        .tag("Person")
-        .output { status(Ok) { json { person() } } }
-        .error { status(NotFound) { plain { int() } } }
-
-val multipleErrors =
-    Http.get { Root / "error" / param("name") { string() } }
-        .output { status(Ok.description("asdf")) { json { person() } } }
-        .error {
-            oneOf<MultipleErrors>(
-                case(NotFound.description("Custom not found")) { json { notFoundSchema() } },
-                case(BadRequest) { json { badRequestSchema() } },
-            )
-        }
-
-val emptyResponse =
-    Http.get { Root / "empty" }
-        .output { status(Ok) { empty() } }
-        .error { status(NoContent) { empty() } }
-
-val multiPartInput =
-    Http.post { Root / "multipart" / "record" }
-        .tag("Multipart")
-        .input { multipart { multipartInput() } }
-        .output { status(Ok) { plain { string() } } }
-
-val multiPartList =
-    Http.post { Root / "import" / "recipes" }
-        .tag("Multipart")
-        .input { multipart { multipartList() } }
-        .output { status(Ok) { plain { string() } } }
-
-val avroPersonEcho =
-    Http.post { Root / "person" / "avro" / "echo" }
-        .tag("Person")
-        .input { avro { person() } }
-        .output {
-            status(Ok) {
-                avro { person() }.example(
-                    "person a",
-                    Person(PersonId(Uuid.parse("00000000-0000-0000-0000-000000000000")), "John Doe", 100)
-                )
-            }
-        }
-
-val avroPersonOut =
-    Http.get { Root / "person" / "avro" / "out" }
-        .tag("Person")
-        .output { status(Ok) { avro { person() } } }
-
-sealed interface MultipleErrors {
-    data class NotFound(val id: Int) : MultipleErrors
-    data class BadRequest(val message: String) : MultipleErrors
-}
-
-fun Schema.Companion.notFoundSchema(): Schema<MultipleErrors.NotFound> =
-    record(
-        field(int(), "id") { id },
-        MultipleErrors::NotFound
-    )
-
-fun Schema.Companion.badRequestSchema(): Schema<MultipleErrors.BadRequest> =
-    record(
-        field(string(), "message") { message },
-        MultipleErrors::BadRequest
-    )
-
-data class MultipartInput(
-    val id: PersonId?,
-    val name: String,
-    val age: Int
-)
-
-fun Schema.Companion.multipartInput(): Schema<MultipartInput> =
-    record(
-        field(personId().optional(), "id") { id },
-        field(string(), "name") { name },
-        field(int(), "age") { age },
-        ::MultipartInput
-    )
-
-data class MultipartList(
-    val images: List<ByteArray>
-)
-
-fun Schema.Companion.multipartList(): Schema<MultipartList> =
-    record(
-        field(list(byteArray()), "images") { images },
-        ::MultipartList
-    )
-
-fun HttpEndpoints.exampleEndpoints(domainStuff: () -> Person) = httpEndpoints("Example") {
-    handle(findPersonById) { request ->
-        val (name) = tupleValues(request.params)
-        success(domainStuff().copy(name = name))
-    }
-
-    handle(
-        Http.get { Root / param("personId") { string() } / "blah" / param("thing") { int() } }
-            .output { status(Ok) { json { person() } } }
-            .error { status(NotFound) { plain { int() }.example("test1", 123) } }
-    ) { request ->
-        val (personId, thing) = tupleValues(request.params)
-        println("personId: $personId, thing: $thing")
-        success(domainStuff().copy(name = personId))
-    }
-
-    handle(updatePerson) { request ->
-        val (id, name) = tupleValues(request.params)
-        println("id: $id, name: $name")
-        success(domainStuff().copy(name = request.input.name))
-    }
-
-    handle(multipleErrors) { req ->
-        val (name) = tupleValues(req.params)
-        when (name) {
-            "not-found" -> error(MultipleErrors.NotFound(Random.nextInt()))
-            "bad-request" -> error(MultipleErrors.BadRequest("Bad request"))
-            else -> success(domainStuff())
-        }
-    }
-
-    handle(emptyResponse) {
-        if (Random.nextBoolean()) success() else error()
-    }
-
-    handle(multiPartInput) { request ->
-        val (id, name, age) = request.input
-        println("id: $id, name: $name, age: $age")
-        success("Received multipart input with id: $id, name: $name, age: $age")
-    }
-
-    handle(multiPartList) { request ->
-        val files = request.input.images
-        println("Handling ${files.size} files: ${files.map { it.size }}")
-        success("Received files: ${files.size}, first file size: ${files.first().size} bytes")
-    }
-
-    handle(avroPersonEcho) { request ->
-        println(request.input)
-        success(request.input)
-    }
-
-    handle(avroPersonOut) {
-        val person = Person(
-            id = PersonId(Uuid.parse("00000000-0000-0000-0000-000000000000")),
-            name = "John Doe",
-            age = 100
-        )
-        success(person)
-    }
-}
 
 
 fun main() {
@@ -245,7 +43,8 @@ fun main() {
                     Server(url = "http://localhost:33333")
                 )
             )
-            exampleEndpoints(domainService)
+            multipartEndpoints()
+            personEndpoints(domainService)
         }
     }.start(wait = true)
 }

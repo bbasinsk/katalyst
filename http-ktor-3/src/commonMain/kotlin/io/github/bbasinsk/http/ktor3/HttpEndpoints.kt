@@ -10,6 +10,7 @@ import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.utils.io.KtorDsl
 
+@Deprecated("Use HttpEndpointGroup instead")
 fun HttpEndpoints.httpEndpoints(vararg tags: String, builder: HttpEndpoints.() -> Unit) =
     copy(tags = this.tags + tags.toList()).apply(builder)
 
