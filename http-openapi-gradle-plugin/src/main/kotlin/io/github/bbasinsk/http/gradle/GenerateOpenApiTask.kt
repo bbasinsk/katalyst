@@ -1,6 +1,5 @@
 package io.github.bbasinsk.http.gradle
 
-import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpointGroup
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.OpenApiJson
@@ -12,7 +11,9 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
+import java.io.File
 import java.net.URLClassLoader
+import java.util.jar.JarFile
 
 abstract class GenerateOpenApiTask : DefaultTask() {
 
@@ -32,28 +33,28 @@ abstract class GenerateOpenApiTask : DefaultTask() {
     @TaskAction
     fun generate() {
         val urls = classpath.files.map { it.toURI().toURL() }.toTypedArray()
-        val classLoader = URLClassLoader(urls, HttpEndpointGroup::class.java.classLoader)
+        URLClassLoader(urls, HttpEndpointGroup::class.java.classLoader).use { classLoader ->
+            val endpointGroups = discoverEndpointGroups(classLoader)
+            val apis = endpointGroups.flatMap { it.apis }
 
-        val endpointGroups = discoverEndpointGroups(classLoader)
-        val apis = endpointGroups.flatMap { it.apis }
+            val openApiSpec = apis.toOpenApiSpec(
+                info = info.get(),
+                servers = servers.get()
+            )
 
-        val openApiSpec = apis.toOpenApiSpec(
-            info = info.get(),
-            servers = servers.get()
-        )
+            val jsonSpec = OpenApiJson.encodeToString(
+                io.github.bbasinsk.http.openapi.OpenAPI.serializer(),
+                openApiSpec
+            )
 
-        val jsonSpec = OpenApiJson.encodeToString(
-            io.github.bbasinsk.http.openapi.OpenAPI.serializer(),
-            openApiSpec
-        )
+            outputFile.get().asFile.apply {
+                parentFile.mkdirs()
+                writeText(jsonSpec)
+            }
 
-        outputFile.get().asFile.apply {
-            parentFile.mkdirs()
-            writeText(jsonSpec)
+            logger.lifecycle("Generated OpenAPI spec at ${outputFile.get().asFile.absolutePath}")
+            logger.lifecycle("Discovered ${endpointGroups.size} endpoint groups with ${apis.size} total endpoints")
         }
-
-        logger.lifecycle("Generated OpenAPI spec at ${outputFile.get().asFile.absolutePath}")
-        logger.lifecycle("Discovered ${endpointGroups.size} endpoint groups with ${apis.size} total endpoints")
     }
 
     private fun discoverEndpointGroups(classLoader: URLClassLoader): List<HttpEndpointGroup> {
@@ -63,7 +64,7 @@ abstract class GenerateOpenApiTask : DefaultTask() {
         classpath.files.forEach { file ->
             if (file.extension == "jar") {
                 // Scan JAR file
-                java.util.jar.JarFile(file).use { jar ->
+                JarFile(file).use { jar ->
                     jar.entries().asSequence()
                         .filter { it.name.endsWith(".class") }
                         .forEach { entry ->
@@ -78,8 +79,12 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                                     val instance = clazz.kotlin.objectInstance as HttpEndpointGroup
                                     endpointGroups.add(instance)
                                 }
-                            } catch (e: Throwable) {
+                            } catch (e: ClassNotFoundException) {
                                 // Skip classes that can't be loaded
+                            } catch (e: NoClassDefFoundError) {
+                                // Skip classes with missing dependencies
+                            } catch (e: LinkageError) {
+                                // Skip classes with linkage errors
                             }
                         }
                 }
@@ -89,7 +94,7 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                     .filter { it.extension == "class" }
                     .forEach { classFile ->
                         val className = classFile.relativeTo(file).path
-                            .replace('/', '.')
+                            .replace(File.separatorChar, '.')
                             .removeSuffix(".class")
 
                         try {
@@ -99,8 +104,12 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                                 val instance = clazz.kotlin.objectInstance as HttpEndpointGroup
                                 endpointGroups.add(instance)
                             }
-                        } catch (e: Throwable) {
+                        } catch (e: ClassNotFoundException) {
                             // Skip classes that can't be loaded
+                        } catch (e: NoClassDefFoundError) {
+                            // Skip classes with missing dependencies
+                        } catch (e: LinkageError) {
+                            // Skip classes with linkage errors
                         }
                     }
             }
