@@ -191,7 +191,6 @@ Check out the full examples in the codebase:
 - [ ] Better Hocon parsing errors
 
 ## License
-
 Katalyst is released under the [Apache License 2.0](LICENSE).
 
 ## Contributing
