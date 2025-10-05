@@ -1,7 +1,7 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-    id("module.publication")
+    id("katalyst.library")
 }
 
 kotlin {

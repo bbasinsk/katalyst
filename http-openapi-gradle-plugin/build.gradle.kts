@@ -1,14 +1,7 @@
 import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
-    `java-gradle-plugin`
-    alias(libs.plugins.kotlin.jvm)
-    alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.vanniktech.maven.publish)
-}
-
-kotlin {
-    jvmToolchain(21)
+    id("katalyst.gradle-plugin")
 }
 
 dependencies {
