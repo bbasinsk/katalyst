@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.4...katalyst-v0.1.5) (2025-10-05)
+
+
+### Bug Fixes
+
+* Build time OpenAPI ([#15](https://github.com/bbasinsk/katalyst/issues/15)) ([c2bb030](https://github.com/bbasinsk/katalyst/commit/c2bb030d707572a6ef77ce156951cbcf94cee98c))
+
 ## [0.1.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.3...katalyst-v0.1.4) (2025-09-21)
 
 
