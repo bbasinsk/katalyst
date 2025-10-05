@@ -7,6 +7,10 @@ plugins {
     id("com.vanniktech.maven.publish")
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 dependencies {
     implementation(project(":http"))
     implementation(project(":http-openapi"))
