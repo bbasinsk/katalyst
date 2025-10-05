@@ -2,9 +2,9 @@ import com.vanniktech.maven.publish.SonatypeHost
 
 plugins {
     `java-gradle-plugin`
-    kotlin("jvm")
-    kotlin("plugin.serialization")
-    id("com.vanniktech.maven.publish")
+    alias(libs.plugins.kotlin.jvm)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.vanniktech.maven.publish)
 }
 
 kotlin {
@@ -14,6 +14,7 @@ kotlin {
 dependencies {
     implementation(project(":http"))
     implementation(project(":http-openapi"))
+    implementation(libs.kotlinx.serialization.json)
     implementation(gradleApi())
     compileOnly(libs.kotlin.multiplatform)
 }
