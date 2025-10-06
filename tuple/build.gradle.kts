@@ -15,7 +15,7 @@ kotlin {
             dependencies {
             }
         }
-        val commonTest by getting {
+        val jvmTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation("com.squareup:kotlinpoet:2.2.0")
