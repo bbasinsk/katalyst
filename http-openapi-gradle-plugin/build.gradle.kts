@@ -24,6 +24,10 @@ gradlePlugin {
     }
 }
 
+tasks.withType<GenerateModuleMetadata> {
+    enabled = false
+}
+
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 

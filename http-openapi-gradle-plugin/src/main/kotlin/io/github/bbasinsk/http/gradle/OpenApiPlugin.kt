@@ -19,10 +19,16 @@ class OpenApiPlugin : Plugin<Project> {
 
         project.afterEvaluate {
             require(extension.info.isPresent) {
-                "OpenAPI info must be configured. Add the following to your build.gradle.kts:\n" +
-                "openApi {\n" +
-                "    info.set(Info(title = \"Your API\", version = \"1.0.0\"))\n" +
-                "}"
+                """
+                OpenAPI info must be configured. Add the following to your build.gradle.kts:
+
+                openApi {
+                    info {
+                        title = "Your API"
+                        version = "1.0.0"
+                    }
+                }
+                """.trimIndent()
             }
 
             val generateTask = project.tasks.register("generateOpenApi", GenerateOpenApiTask::class.java) { task ->
