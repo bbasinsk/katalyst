@@ -63,6 +63,11 @@ class OpenApiPlugin : Plugin<Project> {
             project.tasks.named("build").configure {
                 it.dependsOn(generateTask)
             }
+
+            // Ensure processResources depends on generateOpenApi to avoid build ordering issues
+            project.tasks.findByName("processResources")?.let { processResourcesTask ->
+                processResourcesTask.dependsOn(generateTask)
+            }
         }
     }
 }

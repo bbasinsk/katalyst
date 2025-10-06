@@ -33,8 +33,9 @@ openApi {
     server("https://api.example.com")
     server("http://localhost:8080")
 
-    // Optional: customize output location (default: build/generated/openapi/openapi.json)
-    outputFile = project.file("/src/main/resources/openapi.json")
+    // Optional: customize output location
+    // default: `outputFile = project.layout.buildDirectory.file("generated/openapi.json")`
+    outputFile = project.file("src/main/resources/openapi.json")
 }
 ```
 
