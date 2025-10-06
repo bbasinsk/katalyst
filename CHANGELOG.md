@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.7...katalyst-v0.1.8) (2025-10-06)
+
+
+### Bug Fixes
+
+* specify jvm variants to avoid multi-platform resolution issue ([979e1a7](https://github.com/bbasinsk/katalyst/commit/979e1a7405d061d9b676c2496276ebfa17a0759d))
+
 ## [0.1.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.6...katalyst-v0.1.7) (2025-10-06)
 
 
