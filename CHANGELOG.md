@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.5...katalyst-v0.1.6) (2025-10-06)
+
+
+### Bug Fixes
+
+* README.md ([9836420](https://github.com/bbasinsk/katalyst/commit/98364202b5e18e2bcd7fd84fd4ddbe383f5bd1f9))
+* try bumping to java 21 ([593649a](https://github.com/bbasinsk/katalyst/commit/593649a0e6da7243912b3f1d6046e67068a3f40b))
+
 ## [0.1.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.4...katalyst-v0.1.5) (2025-10-05)
 
 
