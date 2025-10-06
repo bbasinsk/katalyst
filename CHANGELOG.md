@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.6...katalyst-v0.1.7) (2025-10-06)
+
+
+### Bug Fixes
+
+* remove unused plugins ([4877252](https://github.com/bbasinsk/katalyst/commit/48772523364fe8efb132f3d1bfa686bf7140f976))
+* specify jvm variants to avoid multiplatform resolution issue with gradle plugin ([d39f012](https://github.com/bbasinsk/katalyst/commit/d39f01229de9af48311d688666ef20e3d18737ef))
+* tuple module warning ([21617f6](https://github.com/bbasinsk/katalyst/commit/21617f6a7f7fed1063ab98ab39885260acefb730))
+
 ## [0.1.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.5...katalyst-v0.1.6) (2025-10-06)
 
 
