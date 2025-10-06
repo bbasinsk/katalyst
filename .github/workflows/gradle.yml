@@ -27,6 +27,8 @@ jobs:
         include:
           - target: build
             os: ubuntu-latest
+          - target: :http-openapi-gradle-plugin:dependencies
+            os: ubuntu-latest
     runs-on: ${{ matrix.os }}
 
     steps:
