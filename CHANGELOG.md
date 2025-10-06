@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.8...katalyst-v0.1.9) (2025-10-06)
+
+
+### Bug Fixes
+
+* plugin metadata and configuration ([#20](https://github.com/bbasinsk/katalyst/issues/20)) ([02312c8](https://github.com/bbasinsk/katalyst/commit/02312c8681dca5c1cc7a411b88bbceb666932fe4))
+
 ## [0.1.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.7...katalyst-v0.1.8) (2025-10-06)
 
 
