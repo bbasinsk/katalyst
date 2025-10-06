@@ -1,12 +1,21 @@
 import com.vanniktech.maven.publish.SonatypeHost
+import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("katalyst.gradle-plugin")
 }
 
 dependencies {
-    implementation("${project.group}:http-jvm:${project.version}")
-    implementation("${project.group}:http-openapi-jvm:${project.version}")
+    implementation(project(":http")) {
+        attributes {
+            attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
+        }
+    }
+    implementation(project(":http-openapi")) {
+        attributes {
+            attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
+        }
+    }
     implementation(libs.kotlinx.serialization.json)
     implementation(gradleApi())
     compileOnly(libs.kotlin.multiplatform)
