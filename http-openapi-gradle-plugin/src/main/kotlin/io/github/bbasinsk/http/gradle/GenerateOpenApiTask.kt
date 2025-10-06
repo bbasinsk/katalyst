@@ -1,10 +1,7 @@
 package io.github.bbasinsk.http.gradle
 
 import io.github.bbasinsk.http.HttpEndpointGroup
-import io.github.bbasinsk.http.openapi.Info
-import io.github.bbasinsk.http.openapi.OpenApiJson
-import io.github.bbasinsk.http.openapi.Server
-import io.github.bbasinsk.http.openapi.toOpenApiSpec
+import io.github.bbasinsk.http.openapi.*
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
@@ -43,7 +40,7 @@ abstract class GenerateOpenApiTask : DefaultTask() {
             )
 
             val jsonSpec = OpenApiJson.encodeToString(
-                io.github.bbasinsk.http.openapi.OpenAPI.serializer(),
+                OpenAPI.serializer(),
                 openApiSpec
             )
 
@@ -79,11 +76,11 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                                     val instance = clazz.kotlin.objectInstance as HttpEndpointGroup
                                     endpointGroups.add(instance)
                                 }
-                            } catch (e: ClassNotFoundException) {
+                            } catch (_: ClassNotFoundException) {
                                 // Skip classes that can't be loaded
-                            } catch (e: NoClassDefFoundError) {
+                            } catch (_: NoClassDefFoundError) {
                                 // Skip classes with missing dependencies
-                            } catch (e: LinkageError) {
+                            } catch (_: LinkageError) {
                                 // Skip classes with linkage errors
                             }
                         }
@@ -104,11 +101,11 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                                 val instance = clazz.kotlin.objectInstance as HttpEndpointGroup
                                 endpointGroups.add(instance)
                             }
-                        } catch (e: ClassNotFoundException) {
+                        } catch (_: ClassNotFoundException) {
                             // Skip classes that can't be loaded
-                        } catch (e: NoClassDefFoundError) {
+                        } catch (_: NoClassDefFoundError) {
                             // Skip classes with missing dependencies
-                        } catch (e: LinkageError) {
+                        } catch (_: LinkageError) {
                             // Skip classes with linkage errors
                         }
                     }

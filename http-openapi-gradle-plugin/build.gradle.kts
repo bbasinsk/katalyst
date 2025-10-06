@@ -5,8 +5,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":http"))
-    implementation(project(":http-openapi"))
+    implementation("${project.group}:http-jvm:${project.version}")
+    implementation("${project.group}:http-openapi-jvm:${project.version}")
     implementation(libs.kotlinx.serialization.json)
     implementation(gradleApi())
     compileOnly(libs.kotlin.multiplatform)
