@@ -6,16 +6,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":http")) {
-        attributes {
-            attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
-        }
-    }
-    implementation(project(":http-openapi")) {
-        attributes {
-            attribute(KotlinPlatformType.attribute, KotlinPlatformType.jvm)
-        }
-    }
+    implementation(project(":http"))
+    implementation(project(":http-openapi"))
     implementation(libs.kotlinx.serialization.json)
     implementation(gradleApi())
     compileOnly(libs.kotlin.multiplatform)
@@ -30,6 +22,10 @@ gradlePlugin {
             description = "Generate OpenAPI specs from Katalyst HTTP endpoints at build time"
         }
     }
+}
+
+tasks.withType<GenerateModuleMetadata> {
+    enabled = false
 }
 
 mavenPublishing {

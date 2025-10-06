@@ -19,10 +19,16 @@ class OpenApiPlugin : Plugin<Project> {
 
         project.afterEvaluate {
             require(extension.info.isPresent) {
-                "OpenAPI info must be configured. Add the following to your build.gradle.kts:\n" +
-                "openApi {\n" +
-                "    info.set(Info(title = \"Your API\", version = \"1.0.0\"))\n" +
-                "}"
+                """
+                OpenAPI info must be configured. Add the following to your build.gradle.kts:
+
+                openApi {
+                    info {
+                        title = "Your API"
+                        version = "1.0.0"
+                    }
+                }
+                """.trimIndent()
             }
 
             val generateTask = project.tasks.register("generateOpenApi", GenerateOpenApiTask::class.java) { task ->
@@ -56,6 +62,11 @@ class OpenApiPlugin : Plugin<Project> {
             // Optionally attach to build lifecycle
             project.tasks.named("build").configure {
                 it.dependsOn(generateTask)
+            }
+
+            // Ensure processResources depends on generateOpenApi to avoid build ordering issues
+            project.tasks.findByName("processResources")?.let { processResourcesTask ->
+                processResourcesTask.dependsOn(generateTask)
             }
         }
     }

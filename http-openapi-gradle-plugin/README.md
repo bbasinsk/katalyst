@@ -25,19 +25,17 @@ Configure the OpenAPI spec generation:
 
 ```kotlin
 openApi {
-    info.set(Info(
-        title = "My API",
-        version = "1.0.0",
-        description = "API description"
-    ))
+    info {
+        title = "My API"
+        version = "1.0.0"
+    }
 
-    servers.set(listOf(
-        Server(url = "https://api.example.com"),
-        Server(url = "http://localhost:8080")
-    ))
+    server("https://api.example.com")
+    server("http://localhost:8080")
 
-    // Optional: customize output location (default: build/generated/openapi/openapi.json)
-    outputFile.set(file("src/main/resources/openapi.json"))
+    // Optional: customize output location
+    // default: `outputFile = project.layout.buildDirectory.file("generated/openapi.json")`
+    outputFile = project.file("src/main/resources/openapi.json")
 }
 ```
 

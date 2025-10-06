@@ -19,10 +19,10 @@ abstract class GenerateOpenApiTask : DefaultTask() {
     abstract val classpath: ConfigurableFileCollection
 
     @get:Input
-    abstract val info: Property<Info>
+    abstract val info: Property<InfoConfig>
 
     @get:Input
-    abstract val servers: ListProperty<Server>
+    abstract val servers: ListProperty<ServerConfig>
 
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
@@ -35,8 +35,8 @@ abstract class GenerateOpenApiTask : DefaultTask() {
             val apis = endpointGroups.flatMap { it.apis }
 
             val openApiSpec = apis.toOpenApiSpec(
-                info = info.get(),
-                servers = servers.get()
+                info = info.get().toLibraryInfo(),
+                servers = servers.get().map { it.toLibraryServer() }
             )
 
             val jsonSpec = OpenApiJson.encodeToString(
