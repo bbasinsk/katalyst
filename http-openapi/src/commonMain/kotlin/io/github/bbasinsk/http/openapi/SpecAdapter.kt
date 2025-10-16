@@ -390,7 +390,7 @@ private fun Schema<*>.byRefName(
 ): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
-        is Schema.Lazy<*> -> emptyMap()
+        is Schema.Lazy<*> -> schema().byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
         is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
         is Schema.Bytes -> emptyMap()
         is Schema.Collection<*> -> itemSchema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
@@ -405,56 +405,71 @@ private fun Schema<*>.byRefName(
             val unionName = resolver.resolve(this, this.metadata)
             val mainSchema = mapOf(unionName to toSchemaObject(outputOptions, resolver))
 
-            if (outputOptions.inlineRefs) {
-                // For inline mode, only generate nested schemas from cases
-                val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                    acc + case.schema.byRefName(nullable, outputOptions, resolver)
-                }
-                mainSchema + nestedSchemas
+            if (resolver.isCurrentlyProcessing(unionName)) {
+                mainSchema
             } else {
-                // For ref mode, generate WithDiscriminator and base schemas
-                val unionSpecificSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                    val baseSchemaName = "$unionName.${case.name}"
-                    val withDiscriminatorSchemaName = "${baseSchemaName}WithDiscriminator"
+                resolver.withProcessing(unionName) {
+                    if (outputOptions.inlineRefs) {
+                        // For inline mode, only generate nested schemas from cases
+                        val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                            acc + case.schema.byRefName(nullable, outputOptions, resolver)
+                        }
+                        mainSchema + nestedSchemas
+                    } else {
+                        // For ref mode, generate WithDiscriminator and base schemas
+                        val unionSpecificSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                            val baseSchemaName = "$unionName.${case.name}"
+                            val withDiscriminatorSchemaName = "${baseSchemaName}WithDiscriminator"
 
-                    val baseSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions, resolver)
+                            val baseSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions, resolver)
 
-                    val discriminatorSchema = SchemaObject(
-                        type = "object",
-                        properties = mapOf(
-                            key to SchemaObject(
-                                type = "string",
-                                enum = listOf(case.name)
+                            val discriminatorSchema = SchemaObject(
+                                type = "object",
+                                properties = mapOf(
+                                    key to SchemaObject(
+                                        type = "string",
+                                        enum = listOf(case.name)
+                                    )
+                                ),
+                                required = listOf(key)
                             )
-                        ),
-                        required = listOf(key)
-                    )
 
-                    val withDiscriminatorSchema = SchemaObject(
-                        allOf = listOf(
-                            discriminatorSchema,
-                            SchemaObject(ref = refPath(baseSchemaName))
-                        )
-                    )
+                            val withDiscriminatorSchema = SchemaObject(
+                                allOf = listOf(
+                                    discriminatorSchema,
+                                    SchemaObject(ref = refPath(baseSchemaName))
+                                )
+                            )
 
-                    acc + mapOf(
-                        baseSchemaName to baseSchema,
-                        withDiscriminatorSchemaName to withDiscriminatorSchema
-                    )
+                            acc + mapOf(
+                                baseSchemaName to baseSchema,
+                                withDiscriminatorSchemaName to withDiscriminatorSchema
+                            )
+                        }
+
+                        val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                            acc + case.schema.byRefName(nullable, outputOptions, resolver)
+                        }
+
+                        mainSchema + unionSpecificSchemas + nestedSchemas
+                    }
                 }
-
-                val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                    acc + case.schema.byRefName(nullable, outputOptions, resolver)
-                }
-
-                mainSchema + unionSpecificSchemas + nestedSchemas
             }
         }
 
-        is Schema.Record<*> -> unsafeFields().fold(
-            mapOf(resolver.resolve(this, this.metadata) to toSchemaObjectImpl(FieldOptions(), outputOptions, resolver))
-        ) { acc, field ->
-            acc + field.schema.byRefName(nullable, outputOptions, resolver)
+        is Schema.Record<*> -> {
+            val name = resolver.resolve(this, this.metadata)
+            if (resolver.isCurrentlyProcessing(name)) {
+                mapOf(name to toSchemaObjectImpl(FieldOptions(), outputOptions, resolver))
+            } else {
+                resolver.withProcessing(name) {
+                    unsafeFields().fold(
+                        mapOf(name to toSchemaObjectImpl(FieldOptions(), outputOptions, resolver))
+                    ) { acc, field ->
+                        acc + field.schema.byRefName(nullable, outputOptions, resolver)
+                    }
+                }
+            }
         }
     }
 

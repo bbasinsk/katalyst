@@ -6,6 +6,7 @@ class DefinitionNameResolver {
     private val entries = mutableListOf<SchemaNameEntry>()
     private val nameOwners = mutableMapOf<String, DefinitionSignature>()
     private val signatureToName = mutableMapOf<DefinitionSignature, String>()
+    private val processingStack = mutableSetOf<String>()
 
     /**
      * Resolves a unique definition name for a schema with type arguments.
@@ -30,6 +31,18 @@ class DefinitionNameResolver {
         val name = assignName(signature, baseWithArguments)
         store(schema, name)
         return name
+    }
+
+    fun isCurrentlyProcessing(name: String): Boolean =
+        name in processingStack
+
+    fun <T> withProcessing(name: String, block: () -> T): T {
+        processingStack.add(name)
+        try {
+            return block()
+        } finally {
+            processingStack.remove(name)
+        }
     }
 
     private fun assignName(signature: DefinitionSignature, candidateBase: String): String {
