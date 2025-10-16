@@ -111,19 +111,40 @@ inline fun <reified A> Schema.Companion.variant(schema: Schema<A>): Schema<Varia
     variantImpl(schema, metadata = metadataFromType<Variant<A>>())
 
 fun <A> Schema.Companion.variantImpl(schema: Schema<A>, metadata: ObjectMetadata<Variant<A>>): Schema<Variant<A>> {
+    // Derive metadata for inner types from the passed metadata
+    val typeArgs = metadata.typeArguments
+    val valueMetadata: ObjectMetadata<Variant.Value<A>> = ObjectMetadata(
+        name = "Value",
+        namespace = metadata.qualifiedName(),
+        typeArguments = typeArgs
+    )
+    val optionalMetadata: ObjectMetadata<Variant.Optional<A>> = ObjectMetadata(
+        name = "Optional",
+        namespace = metadata.qualifiedName(),
+        typeArguments = typeArgs
+    )
+    val choiceMetadata: ObjectMetadata<Variant.Choice<A>> = ObjectMetadata(
+        name = "Choice",
+        namespace = metadata.qualifiedName(),
+        typeArguments = typeArgs
+    )
+    
     val variantValue: Schema<Variant.Value<A>> = record(
         field(schema, "value") { value },
-        Variant<A>::Value
+        Variant<A>::Value,
+        metadata = valueMetadata
     )
 
     val variantOptional: Schema<Variant.Optional<A>> = record(
         field(lazy { variantImpl(schema, metadata) }, "variant") { variant },
-        Variant<A>::Optional
+        Variant<A>::Optional,
+        metadata = optionalMetadata
     )
 
     val variantChoice: Schema<Variant.Choice<A>> = record(
         field(lazy { list(variantImpl(schema, metadata)) }, "options") { options },
-        Variant<A>::Choice
+        Variant<A>::Choice,
+        metadata = choiceMetadata
     )
 
     return union(

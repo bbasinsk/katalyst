@@ -33,11 +33,30 @@ fun <A> KClass<*>.toMetadata(typeArguments: List<String> = emptyList()): ObjectM
 inline fun <reified A> metadataFromType(): ObjectMetadata<A> {
     val type = typeOf<A>()
     val classifier = type.classifier
-    return if (classifier is KClass<*>) {
-        classifier.toMetadata(type.typeArgumentNames())
+    val metadata: ObjectMetadata<A> = if (classifier is KClass<*>) {
+        classifier.toMetadata<A>(type.typeArgumentNames())
     } else {
-        (classifier as? KClass<*>)?.toMetadata() ?: A::class.toMetadata()
+        (classifier as? KClass<*>)?.toMetadata<A>() ?: A::class.toMetadata<A>()
     }
+    
+    // Check if type arguments contain unresolved type parameters
+    metadata.typeArguments.forEach { typeArg ->
+        if (typeArg.matches(Regex("^[A-Z]( \\(Kotlin reflection is not available\\))?$"))) {
+            error(
+                """
+                |Type argument '$typeArg' could not be resolved. This typically happens when using a generic schema function without 'inline reified'.
+                |
+                |To fix this, update your function signature from:
+                |  fun <A> Schema.Companion.yourFunction(schema: Schema<A>): Schema<YourType<A>>
+                |
+                |To:
+                |  inline fun <reified A> Schema.Companion.yourFunction(schema: Schema<A>): Schema<YourType<A>>
+                """.trimMargin()
+            )
+        }
+    }
+    
+    return metadata
 }
 
 @PublishedApi
