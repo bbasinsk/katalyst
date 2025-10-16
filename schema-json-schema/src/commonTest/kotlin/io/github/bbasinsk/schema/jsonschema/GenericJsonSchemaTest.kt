@@ -1,16 +1,9 @@
 package io.github.bbasinsk.schema.jsonschema
 
-import io.github.bbasinsk.schema.ObjectMetadata
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
-
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Companion.field
 import io.github.bbasinsk.schema.Schema.Companion.record
-import io.github.bbasinsk.schema.metadataFromType
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.boolean
-import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -222,26 +215,23 @@ val Schema.Companion.something: Schema<Something>
         ::Something
     )
 
-inline fun <reified A> Schema.Companion.variant(schema: Schema<A>): Schema<Variant<A>> =
-    variantImpl(schema, metadata = metadataFromType<Variant<A>>())
-
-fun <A> Schema.Companion.variantImpl(schema: Schema<A>, metadata: ObjectMetadata<Variant<A>>): Schema<Variant<A>> {
+inline fun <reified A> Schema.Companion.variant(schema: Schema<A>): Schema<Variant<A>> = fix { self, metadata ->
     val variantValue: Schema<Variant.Value<A>> = record(
         field(schema, "value") { value },
         Variant<A>::Value
     )
 
     val variantOptional: Schema<Variant.Optional<A>> = record(
-        field(lazy { variantImpl(schema, metadata) }, "variant") { variant },
+        field(lazy { self }, "variant") { variant },
         Variant<A>::Optional
     )
 
     val variantChoice: Schema<Variant.Choice<A>> = record(
-        field(lazy { list(variantImpl(schema, metadata)) }, "options") { options },
+        field(lazy { list(self) }, "options") { options },
         Variant<A>::Choice
     )
 
-    return union(
+    union(
         case(variantValue, "Value"),
         case(variantOptional, "Optional"),
         case(variantChoice, "Choice"),

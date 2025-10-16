@@ -6,6 +6,7 @@ class DefinitionNameResolver {
     private val entries = mutableListOf<SchemaNameEntry>()
     private val nameOwners = mutableMapOf<String, DefinitionSignature>()
     private val signatureToName = mutableMapOf<DefinitionSignature, String>()
+    private val processingStack = mutableSetOf<String>()
 
     /**
      * Resolves a unique definition name for a schema with type arguments.
@@ -13,7 +14,6 @@ class DefinitionNameResolver {
      * Examples:
      * - Box<Person> → "io.package.Box.of.io.package.Person"
      * - Variant<String> → "io.package.Variant.of.kotlin.String"
-     * - Collisions get numeric suffixes: ".2", ".3", etc.
      */
     fun resolve(schema: Schema<*>, metadata: ObjectMetadata<*>): String {
         lookup(schema)?.let { return it }
@@ -32,19 +32,30 @@ class DefinitionNameResolver {
         return name
     }
 
-    private fun assignName(signature: DefinitionSignature, candidateBase: String): String {
-        var candidate = candidateBase
-        var suffix = 1
-        while (true) {
-            val existing = nameOwners[candidate]
-            if (existing == null || existing == signature) {
-                nameOwners[candidate] = signature
-                signatureToName[signature] = candidate
-                return candidate
-            }
+    fun isCurrentlyProcessing(name: String): Boolean =
+        name in processingStack
 
-            suffix += 1
-            candidate = "$candidateBase.$suffix"
+    fun <T> withProcessing(name: String, block: () -> T): T {
+        processingStack.add(name)
+        try {
+            return block()
+        } finally {
+            processingStack.remove(name)
+        }
+    }
+
+    private fun assignName(signature: DefinitionSignature, name: String): String {
+        val existing = nameOwners[name]
+        when {
+            existing == null || existing == signature -> {
+                nameOwners[name] = signature
+                signatureToName[signature] = name
+                return name
+            }
+            else -> error(
+                "Definition name collision: '$name' is already claimed by $existing but attempting to assign to $signature. " +
+                "This indicates a bug in schema type argument resolution."
+            )
         }
     }
 
