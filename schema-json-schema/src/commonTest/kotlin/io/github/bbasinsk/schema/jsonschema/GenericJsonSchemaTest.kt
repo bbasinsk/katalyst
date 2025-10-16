@@ -7,7 +7,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Companion.field
 import io.github.bbasinsk.schema.Schema.Companion.record
-import io.github.bbasinsk.schema.Union3
 import io.github.bbasinsk.schema.metadataFromType
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.boolean
@@ -242,12 +241,12 @@ fun <A> Schema.Companion.variantImpl(schema: Schema<A>, metadata: ObjectMetadata
         Variant<A>::Choice
     )
 
-    return Union3(
-        metadata = metadata,
-        key = "type",
+    return union(
         case(variantValue, "Value"),
         case(variantOptional, "Optional"),
-        case(variantChoice, "Choice")
+        case(variantChoice, "Choice"),
+        metadata = metadata,
+        key = "type"
     )
 }
 

@@ -105,29 +105,33 @@ sealed interface Schema<A> {
 
         inline fun <reified A, B1> record(
             field1: Field<A, B1>,
-            noinline construct: (B1) -> (A)
-        ): Schema<A> = Record1(metadataFromType<A>(), field1, construct)
+            noinline construct: (B1) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record1(metadata, field1, construct)
 
         inline fun <reified A, B1, B2> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
-            noinline construct: (B1, B2) -> (A)
-        ): Schema<A> = Record2(metadataFromType<A>(), field1, field2, construct)
+            noinline construct: (B1, B2) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record2(metadata, field1, field2, construct)
 
         inline fun <reified A, B1, B2, B3> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
-            noinline construct: (B1, B2, B3) -> (A)
-        ): Schema<A> = Record3(metadataFromType<A>(), field1, field2, field3, construct)
+            noinline construct: (B1, B2, B3) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record3(metadata, field1, field2, field3, construct)
 
         inline fun <reified A, B1, B2, B3, B4> record(
             field1: Field<A, B1>,
             field2: Field<A, B2>,
             field3: Field<A, B3>,
             field4: Field<A, B4>,
-            noinline construct: (B1, B2, B3, B4) -> (A)
-        ): Schema<A> = Record4(metadataFromType<A>(), field1, field2, field3, field4, construct)
+            noinline construct: (B1, B2, B3, B4) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record4(metadata, field1, field2, field3, field4, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5> record(
             field1: Field<A, B1>,
@@ -135,8 +139,9 @@ sealed interface Schema<A> {
             field3: Field<A, B3>,
             field4: Field<A, B4>,
             field5: Field<A, B5>,
-            noinline construct: (B1, B2, B3, B4, B5) -> (A)
-        ): Schema<A> = Record5(metadataFromType<A>(), field1, field2, field3, field4, field5, construct)
+            noinline construct: (B1, B2, B3, B4, B5) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record5(metadata, field1, field2, field3, field4, field5, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6> record(
             field1: Field<A, B1>,
@@ -145,8 +150,9 @@ sealed interface Schema<A> {
             field4: Field<A, B4>,
             field5: Field<A, B5>,
             field6: Field<A, B6>,
-            noinline construct: (B1, B2, B3, B4, B5, B6) -> (A)
-        ): Schema<A> = Record6(metadataFromType<A>(), field1, field2, field3, field4, field5, field6, construct)
+            noinline construct: (B1, B2, B3, B4, B5, B6) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record6(metadata, field1, field2, field3, field4, field5, field6, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6, B7> record(
             field1: Field<A, B1>,
@@ -156,8 +162,9 @@ sealed interface Schema<A> {
             field5: Field<A, B5>,
             field6: Field<A, B6>,
             field7: Field<A, B7>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7) -> (A)
-        ): Schema<A> = Record7(metadataFromType<A>(), field1, field2, field3, field4, field5, field6, field7, construct)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record7(metadata, field1, field2, field3, field4, field5, field6, field7, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8> record(
             field1: Field<A, B1>,
@@ -168,9 +175,9 @@ sealed interface Schema<A> {
             field6: Field<A, B6>,
             field7: Field<A, B7>,
             field8: Field<A, B8>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8) -> (A)
-        ): Schema<A> =
-            Record8(metadataFromType<A>(), field1, field2, field3, field4, field5, field6, field7, field8, construct)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record8(metadata, field1, field2, field3, field4, field5, field6, field7, field8, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9> record(
             field1: Field<A, B1>,
@@ -182,8 +189,9 @@ sealed interface Schema<A> {
             field7: Field<A, B7>,
             field8: Field<A, B8>,
             field9: Field<A, B9>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9) -> (A)
-        ): Schema<A> = Record9(metadataFromType<A>(), field1, field2, field3, field4, field5, field6, field7, field8, field9, construct)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record9(metadata, field1, field2, field3, field4, field5, field6, field7, field8, field9, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10> record(
             field1: Field<A, B1>,
@@ -196,8 +204,10 @@ sealed interface Schema<A> {
             field8: Field<A, B8>,
             field9: Field<A, B9>,
             field10: Field<A, B10>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10) -> (A)
-        ): Schema<A> = Record10(metadataFromType<A>(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, construct)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> =
+            Record10(metadata, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11> record(
             field1: Field<A, B1>,
@@ -211,9 +221,9 @@ sealed interface Schema<A> {
             field9: Field<A, B9>,
             field10: Field<A, B10>,
             field11: Field<A, B11>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11) -> (A)
-        ): Schema<A> =
-            Record11(metadataFromType<A>(), field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, construct)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Record11(metadata, field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, construct)
 
         inline fun <reified A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12> record(
             field1: Field<A, B1>,
@@ -228,9 +238,10 @@ sealed interface Schema<A> {
             field10: Field<A, B10>,
             field11: Field<A, B11>,
             field12: Field<A, B12>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record12(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -260,9 +271,10 @@ sealed interface Schema<A> {
             field11: Field<A, B11>,
             field12: Field<A, B12>,
             field13: Field<A, B13>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record13(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -294,9 +306,10 @@ sealed interface Schema<A> {
             field12: Field<A, B12>,
             field13: Field<A, B13>,
             field14: Field<A, B14>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record14(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -330,9 +343,10 @@ sealed interface Schema<A> {
             field13: Field<A, B13>,
             field14: Field<A, B14>,
             field15: Field<A, B15>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record15(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -368,9 +382,10 @@ sealed interface Schema<A> {
             field14: Field<A, B14>,
             field15: Field<A, B15>,
             field16: Field<A, B16>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record16(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -408,9 +423,10 @@ sealed interface Schema<A> {
             field15: Field<A, B15>,
             field16: Field<A, B16>,
             field17: Field<A, B17>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record17(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -450,9 +466,10 @@ sealed interface Schema<A> {
             field16: Field<A, B16>,
             field17: Field<A, B17>,
             field18: Field<A, B18>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record18(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -494,9 +511,10 @@ sealed interface Schema<A> {
             field17: Field<A, B17>,
             field18: Field<A, B18>,
             field19: Field<A, B19>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record19(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -540,9 +558,10 @@ sealed interface Schema<A> {
             field18: Field<A, B18>,
             field19: Field<A, B19>,
             field20: Field<A, B20>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record20(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -588,9 +607,10 @@ sealed interface Schema<A> {
             field19: Field<A, B19>,
             field20: Field<A, B20>,
             field21: Field<A, B21>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record21(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -638,9 +658,10 @@ sealed interface Schema<A> {
             field20: Field<A, B20>,
             field21: Field<A, B21>,
             field22: Field<A, B22>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record22(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -690,9 +711,10 @@ sealed interface Schema<A> {
             field21: Field<A, B21>,
             field22: Field<A, B22>,
             field23: Field<A, B23>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record23(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -744,9 +766,10 @@ sealed interface Schema<A> {
             field22: Field<A, B22>,
             field23: Field<A, B23>,
             field24: Field<A, B24>,
-            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24) -> (A)
+            noinline construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24) -> (A),
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> = Record24(
-            metadataFromType<A>(),
+            metadata,
             field1,
             field2,
             field3,
@@ -776,29 +799,33 @@ sealed interface Schema<A> {
 
         inline fun <reified A, B1 : A> union(
             case1: Case<A, B1>,
-            key: String = "type"
-        ): Schema<A> = Union1(metadataFromType<A>(), key, case1)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union1(metadata, key, case1)
 
         inline fun <reified A, B1 : A, B2 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
-            key: String = "type"
-        ): Schema<A> = Union2(metadataFromType<A>(), key, case1, case2)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union2(metadata, key, case1, case2)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
-            key: String = "type"
-        ): Schema<A> = Union3(metadataFromType<A>(), key, case1, case2, case3)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union3(metadata, key, case1, case2, case3)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A> union(
             case1: Case<A, B1>,
             case2: Case<A, B2>,
             case3: Case<A, B3>,
             case4: Case<A, B4>,
-            key: String = "type"
-        ): Schema<A> = Union4(metadataFromType<A>(), key, case1, case2, case3, case4)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union4(metadata, key, case1, case2, case3, case4)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A> union(
             case1: Case<A, B1>,
@@ -806,8 +833,9 @@ sealed interface Schema<A> {
             case3: Case<A, B3>,
             case4: Case<A, B4>,
             case5: Case<A, B5>,
-            key: String = "type"
-        ): Schema<A> = Union5(metadataFromType<A>(), key, case1, case2, case3, case4, case5)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union5(metadata, key, case1, case2, case3, case4, case5)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A> union(
             case1: Case<A, B1>,
@@ -816,8 +844,9 @@ sealed interface Schema<A> {
             case4: Case<A, B4>,
             case5: Case<A, B5>,
             case6: Case<A, B6>,
-            key: String = "type"
-        ): Schema<A> = Union6(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union6(metadata, key, case1, case2, case3, case4, case5, case6)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A> union(
             case1: Case<A, B1>,
@@ -827,8 +856,9 @@ sealed interface Schema<A> {
             case5: Case<A, B5>,
             case6: Case<A, B6>,
             case7: Case<A, B7>,
-            key: String = "type"
-        ): Schema<A> = Union7(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union7(metadata, key, case1, case2, case3, case4, case5, case6, case7)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A> union(
             case1: Case<A, B1>,
@@ -839,8 +869,9 @@ sealed interface Schema<A> {
             case6: Case<A, B6>,
             case7: Case<A, B7>,
             case8: Case<A, B8>,
-            key: String = "type"
-        ): Schema<A> = Union8(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union8(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A> union(
             case1: Case<A, B1>,
@@ -852,8 +883,9 @@ sealed interface Schema<A> {
             case7: Case<A, B7>,
             case8: Case<A, B8>,
             case9: Case<A, B9>,
-            key: String = "type"
-        ): Schema<A> = Union9(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union9(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A> union(
             case1: Case<A, B1>,
@@ -866,9 +898,10 @@ sealed interface Schema<A> {
             case8: Case<A, B8>,
             case9: Case<A, B9>,
             case10: Case<A, B10>,
-            key: String = "type"
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
         ): Schema<A> =
-            Union10(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10)
+            Union10(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A> union(
             case1: Case<A, B1>,
@@ -882,8 +915,9 @@ sealed interface Schema<A> {
             case9: Case<A, B9>,
             case10: Case<A, B10>,
             case11: Case<A, B11>,
-            key: String = "type"
-        ): Schema<A> = Union11(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union11(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A> union(
             case1: Case<A, B1>,
@@ -898,8 +932,9 @@ sealed interface Schema<A> {
             case10: Case<A, B10>,
             case11: Case<A, B11>,
             case12: Case<A, B12>,
-            key: String = "type"
-        ): Schema<A> = Union12(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union12(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A> union(
             case1: Case<A, B1>,
@@ -915,8 +950,9 @@ sealed interface Schema<A> {
             case11: Case<A, B11>,
             case12: Case<A, B12>,
             case13: Case<A, B13>,
-            key: String = "type"
-        ): Schema<A> = Union13(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union13(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A> union(
             case1: Case<A, B1>,
@@ -933,8 +969,9 @@ sealed interface Schema<A> {
             case12: Case<A, B12>,
             case13: Case<A, B13>,
             case14: Case<A, B14>,
-            key: String = "type"
-        ): Schema<A> = Union14(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union14(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A> union(
             case1: Case<A, B1>,
@@ -952,8 +989,9 @@ sealed interface Schema<A> {
             case13: Case<A, B13>,
             case14: Case<A, B14>,
             case15: Case<A, B15>,
-            key: String = "type"
-        ): Schema<A> = Union15(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union15(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A> union(
             case1: Case<A, B1>,
@@ -972,8 +1010,9 @@ sealed interface Schema<A> {
             case14: Case<A, B14>,
             case15: Case<A, B15>,
             case16: Case<A, B16>,
-            key: String = "type"
-        ): Schema<A> = Union16(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union16(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A> union(
             case1: Case<A, B1>,
@@ -993,8 +1032,9 @@ sealed interface Schema<A> {
             case15: Case<A, B15>,
             case16: Case<A, B16>,
             case17: Case<A, B17>,
-            key: String = "type"
-        ): Schema<A> = Union17(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union17(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A> union(
             case1: Case<A, B1>,
@@ -1015,8 +1055,9 @@ sealed interface Schema<A> {
             case16: Case<A, B16>,
             case17: Case<A, B17>,
             case18: Case<A, B18>,
-            key: String = "type"
-        ): Schema<A> = Union18(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union18(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A> union(
             case1: Case<A, B1>,
@@ -1038,8 +1079,9 @@ sealed interface Schema<A> {
             case17: Case<A, B17>,
             case18: Case<A, B18>,
             case19: Case<A, B19>,
-            key: String = "type"
-        ): Schema<A> = Union19(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18, case19)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union19(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18, case19)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A, B20 : A> union(
             case1: Case<A, B1>,
@@ -1062,8 +1104,9 @@ sealed interface Schema<A> {
             case18: Case<A, B18>,
             case19: Case<A, B19>,
             case20: Case<A, B20>,
-            key: String = "type"
-        ): Schema<A> = Union20(metadataFromType<A>(), key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18, case19 ,case20)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union20(metadata, key, case1, case2, case3, case4, case5, case6, case7, case8, case9, case10, case11, case12, case13, case14, case15, case16, case17, case18, case19 ,case20)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A, B20 : A, B21 : A> union(
             case1: Case<A, B1>,
@@ -1087,8 +1130,9 @@ sealed interface Schema<A> {
             case19: Case<A, B19>,
             case20: Case<A, B20>,
             case21: Case<A, B21>,
-            key: String = "type"
-        ): Schema<A> = Union21(metadataFromType<A>(), key, case1, case2, case3, case4, case5 ,case6 ,case7 ,case8 ,case9 ,case10 ,case11 ,case12 ,case13 ,case14 ,case15 ,case16 ,case17 ,case18 ,case19 ,case20 ,case21)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union21(metadata, key, case1, case2, case3, case4, case5 ,case6 ,case7 ,case8 ,case9 ,case10 ,case11 ,case12 ,case13 ,case14 ,case15 ,case16 ,case17 ,case18 ,case19 ,case20 ,case21)
 
         inline fun <reified A, B1 : A, B2 : A, B3 : A, B4 : A, B5 : A, B6 : A, B7 : A, B8 : A, B9 : A, B10 : A, B11 : A, B12 : A, B13 : A, B14 : A, B15 : A, B16 : A, B17 : A, B18 : A, B19 : A, B20 : A, B21 : A, B22 : A> union(
             case1: Case<A, B1>,
@@ -1113,8 +1157,9 @@ sealed interface Schema<A> {
             case20: Case<A, B20>,
             case21: Case<A, B21>,
             case22: Case<A, B22>,
-            key: String = "type"
-        ): Schema<A> = Union22(metadataFromType<A>(), key, case1 ,case2 ,case3 ,case4 ,case5 ,case6 ,case7 ,case8 ,case9 ,case10 ,case11 ,case12 ,case13 ,case14 ,case15 ,case16 ,case17 ,case18 ,case19 ,case20 ,case21 ,case22)
+            key: String = "type",
+            metadata: ObjectMetadata<A> = metadataFromType<A>()
+        ): Schema<A> = Union22(metadata, key, case1 ,case2 ,case3 ,case4 ,case5 ,case6 ,case7 ,case8 ,case9 ,case10 ,case11 ,case12 ,case13 ,case14 ,case15 ,case16 ,case17 ,case18 ,case19 ,case20 ,case21 ,case22)
     }
 }
 

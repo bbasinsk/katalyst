@@ -98,12 +98,12 @@ inline fun <reified A> Schema.Companion.variant2(schema: Schema<A>) : Schema<Var
             Variant<A>::Choice
         )
 
-        Union3(
-            metadata = metadata,
-            key = "type",
+        union(
             case(variantValue, "Value"),
             case(variantOptional, "Optional"),
-            case(variantChoice, "Choice")
+            case(variantChoice, "Choice"),
+            metadata = metadata,
+            key = "type",
         )
     }
 
@@ -126,11 +126,11 @@ fun <A> Schema.Companion.variantImpl(schema: Schema<A>, metadata: ObjectMetadata
         Variant<A>::Choice
     )
 
-    return Union3(
-        metadata = metadata,
-        key = "type",
+    return union(
         case(variantValue, "Value"),
         case(variantOptional, "Optional"),
-        case(variantChoice, "Choice")
+        case(variantChoice, "Choice"),
+        key = "type",
+        metadata = metadata,
     )
 }

@@ -3,7 +3,6 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.schema.ObjectMetadata
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.Union3
 import io.github.bbasinsk.schema.metadataFromType
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
@@ -169,12 +168,12 @@ fun <A> Schema.Companion.variantImpl(schema: Schema<A>, metadata: ObjectMetadata
         Variant<A>::Choice
     )
 
-    return Union3(
-        metadata = metadata,
-        key = "type",
+    return union(
         case(variantValue, "Value"),
         case(variantOptional, "Optional"),
-        case(variantChoice, "Choice")
+        case(variantChoice, "Choice"),
+        key = "type",
+        metadata = metadata
     )
 }
 
