@@ -19,8 +19,6 @@ class DefinitionNameResolver {
         lookup(schema)?.let { return it }
 
         val base = metadata.qualifiedName()
-        store(schema, base) // placeholder to break cycles
-
         val typeArguments = metadata.typeArguments
         val baseWithArguments = typeArguments.fold(base) { acc, arg -> "$acc.of.$arg" }
         val signature = DefinitionSignature(base, typeArguments)

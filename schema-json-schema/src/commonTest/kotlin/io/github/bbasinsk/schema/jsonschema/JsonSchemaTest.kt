@@ -199,7 +199,8 @@ class JsonSchemaTest {
 
     @Test
     fun `union works`() {
-        val expected = Json.parseToJsonElement("""
+        val expected = Json.parseToJsonElement(
+            """
             {
               "anyOf": [
                 {
@@ -225,7 +226,8 @@ class JsonSchemaTest {
                 }
               ]
             }
-        """.trimIndent())
+        """.trimIndent()
+        )
         val actual = Schema.person().toJsonSchema().encodeToJsonElement()
         assertEquals(expected, actual)
     }
@@ -235,6 +237,7 @@ class JsonSchemaTest {
         data class WithNullableRecordField(
             val record: RecordSmall?
         )
+
         val schema = Schema.record(
             Schema.field(Schema.recordSmall().optional(), "record") { record },
             ::WithNullableRecordField
@@ -274,6 +277,7 @@ class JsonSchemaTest {
         data class WithNullableUnionField(
             val person: Person?
         )
+
         val schema = Schema.record(
             Schema.field(Schema.person().optional(), "person") { person },
             ::WithNullableUnionField
@@ -376,8 +380,9 @@ fun Schema.Companion.recordCollection(): Schema<RecordCollection> =
 fun Schema.Companion.recordFlipped(): Schema<RecordSmall> =
     record(
         field(string(), "b") { b },
-        field(long(), "a") { a }
-    ) { b, a -> RecordSmall(a, b) }
+        field(long(), "a") { a },
+        { b, a -> RecordSmall(a, b) }
+    )
 
 sealed interface Person
 
