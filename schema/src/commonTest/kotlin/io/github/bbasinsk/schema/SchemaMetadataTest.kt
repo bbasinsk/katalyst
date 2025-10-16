@@ -81,56 +81,27 @@ sealed interface Variant<T> {
     data class Choice<A>(val options: List<Variant<A>>) : Variant<A>
 }
 
-inline fun <reified A> Schema.Companion.variant2(schema: Schema<A>) : Schema<Variant<A>> =
-    fix { self, metadata ->
-        val variantValue: Schema<Variant.Value<A>> = record(
-            field(schema, "value") { value },
-            Variant<A>::Value
-        )
-
-        val variantOptional: Schema<Variant.Optional<A>> = record(
-            field(lazy { self }, "variant") { variant },
-            Variant<A>::Optional
-        )
-
-        val variantChoice: Schema<Variant.Choice<A>> = record(
-            field(lazy { list(self) }, "options") { options },
-            Variant<A>::Choice
-        )
-
-        union(
-            case(variantValue, "Value"),
-            case(variantOptional, "Optional"),
-            case(variantChoice, "Choice"),
-            metadata = metadata,
-            key = "type",
-        )
-    }
-
-inline fun <reified A> Schema.Companion.variant(schema: Schema<A>): Schema<Variant<A>> =
-    variantImpl(schema, metadata = metadataFromType<Variant<A>>())
-
-fun <A> Schema.Companion.variantImpl(schema: Schema<A>, metadata: ObjectMetadata<Variant<A>>): Schema<Variant<A>> {
+inline fun <reified A> Schema.Companion.variant(schema: Schema<A>): Schema<Variant<A>> = fix { self, metadata ->
     val variantValue: Schema<Variant.Value<A>> = record(
         field(schema, "value") { value },
         Variant<A>::Value
     )
 
     val variantOptional: Schema<Variant.Optional<A>> = record(
-        field(lazy { variantImpl(schema, metadata) }, "variant") { variant },
+        field(lazy { self }, "variant") { variant },
         Variant<A>::Optional
     )
 
     val variantChoice: Schema<Variant.Choice<A>> = record(
-        field(lazy { list(variantImpl(schema, metadata)) }, "options") { options },
+        field(lazy { list(self) }, "options") { options },
         Variant<A>::Choice
     )
 
-    return union(
+    union(
         case(variantValue, "Value"),
         case(variantOptional, "Optional"),
         case(variantChoice, "Choice"),
-        key = "type",
         metadata = metadata,
+        key = "type"
     )
 }
