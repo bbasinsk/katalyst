@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.11](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.10...katalyst-v0.1.11) (2025-10-16)
+
+
+### Bug Fixes
+
+* handle recursive `lazy` definitions ([#25](https://github.com/bbasinsk/katalyst/issues/25)) ([0d4085a](https://github.com/bbasinsk/katalyst/commit/0d4085a9beb890715c1e06ec4bd353502f80160a))
+
 ## [0.1.10](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.9...katalyst-v0.1.10) (2025-10-16)
 
 
