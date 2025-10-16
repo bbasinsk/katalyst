@@ -14,7 +14,6 @@ class DefinitionNameResolver {
      * Examples:
      * - Box<Person> → "io.package.Box.of.io.package.Person"
      * - Variant<String> → "io.package.Variant.of.kotlin.String"
-     * - Collisions get numeric suffixes: ".2", ".3", etc.
      */
     fun resolve(schema: Schema<*>, metadata: ObjectMetadata<*>): String {
         lookup(schema)?.let { return it }
@@ -45,19 +44,18 @@ class DefinitionNameResolver {
         }
     }
 
-    private fun assignName(signature: DefinitionSignature, candidateBase: String): String {
-        var candidate = candidateBase
-        var suffix = 1
-        while (true) {
-            val existing = nameOwners[candidate]
-            if (existing == null || existing == signature) {
-                nameOwners[candidate] = signature
-                signatureToName[signature] = candidate
-                return candidate
+    private fun assignName(signature: DefinitionSignature, name: String): String {
+        val existing = nameOwners[name]
+        when {
+            existing == null || existing == signature -> {
+                nameOwners[name] = signature
+                signatureToName[signature] = name
+                return name
             }
-
-            suffix += 1
-            candidate = "$candidateBase.$suffix"
+            else -> error(
+                "Definition name collision: '$name' is already claimed by $existing but attempting to assign to $signature. " +
+                "This indicates a bug in schema type argument resolution."
+            )
         }
     }
 
