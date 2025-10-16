@@ -47,10 +47,26 @@ class SchemaMetadataTest {
         )
     }
 
+    @Test
+    fun `nested metadata preserves hierarchy`() {
+        val nested = Schema.box(Schema.box(Schema.box(Schema.something)))
+        val metadata = (nested as Schema.Record<*>).metadata
+        assertEquals(
+            listOf("io.github.bbasinsk.schema.Box.of.io.github.bbasinsk.schema.Box.of.io.github.bbasinsk.schema.Something"),
+            metadata.typeArguments
+        )
+    }
 }
 
 private data class Something(val name: String, val age: Int)
 private data class Box<T>(val value: T)
+
+private val Schema.Companion.something: Schema<Something>
+    get() = record(
+        field(string(), "name") { name },
+        field(int(), "age") { age },
+        ::Something
+    )
 
 private inline fun <reified A> Schema.Companion.box(schema: Schema<A>): Schema<Box<A>> =
     record(

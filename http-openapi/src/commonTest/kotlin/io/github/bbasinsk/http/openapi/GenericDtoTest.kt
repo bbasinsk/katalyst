@@ -1,7 +1,6 @@
 package io.github.bbasinsk.http.openapi
 
 import io.github.bbasinsk.http.Http
-import io.github.bbasinsk.http.openapi.toSchemaObject
 import io.github.bbasinsk.schema.ObjectMetadata
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Union3
@@ -61,6 +60,77 @@ class GenericDtoTest {
             "Expected components to contain $expectedName but had ${spec.components.schemas.keys}"
         }
     }
+
+    @Test
+    fun `handles deeply nested generic record`() {
+        val http = Http.post { Root / "deep-box" }
+            .input { json { box(box(box(person))) } }
+            .output { status(Ok) { json { string() } } }
+
+        val spec = listOf(http).toOpenApiSpec(info = Info(title = "API", version = "1.0.0"))
+
+        val operation = spec.paths["/deep-box"]!!["post"]!!
+        val ref = operation.requestBody!!.content["application/json"]!!.schema.ref
+        val expectedName = "io.github.bbasinsk.http.openapi.Box.of.io.github.bbasinsk.http.openapi.Box.of.io.github.bbasinsk.http.openapi.Box.of.io.github.bbasinsk.http.openapi.Person"
+        assertEquals("#/components/schemas/$expectedName", ref)
+        require(spec.components.schemas.containsKey(expectedName)) {
+            "Expected components to contain $expectedName but had ${spec.components.schemas.keys}"
+        }
+    }
+
+    @Test
+    fun `pair schema produces primitive field components`() {
+        val schema = Schema.pair(Schema.string(), Schema.int())
+
+        val expected =
+            """
+            {
+              "type": "object",
+              "properties": {
+                "first": {
+                  "type": "string"
+                },
+                "second": {
+                  "type": "integer",
+                  "format": "int32"
+                }
+              },
+              "required": [
+                "first",
+                "second"
+              ]
+            }
+            """.trimIndent()
+
+        assertEquals(
+            OpenApiJson.decodeFromString(expected),
+            OpenApiJson.encodeToJsonElement(schema.toSchemaObject())
+        )
+    }
+
+    @Test
+    fun `generic pair emits specialized component name`() {
+        val http = Http.post { Root / "pair-box" }
+            .input { json { box(pair(string(), int())) } }
+            .output { status(Ok) { json { string() } } }
+
+        val spec = listOf(http).toOpenApiSpec(info = Info(title = "API", version = "1.0.0"))
+
+        val operation = spec.paths["/pair-box"]!!["post"]!!
+        val ref = operation.requestBody!!.content["application/json"]!!.schema.ref
+        val expectedName =
+            "io.github.bbasinsk.http.openapi.Box.of.io.github.bbasinsk.http.openapi.Pair.of.kotlin.String.of.kotlin.Int"
+        assertEquals("#/components/schemas/$expectedName", ref)
+
+        val pairDefinition =
+            "io.github.bbasinsk.http.openapi.Pair.of.kotlin.String.of.kotlin.Int"
+        require(spec.components.schemas.containsKey(expectedName)) {
+            "Expected components to contain $expectedName but had ${spec.components.schemas.keys}"
+        }
+        require(spec.components.schemas.containsKey(pairDefinition)) {
+            "Expected components to contain $pairDefinition but had ${spec.components.schemas.keys}"
+        }
+    }
 }
 
 sealed interface Variant<T> {
@@ -70,6 +140,8 @@ sealed interface Variant<T> {
 }
 
 data class Person(val name: String, val age: Int)
+
+data class Pair<A, B>(val first: A, val second: B)
 
 val Schema.Companion.person: Schema<Person>
     get() = record(
@@ -112,4 +184,14 @@ inline fun <reified A> Schema.Companion.box(schema: Schema<A>): Schema<Box<A>> =
     record(
         field(schema, "value") { value },
         ::Box
+    )
+
+inline fun <reified A, reified B> Schema.Companion.pair(
+    firstSchema: Schema<A>,
+    secondSchema: Schema<B>
+): Schema<Pair<A, B>> =
+    record(
+        field(firstSchema, "first") { first },
+        field(secondSchema, "second") { second },
+        ::Pair
     )

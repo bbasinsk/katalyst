@@ -7,6 +7,14 @@ class DefinitionNameResolver {
     private val nameOwners = mutableMapOf<String, DefinitionSignature>()
     private val signatureToName = mutableMapOf<DefinitionSignature, String>()
 
+    /**
+     * Resolves a unique definition name for a schema with type arguments.
+     *
+     * Examples:
+     * - Box<Person> → "io.package.Box.of.io.package.Person"
+     * - Variant<String> → "io.package.Variant.of.kotlin.String"
+     * - Collisions get numeric suffixes: ".2", ".3", etc.
+     */
     fun resolve(schema: Schema<*>, metadata: ObjectMetadata<*>): String {
         lookup(schema)?.let { return it }
 
