@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.9...katalyst-v0.1.10) (2025-10-16)
+
+
+### Bug Fixes
+
+* use reified type info for generic dtos ([#22](https://github.com/bbasinsk/katalyst/issues/22)) ([f0fe997](https://github.com/bbasinsk/katalyst/commit/f0fe997b629b12059813c184f7bc3bcf5b60085d))
+
 ## [0.1.9](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.8...katalyst-v0.1.9) (2025-10-06)
 
 
