@@ -1,28 +1,33 @@
 package io.github.bbasinsk.http.openapi
 
 import io.github.bbasinsk.http.*
+import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.isRequired
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 
-fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI =
-    OpenAPI(
+fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI {
+    val resolver = DefinitionNameResolver()
+    return OpenAPI(
         info = info,
         servers = servers,
-        paths = this.toOpenApiPaths(),
+        paths = this.toOpenApiPaths(resolver),
         components = Components(
-            schemas = this.flatMap { it.toComponents() }.toMap()
+            schemas = this.flatMap { it.toComponents(resolver) }.toMap()
         )
     )
-
-private fun Http<*, *, *, *>.toComponents(): List<Pair<String, SchemaObject>> {
-    val schemas = listOf(input) + (output.schemaByStatus() + error.schemaByStatus()).values
-    return schemas.flatMap { schema -> schema.schema().byRefName(outputOptions = OutputOptions()).toList() }
 }
 
-private fun List<Http<*, *, *, *>>.toOpenApiPaths(): Map<String, Map<String, Operation>> =
+private fun Http<*, *, *, *>.toComponents(resolver: DefinitionNameResolver): List<Pair<String, SchemaObject>> {
+    val schemas = listOf(input) + (output.schemaByStatus() + error.schemaByStatus()).values
+    return schemas.flatMap { schema ->
+        schema.schema().byRefName(outputOptions = OutputOptions(), resolver = resolver).toList()
+    }
+}
+
+private fun List<Http<*, *, *, *>>.toOpenApiPaths(resolver: DefinitionNameResolver): Map<String, Map<String, Operation>> =
     this
-        .map { it to it.operation() }
+        .map { it to it.operation(resolver) }
         .groupBy { (endpoint, _) -> endpoint.params.toFormattedPath() }
         .mapValues { (_, value) ->
             value.associate { (endpoint, operation) ->
@@ -39,54 +44,57 @@ private fun ParamsSchema<*>.toFormattedPath(): String =
         }
     }.joinToString(separator = "/", prefix = "/")
 
-private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.operation(): Operation =
+private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.operation(
+    resolver: DefinitionNameResolver
+): Operation =
     Operation(
         summary = metadata.summary,
         tags = metadata.tags.ifEmpty { null },
         deprecated = true.takeIf { metadata.deprecatedReason != null },
         operationId = null,
-        parameters = params.pathParams(),
-        requestBody = requestBody(this.input),
+        parameters = params.pathParams(resolver),
+        requestBody = requestBody(this.input, resolver),
         responses = (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
-            status.code.toString() to case.toResponseObject(status)
+            status.code.toString() to case.toResponseObject(status, resolver)
         }.toMap()
     )
 
-fun <A> BodySchema<A>.toResponseObject(status: ResponseStatus): ResponseObject =
+fun <A> BodySchema<A>.toResponseObject(status: ResponseStatus, resolver: DefinitionNameResolver): ResponseObject =
     ResponseObject(
         description = status.description,
         content = schema().toContentTypeObject(
             contentType = contentType().mimeType,
             examples = examples().mapValues { (key, value) ->
                 ExampleObject(summary = key, value = schema().encodeToJsonElement(value))
-            }
+            },
+            resolver = resolver
         )
     )
 
-private fun <A> ParamsSchema<A>.pathParams(): List<Parameter> =
+private fun <A> ParamsSchema<A>.pathParams(resolver: DefinitionNameResolver): List<Parameter> =
     when (this) {
-        is ParamsSchema.Combine<*, *> -> left.pathParams() + right.pathParams()
-        is PathSchema.Combine<*, *> -> left.pathParams() + right.pathParams()
+        is ParamsSchema.Combine<*, *> -> left.pathParams(resolver) + right.pathParams(resolver)
+        is PathSchema.Combine<*, *> -> left.pathParams(resolver) + right.pathParams(resolver)
         is PathSchema.Segment, PathSchema.RootSchema -> listOf()
-        is PathSchema.Parameter -> listOf(param.toParameter(`in` = "path"))
-        is ParamsSchema.HeaderSchema -> listOf(param.toParameter(`in` = "header"))
-        is ParamsSchema.QuerySchema -> listOf(param.toParameter(`in` = "query"))
+        is PathSchema.Parameter -> listOf(param.toParameter(`in` = "path", resolver = resolver))
+        is ParamsSchema.HeaderSchema -> listOf(param.toParameter(`in` = "header", resolver = resolver))
+        is ParamsSchema.QuerySchema -> listOf(param.toParameter(`in` = "query", resolver = resolver))
     }
 
-private fun <A> ParamSchema<A>.toParameter(`in`: String): Parameter =
+private fun <A> ParamSchema<A>.toParameter(`in`: String, resolver: DefinitionNameResolver): Parameter =
     Parameter(
         name = this.name(),
         `in` = `in`,
         description = this.description(),
         required = this.schema().isRequired(),
         deprecated = this.deprecatedReason() != null,
-        schema = this.schema().toSchemaObject(OutputOptions()),
+        schema = this.schema().toSchemaObject(OutputOptions(), resolver),
         examples = examples().mapValues { (key, value) ->
             ExampleObject(summary = key, value = this.schema().encodeToJsonElement(value))
         }
     )
 
-private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
+private fun <A> requestBody(request: BodySchema<A>, resolver: DefinitionNameResolver): RequestBody? =
     if (request.schema() is Schema.Empty) {
         null
     } else {
@@ -95,7 +103,8 @@ private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
                 contentType = request.contentType().mimeType,
                 examples = request.examples().mapValues { (key, value) ->
                     ExampleObject(summary = key, value = request.schema().encodeToJsonElement(value))
-                }
+                },
+                resolver = resolver
             ),
             required = request.schema().isRequired(),
             description = request.description()
@@ -105,54 +114,55 @@ private fun <A> requestBody(request: BodySchema<A>): RequestBody? =
 // Maps a content type to a schema
 private fun <A> Schema<A>.toContentTypeObject(
     contentType: String,
-    examples: Map<String, ExampleObject>
+    examples: Map<String, ExampleObject>,
+    resolver: DefinitionNameResolver
 ): Map<String, MediaTypeObject> {
     return when (this) {
         is Schema.Bytes -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             )
         )
 
         is Schema.Collection<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             )
         )
 
-        is Schema.Default -> schema.toContentTypeObject(contentType, examples)
+        is Schema.Default -> schema.toContentTypeObject(contentType, examples, resolver)
         is Schema.Empty -> mapOf()
-        is Schema.Lazy -> schema().toContentTypeObject(contentType, examples)
-        is Schema.Metadata -> schema.toContentTypeObject(contentType, examples)
-        is Schema.Optional<*> -> schema.toContentTypeObject(contentType, examples)
-        is Schema.OrElse<A, *> -> preferred.toContentTypeObject(contentType, examples)
+        is Schema.Lazy -> schema().toContentTypeObject(contentType, examples, resolver)
+        is Schema.Metadata -> schema.toContentTypeObject(contentType, examples, resolver)
+        is Schema.Optional<*> -> schema.toContentTypeObject(contentType, examples, resolver)
+        is Schema.OrElse<A, *> -> preferred.toContentTypeObject(contentType, examples, resolver)
         is Schema.Primitive -> mapOf(
             "text/plain" to MediaTypeObject(
-                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             ),
         )
 
         is Schema.StringMap<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             )
         )
 
-        is Schema.Transform<A, *> -> schema.toContentTypeObject(contentType, examples)
+        is Schema.Transform<A, *> -> schema.toContentTypeObject(contentType, examples, resolver)
         is Schema.Record<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             )
         )
 
         is Schema.Union<*> -> mapOf(
             contentType to MediaTypeObject(
-                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions()),
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             )
         )
@@ -192,31 +202,36 @@ data class OutputOptions(
     }
 }
 
-fun <A> Schema<A>.toSchemaObject(outputOptions: OutputOptions = OutputOptions()): SchemaObject =
-    toSchemaObjectImpl(FieldOptions(), outputOptions)
+fun <A> Schema<A>.toSchemaObject(
+    outputOptions: OutputOptions = OutputOptions(),
+    resolver: DefinitionNameResolver = DefinitionNameResolver()
+): SchemaObject =
+    toSchemaObjectImpl(FieldOptions(), outputOptions, resolver)
 
 private fun <A> Schema<A>.toSchemaObjectImpl(
     field: FieldOptions,
     outputOptions: OutputOptions,
+    resolver: DefinitionNameResolver,
 ): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
-        is Schema.Lazy<A> -> schema().toSchemaObjectImpl(field, outputOptions)
+        is Schema.Lazy<A> -> schema().toSchemaObjectImpl(field, outputOptions, resolver)
 
         is Schema.Metadata -> schema.toSchemaObjectImpl(
             field = field.copy(description = this.metadata.description),
-            outputOptions = outputOptions
+            outputOptions = outputOptions,
+            resolver = resolver
         )
 
         is Schema.Bytes -> SchemaObject(nullable = field.nullable, type = "string", format = "binary")
         is Schema.Collection<*> -> SchemaObject(
             nullable = field.nullable,
             type = "array",
-            items = itemSchema.toSchemaObjectImpl(FieldOptions(ref = field.ref), outputOptions)
+            items = itemSchema.toSchemaObjectImpl(FieldOptions(ref = field.ref), outputOptions, resolver)
         )
 
-        is Schema.Default -> schema.toSchemaObjectImpl(field, outputOptions)
-        is Schema.Optional<*> -> schema.toSchemaObjectImpl(field.copy(nullable = true), outputOptions)
+        is Schema.Default -> schema.toSchemaObjectImpl(field, outputOptions, resolver)
+        is Schema.Optional<*> -> schema.toSchemaObjectImpl(field.copy(nullable = true), outputOptions, resolver)
 
         is Schema.Primitive.Boolean ->
             SchemaObject(nullable = field.nullable, type = "boolean", description = field.description)
@@ -245,7 +260,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 description = field.description
             )
 
-        is Schema.OrElse<A, *> -> preferred.toSchemaObjectImpl(field, outputOptions)
+        is Schema.OrElse<A, *> -> preferred.toSchemaObjectImpl(field, outputOptions, resolver)
 
         is Schema.Transform<*, *> -> when {
             metadata.name.lowercase() == "uuid" && outputOptions.supportsStringFormat("uuid") ->
@@ -257,7 +272,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             metadata.name.lowercase() == "instant" && outputOptions.supportsStringFormat("date-time") ->
                 SchemaObject(type = "string", format = "date-time", nullable = field.nullable)
 
-            else -> schema.toSchemaObjectImpl(field, outputOptions)
+            else -> schema.toSchemaObjectImpl(field, outputOptions, resolver)
         }
 
         is Schema.StringMap<*> -> SchemaObject(
@@ -265,7 +280,8 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             type = "object",
             additionalProperties = valueSchema.toSchemaObjectImpl(
                 FieldOptions(ref = field.ref),
-                outputOptions
+                outputOptions,
+                resolver
             ),
         )
 
@@ -273,7 +289,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             if (field.ref) {
                 SchemaObject(
                     nullable = field.nullable,
-                    ref = refPath(metadata.qualifiedName())
+                    ref = refPath(resolver.resolve(this, this.metadata))
                 )
             } else {
                 if (outputOptions.inlineRefs) {
@@ -292,7 +308,8 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
 
                         val childSchema = case.schema.toSchemaObjectImpl(
                             FieldOptions(ref = false),
-                            outputOptions
+                            outputOptions,
+                            resolver
                         )
 
                         SchemaObject(
@@ -312,7 +329,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             discriminator = DiscriminatorObject(
                                 propertyName = key,
                                 mapping = unsafeCases().mapNotNull { case ->
-                                    val caseSchemas = case.schema.byRefName(outputOptions = outputOptions)
+                                    val caseSchemas = case.schema.byRefName(outputOptions = outputOptions, resolver = resolver)
                                     val caseSchema = caseSchemas.toList().firstOrNull()
                                     caseSchema?.run { case.name to refPath(first) }
                                 }.toMap()
@@ -321,8 +338,9 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     }
                 } else {
                     // New ref-based behavior for code generators
+                    val baseName = resolver.resolve(this, this.metadata)
                     val withDiscriminatorRefs = unsafeCases().map { case ->
-                        SchemaObject(ref = refPath("${metadata.qualifiedName()}.${case.name}WithDiscriminator"))
+                        SchemaObject(ref = refPath("$baseName.${case.name}WithDiscriminator"))
                     }
 
                     if (outputOptions.useAnyOf) {
@@ -331,17 +349,17 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             anyOf = withDiscriminatorRefs,
                         )
                     } else {
-                        SchemaObject(
-                            nullable = field.nullable,
-                            oneOf = withDiscriminatorRefs,
-                            discriminator = DiscriminatorObject(
-                                propertyName = key,
-                                mapping = unsafeCases().associate { case ->
-                                    case.name to refPath("${metadata.qualifiedName()}.${case.name}WithDiscriminator")
-                                }
+                            SchemaObject(
+                                nullable = field.nullable,
+                                oneOf = withDiscriminatorRefs,
+                                discriminator = DiscriminatorObject(
+                                    propertyName = key,
+                                    mapping = unsafeCases().associate { case ->
+                                        case.name to refPath("$baseName.${case.name}WithDiscriminator")
+                                    }
+                                )
                             )
-                        )
-                    }
+                        }
                 }
             }
 
@@ -349,14 +367,14 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             if (field.ref) {
                 SchemaObject(
                     nullable = field.nullable,
-                    ref = refPath(metadata.qualifiedName())
+                    ref = refPath(resolver.resolve(this, this.metadata))
                 )
             } else {
                 SchemaObject(
                     type = "object",
                     nullable = field.nullable,
                     properties = unsafeFields().associate {
-                        it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions)
+                        it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions, resolver)
                     },
                     required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name },
                     propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields().map { it.name } else null
@@ -368,36 +386,38 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
 private fun Schema<*>.byRefName(
     nullable: Boolean? = null,
     outputOptions: OutputOptions,
+    resolver: DefinitionNameResolver,
 ): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
         is Schema.Lazy<*> -> emptyMap()
-        is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
+        is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
         is Schema.Bytes -> emptyMap()
-        is Schema.Collection<*> -> itemSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
-        is Schema.Default -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
-        is Schema.Optional<*> -> schema.byRefName(nullable = true, outputOptions = outputOptions)
-        is Schema.OrElse<*, *> -> preferred.byRefName(outputOptions = outputOptions)
+        is Schema.Collection<*> -> itemSchema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
+        is Schema.Default -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
+        is Schema.Optional<*> -> schema.byRefName(nullable = true, outputOptions = outputOptions, resolver = resolver)
+        is Schema.OrElse<*, *> -> preferred.byRefName(outputOptions = outputOptions, resolver = resolver)
         is Schema.Primitive -> emptyMap()
-        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions)
-        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions)
+        is Schema.StringMap<*> -> valueSchema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
+        is Schema.Transform<*, *> -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
 
         is Schema.Union<*> -> {
-            val mainSchema = mapOf(metadata.qualifiedName() to toSchemaObject(outputOptions))
+            val unionName = resolver.resolve(this, this.metadata)
+            val mainSchema = mapOf(unionName to toSchemaObject(outputOptions, resolver))
 
             if (outputOptions.inlineRefs) {
                 // For inline mode, only generate nested schemas from cases
                 val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                    acc + case.schema.byRefName(nullable, outputOptions)
+                    acc + case.schema.byRefName(nullable, outputOptions, resolver)
                 }
                 mainSchema + nestedSchemas
             } else {
                 // For ref mode, generate WithDiscriminator and base schemas
                 val unionSpecificSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                    val baseSchemaName = "${metadata.qualifiedName()}.${case.name}"
+                    val baseSchemaName = "$unionName.${case.name}"
                     val withDiscriminatorSchemaName = "${baseSchemaName}WithDiscriminator"
 
-                    val baseSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions)
+                    val baseSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions, resolver)
 
                     val discriminatorSchema = SchemaObject(
                         type = "object",
@@ -424,7 +444,7 @@ private fun Schema<*>.byRefName(
                 }
 
                 val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                    acc + case.schema.byRefName(nullable, outputOptions)
+                    acc + case.schema.byRefName(nullable, outputOptions, resolver)
                 }
 
                 mainSchema + unionSpecificSchemas + nestedSchemas
@@ -432,9 +452,9 @@ private fun Schema<*>.byRefName(
         }
 
         is Schema.Record<*> -> unsafeFields().fold(
-            mapOf(metadata.qualifiedName() to toSchemaObjectImpl(FieldOptions(), outputOptions))
+            mapOf(resolver.resolve(this, this.metadata) to toSchemaObjectImpl(FieldOptions(), outputOptions, resolver))
         ) { acc, field ->
-            acc + field.schema.byRefName(nullable, outputOptions)
+            acc + field.schema.byRefName(nullable, outputOptions, resolver)
         }
     }
 

@@ -1,5 +1,7 @@
 package io.github.bbasinsk.schema.jsonschema
 
+import io.github.bbasinsk.schema.DefinitionNameResolver
+import io.github.bbasinsk.schema.ObjectMetadata
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Primitive
 import kotlinx.serialization.SerialName
@@ -47,7 +49,8 @@ data class JsonOptions(
 
 fun Schema<*>.toJsonSchema(): JsonSchema {
     val definitions = mutableMapOf<String, JsonSchema>()
-    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true)
+    val resolver = DefinitionNameResolver()
+    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true, resolver)
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
@@ -71,16 +74,17 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
     options: JsonOptions,
     definitions: MutableMap<String, JsonSchema>,
     inlineRefs: Boolean,
+    resolver: DefinitionNameResolver,
 ): JsonSchema {
     return when (this) {
         is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
         is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description).orNull(options)
 
-        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs)
-        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs)
+        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
+        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs, resolver)
 
-        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs)
-        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(options, definitions, inlineRefs)
+        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
+        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
 
         is Primitive ->
             when (this) {
@@ -123,15 +127,15 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 //            metadata.name.lowercase() == "instant" ->
 //                JsonSchema(type = "string".typeOrNull(options), format = "date-time", description = options.description)
 
-            else -> schema.toJsonSchemaImpl(options, definitions, inlineRefs)
+            else -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
         }
 
         is Schema.Optional<*> ->
-            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs)
+            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs, resolver)
 
         is Schema.Collection<*> -> JsonSchema(
             type = listOf("array"),
-            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs)
+            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
         ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
@@ -140,7 +144,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         ).orNull(options)
 
         is Schema.Union<*> -> {
-            val typeName = this.metadata.qualifiedName()
+            val typeName = resolver.resolve(this, this.metadata)
             if (!definitions.containsKey(typeName)) {
                 definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive record
                 val computedUnionSchema = JsonSchema(
@@ -150,24 +154,24 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                             JsonOptions(unionKey = this.key to JsonSchema(enum = listOf(case.name))),
                             definitions,
                             inlineRefs = true,
+                            resolver = resolver,
                         )
                     }.plus(listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional }))
                 )
                 definitions[typeName] = computedUnionSchema
             }
             val unionSchema = definitions[typeName]!!
-            if (inlineRefs) unionSchema.also { definitions.remove(typeName) }
-            else JsonSchema(ref = "#/${'$'}defs/$typeName")
+            return if (inlineRefs) unionSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
         }
 
         is Schema.Record<*> -> {
-            val typeName = this.metadata.qualifiedName()
+            val typeName = resolver.resolve(this, this.metadata)
             if (!definitions.containsKey(typeName)) {
                 definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive records
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
                 val properties = unionKeyProperty + unsafeFields().associate { field ->
-                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false)
+                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver)
                 }
 
                 val computedRecordSchema = JsonSchema(
@@ -182,9 +186,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 definitions[typeName] = computedRecordSchema
             }
             val recordSchema = definitions[typeName]!!
-            if (inlineRefs) recordSchema.also { definitions.remove(typeName) }
-            else JsonSchema(ref = "#/${'$'}defs/$typeName")
+            return if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
         }
     }
 }
-
