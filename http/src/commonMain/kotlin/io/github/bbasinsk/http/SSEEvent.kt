@@ -77,28 +77,3 @@ data class SSEEvent<A>(
             SSEEvent(data = Unit, comment = comment)
     }
 }
-
-/**
- * SSE-specific response schema for streaming endpoints.
- *
- * @param A The type of data in each SSE event
- */
-data class SSEResponseSchema<A>(
-    /**
-     * The body schema describing how to serialize each event's data.
-     */
-    val bodySchema: BodySchema<A>,
-
-    /**
-     * Optional retry time in milliseconds to include in all events.
-     */
-    val defaultRetry: Long? = null
-) {
-    companion object {
-        /**
-         * Creates an SSE response schema with JSON serialization.
-         */
-        fun <A> json(bodySchema: BodySchema<A>, defaultRetry: Long? = null): SSEResponseSchema<A> =
-            SSEResponseSchema(bodySchema = bodySchema, defaultRetry = defaultRetry)
-    }
-}

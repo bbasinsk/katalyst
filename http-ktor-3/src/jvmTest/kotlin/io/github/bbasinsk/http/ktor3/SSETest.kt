@@ -1,10 +1,10 @@
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.BodySchema
+import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.PathSchema
+import io.github.bbasinsk.http.Response
+import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.SSEEvent
-import io.github.bbasinsk.http.SSEResponseSchema
-import io.github.bbasinsk.http.StreamingHttp
 import io.github.bbasinsk.schema.Schema
 import io.ktor.client.plugins.sse.*
 import io.ktor.client.request.*
@@ -28,18 +28,18 @@ class SSETest {
             ::Message
         )
 
-        val api = StreamingHttp.get { PathSchema.Root / "stream" }
-            .output(SSEResponseSchema(BodySchema.json { messageSchema }))
+        val api = Http.get { PathSchema.Root / "stream" }
+            .output { streaming { json { messageSchema } } }
 
         application {
             endpoints {
-                handleStreamData(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccessData(flow {
                         repeat(5) { i ->
                             emit(Message("Message $i", System.currentTimeMillis()))
                             delay(10)
                         }
-                    }
+                    })
                 }
             }
         }
@@ -68,17 +68,17 @@ class SSETest {
 
     @Test
     fun `test SSE stream with custom event types`() = testApplication {
-        val api = StreamingHttp.get { PathSchema.Root / "events" }
-            .output(SSEResponseSchema(BodySchema.json { Schema.string() }))
+        val api = Http.get { PathSchema.Root / "events" }
+            .output { streaming { json { Schema.string() } } }
 
         application {
             endpoints {
-                handleStream(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccess(flow {
                         emit(SSEEvent.typed("greeting", "Hello"))
                         delay(10)
                         emit(SSEEvent.typed("farewell", "Goodbye"))
-                    }
+                    })
                 }
             }
         }
@@ -107,13 +107,13 @@ class SSETest {
 
     @Test
     fun `test SSE stream with event IDs`() = testApplication {
-        val api = StreamingHttp.get { PathSchema.Root / "numbered" }
-            .output(SSEResponseSchema(BodySchema.json { Schema.int() }))
+        val api = Http.get { PathSchema.Root / "numbered" }
+            .output { streaming { json { Schema.int() } } }
 
         application {
             endpoints {
-                handleStream(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccess(flow {
                         repeat(3) { i ->
                             emit(SSEEvent(
                                 data = i * 10,
@@ -121,7 +121,7 @@ class SSETest {
                             ))
                             delay(10)
                         }
-                    }
+                    })
                 }
             }
         }
@@ -152,18 +152,18 @@ class SSETest {
 
     @Test
     fun `test SSE stream with retry configuration`() = testApplication {
-        val api = StreamingHttp.get { PathSchema.Root / "retry" }
-            .output(SSEResponseSchema(BodySchema.json { Schema.string() }, defaultRetry = 3000))
+        val api = Http.get { PathSchema.Root / "retry" }
+            .output { streaming({ json { Schema.string() } }, defaultRetry = 3000) }
 
         application {
             endpoints {
-                handleStream(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccess(flow {
                         emit(SSEEvent(
                             data = "test",
                             retry = 5000L
                         ))
-                    }
+                    })
                 }
             }
         }
@@ -187,13 +187,13 @@ class SSETest {
 
     @Test
     fun `test SSE stream with comments`() = testApplication {
-        val api = StreamingHttp.get { PathSchema.Root / "comments" }
-            .output(SSEResponseSchema(BodySchema.json { Schema.string() }))
+        val api = Http.get { PathSchema.Root / "comments" }
+            .output { streaming { json { Schema.string() } } }
 
         application {
             endpoints {
-                handleStream(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccess(flow {
                         emit(SSEEvent(
                             data = "first",
                             comment = "This is a comment"
@@ -202,7 +202,7 @@ class SSETest {
                         emit(SSEEvent(
                             data = "second"
                         ))
-                    }
+                    })
                 }
             }
         }
@@ -229,17 +229,17 @@ class SSETest {
 
     @Test
     fun `test SSE stream with plain text content`() = testApplication {
-        val api = StreamingHttp.get { PathSchema.Root / "plain" }
-            .output(SSEResponseSchema(BodySchema.plain { Schema.string() }))
+        val api = Http.get { PathSchema.Root / "plain" }
+            .output { streaming { plain { Schema.string() } } }
 
         application {
             endpoints {
-                handleStreamData(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccessData(flow {
                         emit("Plain text message 1")
                         delay(10)
                         emit("Plain text message 2")
-                    }
+                    })
                 }
             }
         }
@@ -275,19 +275,19 @@ class SSETest {
             ::User
         )
 
-        val api = StreamingHttp.get { PathSchema.Root / "users" }
-            .output(SSEResponseSchema(BodySchema.json { userSchema }))
+        val api = Http.get { PathSchema.Root / "users" }
+            .output { streaming { json { userSchema } } }
 
         application {
             endpoints {
-                handleStreamData(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccessData(flow {
                         emit(User(1, "Alice", "alice@example.com"))
                         delay(10)
                         emit(User(2, "Bob", "bob@example.com"))
                         delay(10)
                         emit(User(3, "Charlie", "charlie@example.com"))
-                    }
+                    })
                 }
             }
         }
@@ -315,19 +315,19 @@ class SSETest {
 
     @Test
     fun `test SSE keepalive with comment-only events`() = testApplication {
-        val api = StreamingHttp.get { PathSchema.Root / "keepalive" }
-            .output(SSEResponseSchema(BodySchema.json { Schema.string() }))
+        val api = Http.get { PathSchema.Root / "keepalive" }
+            .output { streaming { json { Schema.string() } } }
 
         application {
             endpoints {
-                handleStream(api) {
-                    flow {
+                handle(api) {
+                    Response.streamingSuccess(flow {
                         emit(SSEEvent.data("start"))
                         delay(10)
                         emit(SSEEvent.keepalive("heartbeat"))
                         delay(10)
                         emit(SSEEvent.data("end"))
-                    }
+                    })
                 }
             }
         }
