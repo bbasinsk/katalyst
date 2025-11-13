@@ -1372,3 +1372,349 @@ data class Business(
         }
     }
 }
+
+class SSESpecAdapterTest {
+
+    private val info = Info(title = "API", version = "1.0.0")
+
+    @Test
+    fun `should generate OpenAPI for SSE streaming endpoint with simple schema`() {
+        val http = Http.get { Root / "stream" }
+            .output { streaming { json { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToString(result)
+
+        val expected = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/stream": {
+                        "get": {
+                            "parameters": [],
+                            "responses": {
+                                "200": {
+                                    "description": "Server-Sent Events stream",
+                                    "content": {
+                                        "text/event-stream": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {}
+                }
+            }
+        """.trimIndent()
+
+        assertEquals(expected, json)
+    }
+
+    @Test
+    fun `should generate OpenAPI for SSE streaming endpoint with record schema`() {
+        data class Message(val text: String, val timestamp: Long)
+
+        val messageSchema = with(Schema.Companion) {
+            record(
+                field(string(), "text") { text },
+                field(long(), "timestamp") { timestamp },
+                ::Message
+            )
+        }
+
+        val http = Http.get { Root / "messages" }
+            .output { streaming { json { messageSchema } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToString(result)
+
+        val expected = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/messages": {
+                        "get": {
+                            "parameters": [],
+                            "responses": {
+                                "200": {
+                                    "description": "Server-Sent Events stream",
+                                    "content": {
+                                        "text/event-stream": {
+                                            "schema": {
+                                                "${'$'}ref": "#/components/schemas/Message"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "Message": {
+                            "type": "object",
+                            "properties": {
+                                "text": {
+                                    "type": "string"
+                                },
+                                "timestamp": {
+                                    "type": "integer",
+                                    "format": "int64"
+                                }
+                            },
+                            "required": [
+                                "text",
+                                "timestamp"
+                            ]
+                        }
+                    }
+                }
+            }
+        """.trimIndent()
+
+        assertEquals(expected, json)
+    }
+
+    @Test
+    fun `should generate OpenAPI for SSE streaming endpoint with plain text`() {
+        val http = Http.get { Root / "plain-stream" }
+            .output { streaming { plain { string() } } }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToString(result)
+
+        val expected = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/plain-stream": {
+                        "get": {
+                            "parameters": [],
+                            "responses": {
+                                "200": {
+                                    "description": "Server-Sent Events stream",
+                                    "content": {
+                                        "text/event-stream": {
+                                            "schema": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {}
+                }
+            }
+        """.trimIndent()
+
+        assertEquals(expected, json)
+    }
+
+    @Test
+    fun `should generate OpenAPI for SSE streaming endpoint with examples`() {
+        data class Event(val type: String, val data: String)
+
+        val eventSchema = with(Schema.Companion) {
+            record(
+                field(string(), "type") { type },
+                field(string(), "data") { data },
+                ::Event
+            )
+        }
+
+        val http = Http.get { Root / "events" }
+            .output {
+                streaming {
+                    json { eventSchema }
+                        .example("greeting", Event("greeting", "Hello"))
+                        .example("farewell", Event("farewell", "Goodbye"))
+                }
+            }
+
+        val result = listOf(http).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToString(result)
+
+        val expected = """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/events": {
+                        "get": {
+                            "parameters": [],
+                            "responses": {
+                                "200": {
+                                    "description": "Server-Sent Events stream",
+                                    "content": {
+                                        "text/event-stream": {
+                                            "schema": {
+                                                "${'$'}ref": "#/components/schemas/Event"
+                                            },
+                                            "examples": {
+                                                "greeting": {
+                                                    "summary": "greeting",
+                                                    "value": {
+                                                        "type": "greeting",
+                                                        "data": "Hello"
+                                                    }
+                                                },
+                                                "farewell": {
+                                                    "summary": "farewell",
+                                                    "value": {
+                                                        "type": "farewell",
+                                                        "data": "Goodbye"
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "Event": {
+                            "type": "object",
+                            "properties": {
+                                "type": {
+                                    "type": "string"
+                                },
+                                "data": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": [
+                                "type",
+                                "data"
+                            ]
+                        }
+                    }
+                }
+            }
+        """.trimIndent()
+
+        assertEquals(expected, json)
+    }
+
+    @Test
+    fun `should handle mixed regular and streaming endpoints`() {
+        data class Message(val text: String)
+
+        val messageSchema = with(Schema.Companion) {
+            record(
+                field(string(), "text") { text },
+                ::Message
+            )
+        }
+
+        val regularHttp = Http.get { Root / "regular" }
+            .output { status(Ok) { json { messageSchema } } }
+
+        val streamingHttp = Http.get { Root / "stream" }
+            .output { streaming { json { messageSchema } } }
+
+        val result = listOf(regularHttp, streamingHttp).toOpenApiSpec(info)
+
+        val json = OpenApiJson.encodeToJsonElement(result)
+
+        val expected = OpenApiJson.parseToJsonElement(
+            """
+            {
+                "openapi": "3.0.0",
+                "info": {
+                    "title": "API",
+                    "version": "1.0.0"
+                },
+                "servers": [],
+                "paths": {
+                    "/regular": {
+                        "get": {
+                            "parameters": [],
+                            "responses": {
+                                "200": {
+                                    "description": "OK",
+                                    "content": {
+                                        "application/json": {
+                                            "schema": {
+                                                "${'$'}ref": "#/components/schemas/Message"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "/stream": {
+                        "get": {
+                            "parameters": [],
+                            "responses": {
+                                "200": {
+                                    "description": "Server-Sent Events stream",
+                                    "content": {
+                                        "text/event-stream": {
+                                            "schema": {
+                                                "${'$'}ref": "#/components/schemas/Message"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "components": {
+                    "schemas": {
+                        "Message": {
+                            "type": "object",
+                            "properties": {
+                                "text": {
+                                    "type": "string"
+                                }
+                            },
+                            "required": ["text"]
+                        }
+                    }
+                }
+            }
+            """.trimIndent()
+        )
+
+        assertEquals(expected, json)
+    }
+}

@@ -8,6 +8,12 @@ sealed interface ResponseSchema<A> {
     data class Single<A, B : A>(val status: ResponseStatus, val res: BodySchema<B>, val deconstruct: (A) -> Boolean) :
         ResponseSchema<A>
 
+    /**
+     * Streaming SSE response schema.
+     * Unlike regular responses, streaming responses don't have a single status code.
+     */
+    data class Streaming<A>(val bodySchema: BodySchema<A>, val defaultRetry: Long? = null) : ResponseSchema<A>
+
     fun getStatus(value: A): ResponseStatus =
         get(value).key
 
@@ -59,5 +65,14 @@ sealed interface ResponseSchema<A> {
             schema: BodySchema.Companion.() -> BodySchema<A>
         ): ResponseSchema<A> =
             Single(status, BodySchema.schema()) { true }
+
+        /**
+         * Creates a streaming SSE response schema.
+         */
+        fun <A> streaming(
+            schema: BodySchema.Companion.() -> BodySchema<A>,
+            defaultRetry: Long? = null
+        ): ResponseSchema<A> =
+            Streaming(BodySchema.schema(), defaultRetry)
     }
 }

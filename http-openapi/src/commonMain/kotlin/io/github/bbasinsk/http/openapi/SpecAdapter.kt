@@ -19,7 +19,15 @@ fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emp
 }
 
 private fun Http<*, *, *, *>.toComponents(resolver: DefinitionNameResolver): List<Pair<String, SchemaObject>> {
-    val schemas = listOf(input) + (output.schemaByStatus() + error.schemaByStatus()).values
+    val outputSchemas = when (val out = output) {
+        is ResponseSchema.Streaming -> listOf(out.bodySchema)
+        else -> output.schemaByStatus().values
+    }
+    val errorSchemas = when (val err = error) {
+        is ResponseSchema.Streaming -> listOf(err.bodySchema)
+        else -> error.schemaByStatus().values
+    }
+    val schemas = listOf(input) + outputSchemas + errorSchemas
     return schemas.flatMap { schema ->
         schema.schema().byRefName(outputOptions = OutputOptions(), resolver = resolver).toList()
     }
@@ -46,24 +54,48 @@ private fun ParamsSchema<*>.toFormattedPath(): String =
 
 private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.operation(
     resolver: DefinitionNameResolver
-): Operation =
-    Operation(
+): Operation {
+    val responses = when (val out = output) {
+        is ResponseSchema.Streaming -> mapOf(
+            "200" to out.bodySchema.toStreamingResponseObject(resolver)
+        )
+        else -> (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
+            status.code.toString() to case.toResponseObject(status, resolver)
+        }.toMap()
+    }
+
+    return Operation(
         summary = metadata.summary,
         tags = metadata.tags.ifEmpty { null },
         deprecated = true.takeIf { metadata.deprecatedReason != null },
         operationId = null,
         parameters = params.pathParams(resolver),
         requestBody = requestBody(this.input, resolver),
-        responses = (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
-            status.code.toString() to case.toResponseObject(status, resolver)
-        }.toMap()
+        responses = responses
     )
+}
 
 fun <A> BodySchema<A>.toResponseObject(status: ResponseStatus, resolver: DefinitionNameResolver): ResponseObject =
     ResponseObject(
         description = status.description,
         content = schema().toContentTypeObject(
             contentType = contentType().mimeType,
+            examples = examples().mapValues { (key, value) ->
+                ExampleObject(summary = key, value = schema().encodeToJsonElement(value))
+            },
+            resolver = resolver
+        )
+    )
+
+/**
+ * Converts a BodySchema to a ResponseObject for Server-Sent Events (SSE) streaming endpoints.
+ * Uses text/event-stream content type and documents the data payload schema.
+ */
+fun <A> BodySchema<A>.toStreamingResponseObject(resolver: DefinitionNameResolver): ResponseObject =
+    ResponseObject(
+        description = "Server-Sent Events stream",
+        content = schema().toContentTypeObject(
+            contentType = "text/event-stream",
             examples = examples().mapValues { (key, value) ->
                 ExampleObject(summary = key, value = schema().encodeToJsonElement(value))
             },
