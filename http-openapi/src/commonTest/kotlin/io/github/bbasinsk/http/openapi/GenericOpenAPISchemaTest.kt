@@ -47,7 +47,7 @@ class GenericOpenAPISchemaTest {
                   "200": {
                     "description": "OK",
                     "content": {
-                      "text/plain": {
+                      "application/json": {
                         "schema": {
                           "type": "string"
                         }

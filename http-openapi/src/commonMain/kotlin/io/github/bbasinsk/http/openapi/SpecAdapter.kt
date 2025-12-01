@@ -139,7 +139,7 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Optional<*> -> schema.toContentTypeObject(contentType, examples, resolver)
         is Schema.OrElse<A, *> -> preferred.toContentTypeObject(contentType, examples, resolver)
         is Schema.Primitive -> mapOf(
-            "text/plain" to MediaTypeObject(
+            contentType to MediaTypeObject(
                 schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             ),

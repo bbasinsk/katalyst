@@ -310,7 +310,7 @@ private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: 
         is Schema.Empty -> respond(status)
         is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
         is Schema.Metadata -> respondJson(status, schema.schema, value)
-        is Schema.Primitive -> respondText(value.toString(), status = status)
+        is Schema.Primitive -> respond(status, schema.encodeToJsonElement(value))
     }
 }
 

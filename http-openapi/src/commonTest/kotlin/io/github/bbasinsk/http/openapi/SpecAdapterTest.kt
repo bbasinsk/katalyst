@@ -38,7 +38,7 @@ class SpecAdapterTest {
                             "requestBody": {
                                 "required": true,
                                 "content": {
-                                    "text/plain": {
+                                    "application/json": {
                                         "schema": {
                                             "type": "string"
                                         }
@@ -49,7 +49,7 @@ class SpecAdapterTest {
                                 "200": {
                                     "description": "OK",
                                     "content": {
-                                        "text/plain": {
+                                        "application/json": {
                                             "schema": {
                                                 "type": "string"
                                             }
@@ -192,7 +192,7 @@ class SpecAdapterTest {
                             "requestBody": {
                                 "required": true,
                                 "content": {
-                                    "text/plain": {
+                                    "application/json": {
                                         "schema": {
                                             "type": "string"
                                         }
@@ -397,7 +397,7 @@ class SpecAdapterTest {
                                 "200": {
                                     "description": "OK",
                                     "content": {
-                                        "text/plain": {
+                                        "application/json": {
                                             "schema": {
                                                 "type": "integer",
                                                 "format": "int32"
@@ -479,7 +479,7 @@ class SpecAdapterTest {
                       "200": {
                         "description": "OK",
                         "content": {
-                          "text/plain": {
+                          "application/json": {
                             "schema": {
                               "type": "integer",
                               "format": "int32"
@@ -671,7 +671,7 @@ class SpecAdapterTest {
                       "200": {
                         "description": "OK",
                         "content": {
-                          "text/plain": {
+                          "application/json": {
                             "schema": {
                               "type": "integer",
                               "format": "int32"
@@ -864,7 +864,7 @@ class SpecAdapterTest {
                       "200": {
                         "description": "OK",
                         "content": {
-                          "text/plain": {
+                          "application/json": {
                             "schema": {
                               "type": "integer",
                               "format": "int32"
@@ -985,7 +985,7 @@ class SpecAdapterTest {
                                 "200": {
                                     "description": "OK",
                                     "content": {
-                                        "text/plain": {
+                                        "application/json": {
                                             "schema": {
                                                 "type": "string"
                                             }
@@ -1061,7 +1061,7 @@ class SpecAdapterTest {
                                 "200": {
                                     "description": "OK",
                                     "content": {
-                                        "text/plain": {
+                                        "application/json": {
                                             "schema": {
                                                 "type": "string"
                                             }
@@ -1074,7 +1074,7 @@ class SpecAdapterTest {
                 },
                 "components": {
                     "schemas": {
-                        "MultipartData": { 
+                        "MultipartData": {
                             "type": "object",
                             "properties": {
                                 "fileName": {
@@ -1152,7 +1152,7 @@ class SpecAdapterTest {
                                 "200": {
                                     "description": "OK",
                                     "content": {
-                                        "text/plain": {
+                                        "application/json": {
                                             "schema": {
                                                 "type": "string"
                                             }
@@ -1247,7 +1247,7 @@ class SpecAdapterTest {
                                 "200": {
                                     "description": "OK",
                                     "content": {
-                                        "text/plain": {
+                                        "application/json": {
                                             "schema": {
                                                 "type": "string"
                                             }
