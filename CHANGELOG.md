@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.13](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.12...katalyst-v0.1.13) (2025-12-01)
+
+
+### Bug Fixes
+
+* try upping tupleValues arity to 12 ([3b61f3b](https://github.com/bbasinsk/katalyst/commit/3b61f3bea2138731c80fb1d127f23d946a4b4bd9))
+
 ## [0.1.12](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.11...katalyst-v0.1.12) (2025-12-01)
 
 
