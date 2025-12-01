@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.12](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.11...katalyst-v0.1.12) (2025-12-01)
+
+
+### Bug Fixes
+
+* handle varying content types, handle json string response ([f2bebe1](https://github.com/bbasinsk/katalyst/commit/f2bebe14d008d4a3b604fc46c37da25377f1f120))
+* support html response ([e8261f5](https://github.com/bbasinsk/katalyst/commit/e8261f531e1297cb845b1cc491f17bb0253d89c5))
+
 ## [0.1.11](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.10...katalyst-v0.1.11) (2025-10-16)
 
 
