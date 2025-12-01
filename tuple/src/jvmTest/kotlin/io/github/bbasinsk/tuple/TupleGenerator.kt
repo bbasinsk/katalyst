@@ -12,7 +12,7 @@ class TupleGenerator {
     @Test
     @Ignore // Uncomment to run
     fun generate() {
-        val maxArity = 9 // <-- change to your highest N
+        val maxArity = 12 // <-- change to your highest N
         val pkg = "io.github.bbasinsk.tuple" // <-- your package
         val outputDir = File("src/commonMain/kotlin")  // <-- where to write files
 
