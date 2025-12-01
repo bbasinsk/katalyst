@@ -150,6 +150,9 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
             ContentType.Plain -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
                 SchemaError(it.message ?: "Error decoding")
             }
+            ContentType.Html -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
+                SchemaError(it.message ?: "Error decoding")
+            }
         }
     }
 
@@ -282,7 +285,8 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
             is ContentType.Image -> respondBytes(contentType = schema.contentType.toKtorContentType(), status = status, bytes = value as ByteArray)
             ContentType.Json -> respondJson(status, schema.schema(), value)
             ContentType.Avro -> respondAvro(status, schema.schema(), value)
-            ContentType.Plain -> respondPlain(status, schema.schema(), value)
+            ContentType.Plain ->  respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
+            ContentType.Html ->  respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
             ContentType.MultipartFormData -> error("MultipartFormData is not supported as response type")
         }
     }
@@ -326,10 +330,6 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
         is Schema.Metadata -> respondJson(status, schema.schema, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
-}
-
-private suspend fun <A> RoutingCall.respondPlain(status: HttpStatusCode, schema: Schema<A>, value: A) {
-    respondText(schema.encodePrimitiveString(value).getOrThrow(), io.ktor.http.ContentType.Text.Plain, status = status)
 }
 
 data class SchemaError(
