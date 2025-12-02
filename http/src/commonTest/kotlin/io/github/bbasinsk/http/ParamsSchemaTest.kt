@@ -12,6 +12,70 @@ import kotlin.uuid.Uuid
 class ParamsSchemaTest {
 
     @Test
+    fun `it parses list query param`() {
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("names") { list(string()) } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = mapOf("names" to listOf("first", "second"))
+        ).getOrThrow()
+
+        val (names) = tupleValues(found)
+        assertEquals(listOf("first", "second"), names)
+    }
+
+    @Test
+    fun `it parses optional list query param when present`() {
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("names") { list(string()).optional() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = mapOf("names" to listOf("first", "second"))
+        ).getOrThrow()
+
+        val (names) = tupleValues(found)
+        assertEquals(listOf("first", "second"), names)
+    }
+
+    @Test
+    fun `it parses optional list query param when absent`() {
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("names") { list(string()).optional() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = emptyMap()
+        ).getOrThrow()
+
+        val (names) = tupleValues(found)
+        assertEquals(null, names)
+    }
+
+    @Test
+    fun `it parses optional list query param when present but empty`() {
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("names") { list(string()).optional() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = mapOf("names" to emptyList())
+        ).getOrThrow()
+
+        val (names) = tupleValues(found)
+        assertEquals(emptyList<String>(), names)
+    }
+
+    @Test
     fun `it parses uuid in path`() {
         val http = Http.get { Root / "thing" / param("thing-id") { uuid().optional() } }
             .output { status(Ok) { json { uuid().optional() } } }

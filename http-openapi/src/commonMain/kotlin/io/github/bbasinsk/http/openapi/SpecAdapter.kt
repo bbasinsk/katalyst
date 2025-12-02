@@ -3,7 +3,6 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.*
 import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.isRequired
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 
 fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI {

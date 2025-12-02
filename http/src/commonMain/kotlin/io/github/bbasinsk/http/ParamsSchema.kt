@@ -58,14 +58,16 @@ fun <A> ParamsSchema<A>.parseCatching(
 fun <A> ParamSchema<A>.parse(getValue: (String) -> List<String>?): A =
     when (this) {
         is ParamSchema.WithMetadata -> schema.parse(getValue)
-        is ParamSchema.Single -> when (schema) {
-            is Schema.Collection<*> ->
-                @Suppress("UNCHECKED_CAST")
-                getValue(name).orEmpty().map { raw ->
-                    schema.itemSchema.decodePrimitiveString(raw).getOrThrow()
-                } as A
-
-            else -> schema.decodePrimitiveString(getValue(name)?.firstOrNull() ?: "").getOrThrow()
+        is ParamSchema.Single -> when (val itemSchema = schema.collectionItemSchema()) {
+            null -> schema.decodePrimitiveString(getValue(name)?.firstOrNull() ?: "").getOrThrow()
+            else -> {
+                val values = getValue(name)
+                @Suppress("UNCHECKED_CAST") when {
+                    values == null && !schema.isRequired() -> null as A  // key absent + optional
+                    values == null -> emptyList<Any>() as A              // key absent + required
+                    else -> values.map { itemSchema.decodePrimitiveString(it).getOrThrow() } as A
+                }
+            }
         }
     }
 
