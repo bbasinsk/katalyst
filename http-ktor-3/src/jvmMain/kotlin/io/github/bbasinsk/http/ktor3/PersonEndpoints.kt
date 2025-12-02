@@ -2,8 +2,9 @@
 
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpointGroup
+import io.github.bbasinsk.http.header
+import io.github.bbasinsk.http.query
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.kotlin.uuid
 import io.github.bbasinsk.schema.transform

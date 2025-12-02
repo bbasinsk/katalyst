@@ -5,7 +5,8 @@ import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
 import io.github.bbasinsk.http.ParamsSchema
-import io.github.bbasinsk.http.PathSchema
+import io.github.bbasinsk.http.PathParam
+import io.github.bbasinsk.http.PathSegment
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.BodySchema
 import io.github.bbasinsk.http.Response
@@ -74,8 +75,8 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.to
 
 private fun ParamsSchema<*>.toSelector(): RouteSelector? =
     when (this) {
-        is PathSchema.Parameter -> PathSegmentParameterRouteSelector(param.name())
-        is PathSchema.Segment -> PathSegmentConstantRouteSelector(name)
+        is PathParam -> PathSegmentParameterRouteSelector(param.name())
+        is PathSegment -> PathSegmentConstantRouteSelector(name)
         else -> null
     }
 
