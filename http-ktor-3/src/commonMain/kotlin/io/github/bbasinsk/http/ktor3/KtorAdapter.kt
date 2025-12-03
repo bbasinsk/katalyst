@@ -237,12 +237,12 @@ private suspend fun <A> RoutingCall.receiveFormUrlEncoded(schema: Schema.Record<
         when (val fieldSchema = field.schema) {
             is Schema.Collection<*> -> values?.map { v ->
                 fieldSchema.itemSchema.decodePrimitiveString(v).getOrElse { e ->
-                    Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
+                    return Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
                 }
-            }
+            } ?: emptyList<Any?>()
 
             else -> fieldSchema.decodePrimitiveString(values?.firstOrNull()).getOrElse { e ->
-                Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
+                return Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
             }
         }
     }
