@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.15](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.14...katalyst-v0.1.15) (2025-12-03)
+
+
+### Bug Fixes
+
+* handle nullable query params ([acdebbc](https://github.com/bbasinsk/katalyst/commit/acdebbc0e45ceb5b34e39ffcaa6f2c64b4064515))
+
 ## [0.1.14](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.13...katalyst-v0.1.14) (2025-12-02)
 
 
