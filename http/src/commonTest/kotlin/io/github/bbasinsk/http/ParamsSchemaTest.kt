@@ -142,6 +142,24 @@ class ParamsSchemaTest {
     }
 
     @Test
+    fun `it parses optional string query param as null when empty list`() {
+        // This can happen when a query param is provided without a value, e.g. ?name=
+        // I don't think we have a way to distinguish between absent and empty value for optional params
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("name") { string().optional() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = mapOf("name" to listOf(""))
+        ).getOrThrow()
+
+        val (name) = tupleValues(found)
+        assertEquals(null, name)
+    }
+
+    @Test
     fun `it defaults list query param when absent`() {
         val defaultNames = listOf("default1", "default2")
         val http = Http

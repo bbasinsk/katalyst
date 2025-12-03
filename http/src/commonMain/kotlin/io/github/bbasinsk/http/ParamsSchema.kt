@@ -77,8 +77,8 @@ fun <A> ParamsSchema<A>.parse(
     rawQueryParams: Map<String, List<String>>,
 ): A {
     return when (this) {
-        is ParamsSchema.HeaderSchema -> this.param.parse(rawHeaders::get)
-        is ParamsSchema.QuerySchema -> this.param.parse(rawQueryParams::get)
+        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders[name]?.filter { it.isNotEmpty() } }
+        is ParamsSchema.QuerySchema -> this.param.parse { name -> rawQueryParams[name]?.filter { it.isNotEmpty() } }
 
         is ParamsSchema.Combine<*, *> -> {
             val left = this.left.parse(rawPath, rawHeaders, rawQueryParams)
