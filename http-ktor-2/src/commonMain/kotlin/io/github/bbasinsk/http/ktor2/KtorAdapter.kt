@@ -1,5 +1,7 @@
 package io.github.bbasinsk.http.ktor2
 
+import io.github.bbasinsk.http.BodySchema
+import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
@@ -23,6 +25,7 @@ import io.ktor.server.application.call
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
+import io.ktor.server.request.receiveParameters
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
@@ -94,8 +97,7 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         val query = context.request.queryParameters.entries().associate { it.key to it.value }
         val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
-        val input = call.receiveSchema(endpoint.api.input.schema())
-            .mapInvalid { SchemaError(it.reason()) }
+        val input = call.receiveRequest(endpoint.api.input)
             .getOrElse { errors ->
                 errors.onEach { call.application.environment.log.warn(it.message) }
                 return@interceptor call.respondSchema(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
@@ -126,13 +128,58 @@ private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
     }
 
 @Suppress("UNCHECKED_CAST")
-private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Validation<InvalidJson, A> =
+private suspend fun <A> ApplicationCall.receiveRequest(request: BodySchema<A>): Validation<SchemaError, A> =
+    when (request) {
+        is BodySchema.WithMetadata -> receiveRequest(request.schema)
+        is BodySchema.Single -> when (request.contentType) {
+            ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.reason()) }
+            ContentType.FormUrlEncoded -> Validation.requireNotNull(request.schema() as? Schema.Record<A>) {
+                SchemaError("FormUrlEncoded must be Schema.Record, found ${request.schema()::class.simpleName}")
+            }.andThen {
+                receiveFormUrlEncoded(it)
+            }
+            ContentType.Plain -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
+                SchemaError(it.message ?: "Error decoding")
+            }
+            ContentType.Html -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
+                SchemaError(it.message ?: "Error decoding")
+            }
+            is ContentType.Image -> Validation.valid(receive<ByteArray>()) as Validation<SchemaError, A>
+            ContentType.Avro -> TODO("Avro not supported in Ktor 2 adapter")
+            ContentType.MultipartFormData -> TODO("MultipartFormData not supported in Ktor 2 adapter")
+        }
+    }
+
+@Suppress("UNCHECKED_CAST")
+private suspend fun <A> ApplicationCall.receiveFormUrlEncoded(schema: Schema.Record<A>): Validation<SchemaError, A> {
+    val params = receiveParameters()
+    val schemaFields = schema.unsafeFields()
+    val fieldValues = schemaFields.map { field ->
+        val values = params.getAll(field.name)
+        when (val fieldSchema = field.schema) {
+            is Schema.Collection<*> -> values?.map { v ->
+                fieldSchema.itemSchema.decodePrimitiveString(v).getOrElse { e ->
+                    return Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
+                }
+            } ?: emptyList<Any?>()
+            else -> values?.firstOrNull().let { value ->
+                fieldSchema.decodePrimitiveString(value).getOrElse { e ->
+                    return Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
+                }
+            }
+        }
+    }
+    return Validation.valid(schema.unsafeConstruct(fieldValues))
+}
+
+@Suppress("UNCHECKED_CAST")
+private suspend fun <A> ApplicationCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
     when (schema) {
         is Schema.Default -> TODO()
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<A, *> -> receiveSchema(schema.preferred).orElse { preferredErrors ->
-            receiveSchema(schema.fallback).andThen { b ->
+        is Schema.OrElse<A, *> -> receiveJson(schema.preferred).orElse { preferredErrors ->
+            receiveJson(schema.fallback).andThen { b ->
                 Validation.fromResult(schema.unsafeDecode(b)) {
                     InvalidJson.FieldError(it.message ?: "unable to decode", found = b.toString(), path = emptyList())
                 }
@@ -142,8 +189,8 @@ private suspend fun <A> ApplicationCall.receiveSchema(schema: Schema<A>): Valida
         }
         is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
         is Schema.Empty -> Validation.valid(null as A)
-        is Schema.Lazy -> receiveSchema(with(schema) { schema() })
-        is Schema.Metadata -> receiveSchema(schema.schema)
+        is Schema.Lazy -> receiveJson(with(schema) { schema() })
+        is Schema.Metadata -> receiveJson(schema.schema)
         is Schema.Primitive -> receiveText().let { raw ->
             Validation.fromResult(schema.decodePrimitiveString(raw)) {
                 InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
