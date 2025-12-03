@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.14](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.13...katalyst-v0.1.14) (2025-12-02)
+
+
+### Bug Fixes
+
+* properly parse complicated collection values from query params ([4d142f9](https://github.com/bbasinsk/katalyst/commit/4d142f9448a9e0185b5d96572f6a1c72086378bb))
+
 ## [0.1.13](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.12...katalyst-v0.1.13) (2025-12-01)
 
 
