@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.16](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.15...katalyst-v0.1.16) (2025-12-03)
+
+
+### Bug Fixes
+
+* handle empty string params ([#34](https://github.com/bbasinsk/katalyst/issues/34)) ([8a6824a](https://github.com/bbasinsk/katalyst/commit/8a6824a9ffea3e4eecf9f30cc3ba227b5630302e))
+
 ## [0.1.15](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.14...katalyst-v0.1.15) (2025-12-03)
 
 
