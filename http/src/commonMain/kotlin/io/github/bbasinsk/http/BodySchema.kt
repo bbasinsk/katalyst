@@ -62,6 +62,9 @@ sealed interface BodySchema<A> {
         fun <A> multipart(record: Schema.Companion.() -> Schema<A>): BodySchema<A> =
             Single(Schema.Companion.record(), ContentType.MultipartFormData)
 
+        fun <A> formUrlEncoded(record: Schema.Companion.() -> Schema<A>): BodySchema<A> =
+            Single(Schema.Companion.record(), ContentType.FormUrlEncoded)
+
         fun bytes(contentType: ContentType): BodySchema<ByteArray> =
             Single(Schema.Bytes, contentType)
 
