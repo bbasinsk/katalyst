@@ -108,4 +108,53 @@ class ParamsSchemaTest {
         val (page) = tupleValues(found)
         assertEquals(def, page)
     }
+
+    @Test
+    fun `it parses optional string query param when present`() {
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("name") { string().optional() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = mapOf("name" to listOf("abc"))
+        ).getOrThrow()
+
+        val (name) = tupleValues(found)
+        assertEquals("abc", name)
+    }
+
+    @Test
+    fun `it parses optional string query param as null when missing`() {
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("name") { string().optional() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = mapOf()
+        ).getOrThrow()
+
+        val (name) = tupleValues(found)
+        assertEquals(null, name)
+    }
+
+    @Test
+    fun `it defaults list query param when absent`() {
+        val defaultNames = listOf("default1", "default2")
+        val http = Http
+            .get { Root / "eval" / "invocations" }
+            .query { schema("names") { list(string()).default(defaultNames) } }
+
+        val found = http.params.parseCatching(
+            path = listOf("eval", "invocations"),
+            headers = emptyMap(),
+            queryParams = emptyMap()
+        ).getOrThrow()
+
+        val (names) = tupleValues(found)
+        assertEquals(defaultNames, names)
+    }
 }
