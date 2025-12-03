@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.17](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.16...katalyst-v0.1.17) (2025-12-03)
+
+
+### Bug Fixes
+
+* implement form-url encoded support ([#36](https://github.com/bbasinsk/katalyst/issues/36)) ([d317c08](https://github.com/bbasinsk/katalyst/commit/d317c08cfbf31b1ffed1c8be85b3ebe3d1c2a739))
+
 ## [0.1.16](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.15...katalyst-v0.1.16) (2025-12-03)
 
 
