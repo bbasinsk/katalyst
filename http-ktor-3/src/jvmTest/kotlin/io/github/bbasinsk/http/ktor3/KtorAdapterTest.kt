@@ -2,6 +2,7 @@ package io.github.bbasinsk.http.ktor3
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
+import io.github.bbasinsk.http.query
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.java.instant
 import io.github.bbasinsk.tuple.tupleValues
