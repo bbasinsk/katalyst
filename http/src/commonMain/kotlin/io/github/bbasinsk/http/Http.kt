@@ -108,7 +108,7 @@ fun <Input, Error, Output, Params2> Http<Unit, Input, Error, Output>.query(
     query: ParamSchema.Companion.() -> ParamSchema<Params2>
 ): Http<Params2, Input, Error, Output> = Http(
     method = method,
-    params = (params as EmptyPathSchema).withQuery(ParamSchema.query()),
+    params = params.withQuery(ParamSchema.query()),
     input = input,
     error = error,
     output = output,
@@ -131,7 +131,7 @@ fun <Input, Error, Output, Params2> Http<Unit, Input, Error, Output>.header(
     header: ParamSchema.Companion.() -> ParamSchema<Params2>
 ): Http<Params2, Input, Error, Output> = Http(
     method = method,
-    params = (params as EmptyPathSchema).withHeader(ParamSchema.header()),
+    params = params.withHeader(ParamSchema.header()),
     input = input,
     error = error,
     output = output,

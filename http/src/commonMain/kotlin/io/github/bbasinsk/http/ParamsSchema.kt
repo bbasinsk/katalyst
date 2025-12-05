@@ -2,6 +2,7 @@ package io.github.bbasinsk.http
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
+import kotlin.jvm.JvmName
 
 // Marker interfaces for pattern matching
 sealed interface PathSegment {
@@ -15,7 +16,6 @@ sealed interface PathParam {
 // A ParamSchema is a description of a Path, Query Parameters, and Headers.
 sealed interface ParamsSchema<A> {
     data class Combine<A, B>(val left: ParamsSchema<A>, val right: ParamsSchema<B>) : ParamsSchema<Pair<A, B>>
-
     // Combines EmptyPathSchema with query/header - type is B, not Pair<Unit, B>
     data class CombineEmpty<B>(val path: EmptyPathSchema, val other: ParamsSchema<B>) : ParamsSchema<B>
     data class HeaderSchema<A>(val param: ParamSchema<A>) : ParamsSchema<A>
@@ -41,20 +41,19 @@ sealed interface PathSchema<A> : ParamsSchema<A>
 // Empty path state - no parameters yet (always Unit type)
 sealed interface EmptyPathSchema : PathSchema<Unit> {
     data object Root : EmptyPathSchema
-    data class Segment(override val name: String, val prefix: EmptyPathSchema) : EmptyPathSchema, PathSegment
+    data class Segment( val prefix: EmptyPathSchema, override val name: String) : EmptyPathSchema, PathSegment
 
-    operator fun div(segment: String): EmptyPathSchema = Segment(segment, this)
-    operator fun <B> div(param: ParamSchema<B>): NonEmptyPathSchema.First<B> =
-        NonEmptyPathSchema.First(param, this)
+    operator fun div(segment: String): EmptyPathSchema = Segment(this, segment)
+    operator fun <B> div(param: ParamSchema<B>): NonEmptyPathSchema.First<B> = NonEmptyPathSchema.First(this, param)
 }
 
 // Non-empty path state - has at least one param
 sealed interface NonEmptyPathSchema<A> : PathSchema<A> {
-    data class First<A>(override val param: ParamSchema<A>, val prefix: EmptyPathSchema) : NonEmptyPathSchema<A>, PathParam
-    data class Segment<A>(override val name: String, val prefix: NonEmptyPathSchema<A>) : NonEmptyPathSchema<A>, PathSegment
+    data class First<A>(val prefix: EmptyPathSchema, override val param: ParamSchema<A>) : NonEmptyPathSchema<A>, PathParam
+    data class Segment<A>(val prefix: NonEmptyPathSchema<A>, override val name: String) : NonEmptyPathSchema<A>, PathSegment
     data class Next<A, B>(val prefix: NonEmptyPathSchema<A>, override val param: ParamSchema<B>) : NonEmptyPathSchema<Pair<A, B>>, PathParam
 
-    operator fun div(segment: String): NonEmptyPathSchema<A> = Segment(segment, this)
+    operator fun div(segment: String): NonEmptyPathSchema<A> = Segment(this, segment)
     operator fun <B> div(param: ParamSchema<B>): NonEmptyPathSchema<Pair<A, B>> = Next(this, param)
 }
 
@@ -69,12 +68,13 @@ object PathDsl {
         ParamSchema.Single(name, Schema.Companion.schema())
 }
 
-// Extension functions for withQuery/withHeader - eliminates Pair<Unit, ...>
-fun <B> EmptyPathSchema.withQuery(right: ParamSchema<B>): ParamsSchema<B> =
-    ParamsSchema.CombineEmpty(this, ParamsSchema.QuerySchema(right))
+@JvmName("withQueryEmpty")
+fun <B> ParamsSchema<Unit>.withQuery(right: ParamSchema<B>): ParamsSchema<B> =
+    ParamsSchema.CombineEmpty(this as EmptyPathSchema, ParamsSchema.QuerySchema(right))
 
-fun <B> EmptyPathSchema.withHeader(right: ParamSchema<B>): ParamsSchema<B> =
-    ParamsSchema.CombineEmpty(this, ParamsSchema.HeaderSchema(right))
+@JvmName("withHeaderEmpty")
+fun <B> ParamsSchema<Unit>.withHeader(right: ParamSchema<B>): ParamsSchema<B> =
+    ParamsSchema.CombineEmpty(this as EmptyPathSchema, ParamsSchema.HeaderSchema(right))
 
 fun <A, B> ParamsSchema<A>.withQuery(right: ParamSchema<B>): ParamsSchema<Pair<A, B>> =
     ParamsSchema.Combine(this, ParamsSchema.QuerySchema(right))
@@ -113,8 +113,10 @@ fun <A> ParamsSchema<A>.parse(
     rawQueryParams: Map<String, List<String>>,
 ): A {
     return when (this) {
-        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders[name]?.filter { it.isNotEmpty() } }
-        is ParamsSchema.QuerySchema -> this.param.parse { name -> rawQueryParams[name]?.filter { it.isNotEmpty() } }
+        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders[name] }
+        is ParamsSchema.QuerySchema -> this.param.parse { name ->
+            rawQueryParams[name].takeIf { it != listOf("") } // handle `?name=` as null
+        }
 
         is ParamsSchema.Combine<*, *> -> {
             val left = this.left.parse(rawPath, rawHeaders, rawQueryParams)
