@@ -12,9 +12,9 @@ class TupleGenerator {
     @Test
     @Ignore // Uncomment to run
     fun generate() {
-        val maxArity = 12
-        val pkg = "io.github.bbasinsk.tuple"
-        val outputDir = File("src/commonMain/kotlin")
+        val maxArity = 10 // <-- change to your highest N
+        val pkg = "io.github.bbasinsk.tuple" // <-- your package
+        val outputDir = File("src/commonMain/kotlin")  // <-- where to write files
 
         // Helper: Build nested Pair<Pair<..., A1>, An> type (clean, no Unit)
         fun buildNestedPairType(n: Int, vars: List<TypeVariableName>): TypeName {

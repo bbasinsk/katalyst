@@ -97,4 +97,126 @@ class KtorAdapterTest {
         val response = client.get("/items/2000-01-01T00%3A00%3A00Z")
         assertEquals("2000-01-01T00:00:00Z", response.bodyAsText())
     }
+
+    @Test
+    fun formUrlEncodedRequestIsParsed() = testApplication {
+        data class FormInput(val name: String, val age: Int)
+
+        val formSchema = Schema.record(
+            Schema.field(Schema.string(), "name") { name },
+            Schema.field(Schema.int(), "age") { age },
+            ::FormInput
+        )
+
+        val api = Http.post { Root / "form" }
+            .input { formUrlEncoded { formSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("${request.input.name} is ${request.input.age}")
+                }
+            }
+        }
+
+        val response = client.post("/form") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("name=John&age=30")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("John is 30", response.bodyAsText())
+    }
+
+    @Test
+    fun formUrlEncodedWithOptionalField() = testApplication {
+        data class FormInput(val required: String, val optional: String?)
+
+        val formSchema = Schema.record(
+            Schema.field(Schema.string(), "required") { required },
+            Schema.field(Schema.string().optional(), "optional") { optional },
+            ::FormInput
+        )
+
+        val api = Http.post { Root / "form" }
+            .input { formUrlEncoded { formSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("required=${request.input.required}, optional=${request.input.optional}")
+                }
+            }
+        }
+
+        val response = client.post("/form") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("required=hello")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("required=hello, optional=null", response.bodyAsText())
+    }
+
+    @Test
+    fun formUrlEncodedWithListField() = testApplication {
+        data class FormInput(val tags: List<String>)
+
+        val formSchema = Schema.record(
+            Schema.field(Schema.list(Schema.string()), "tags") { tags },
+            ::FormInput
+        )
+
+        val api = Http.post { Root / "form" }
+            .input { formUrlEncoded { formSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success(request.input.tags.joinToString(","))
+                }
+            }
+        }
+
+        val response = client.post("/form") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("tags=a&tags=b&tags=c")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("a,b,c", response.bodyAsText())
+    }
+
+    @Test
+    fun formUrlEncodedWithEmptyValue() = testApplication {
+        data class FormInput(val name: String)
+
+        val formSchema = Schema.record(
+            Schema.field(Schema.string(), "name") { name },
+            ::FormInput
+        )
+
+        val api = Http.post { Root / "form" }
+            .input { formUrlEncoded { formSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("name=[${request.input.name}]")
+                }
+            }
+        }
+
+        val response = client.post("/form") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("name=")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("name=[]", response.bodyAsText())
+    }
 }

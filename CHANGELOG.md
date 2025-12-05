@@ -1,5 +1,33 @@
 # Changelog
 
+## [0.1.17](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.16...katalyst-v0.1.17) (2025-12-03)
+
+
+### Bug Fixes
+
+* implement form-url encoded support ([#36](https://github.com/bbasinsk/katalyst/issues/36)) ([d317c08](https://github.com/bbasinsk/katalyst/commit/d317c08cfbf31b1ffed1c8be85b3ebe3d1c2a739))
+
+## [0.1.16](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.15...katalyst-v0.1.16) (2025-12-03)
+
+
+### Bug Fixes
+
+* handle empty string params ([#34](https://github.com/bbasinsk/katalyst/issues/34)) ([8a6824a](https://github.com/bbasinsk/katalyst/commit/8a6824a9ffea3e4eecf9f30cc3ba227b5630302e))
+
+## [0.1.15](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.14...katalyst-v0.1.15) (2025-12-03)
+
+
+### Bug Fixes
+
+* handle nullable query params ([acdebbc](https://github.com/bbasinsk/katalyst/commit/acdebbc0e45ceb5b34e39ffcaa6f2c64b4064515))
+
+## [0.1.14](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.13...katalyst-v0.1.14) (2025-12-02)
+
+
+### Bug Fixes
+
+* properly parse complicated collection values from query params ([4d142f9](https://github.com/bbasinsk/katalyst/commit/4d142f9448a9e0185b5d96572f6a1c72086378bb))
+
 ## [0.1.13](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.12...katalyst-v0.1.13) (2025-12-01)
 
 

@@ -4,24 +4,22 @@ package io.github.bbasinsk.schema
 // TODO: Test this!
 
 @Suppress("UNCHECKED_CAST")
-fun <A> Schema<A>.decodePrimitiveString(str: String): Result<A> =
+fun <A> Schema<A>.decodePrimitiveString(str: String?): Result<A> =
     when (this) {
-        is Schema.Primitive.String -> Result.success(str as A)
-        is Schema.Primitive.Int -> runCatching { str.toInt() as A }
-        is Schema.Primitive.Long -> runCatching { str.toLong() as A }
-        is Schema.Primitive.Float -> runCatching { str.toFloat() as A }
-        is Schema.Primitive.Double -> runCatching { str.toDouble() as A }
-        is Schema.Primitive.Boolean -> runCatching { str.toBooleanStrict() as A }
-        is Schema.Primitive.Enumeration -> runCatching { values.first { it.toString() == str } }
-        is Schema.Default -> schema.decodePrimitiveString(str).recoverCatching { default }
+        is Schema.Default -> str?.let { schema.decodePrimitiveString(it).recoverCatching { default } } ?: Result.success(default)
+        is Schema.Optional<*> -> str?.let { schema.decodePrimitiveString(it).recoverCatching { null } as Result<A> } ?: Result.success(null as A)
         is Schema.Empty -> Result.success(null as A)
         is Schema.Metadata -> schema.decodePrimitiveString(str)
         is Schema.Lazy -> schema().decodePrimitiveString(str)
-        is Schema.Optional<*> -> schema.decodePrimitiveString(str).recoverCatching { null } as Result<A>
-        is Schema.OrElse<A, *> -> preferred.decodePrimitiveString(str).recoverCatching {
-            unsafeDecode(fallback.decodePrimitiveString(str).getOrThrow()).getOrThrow()
-        }
+        is Schema.OrElse<A, *> -> str?.let { s -> preferred.decodePrimitiveString(s).recoverCatching { unsafeDecode(fallback.decodePrimitiveString(s).getOrThrow()).getOrThrow() } } ?: preferred.decodePrimitiveString(null)
         is Schema.Transform<A, *> -> schema.decodePrimitiveString(str).mapCatching { (this as Schema.Transform<A, Any?>).decode(it).getOrThrow() }
+        is Schema.Primitive.String -> str?.let { Result.success(it as A) } ?: Result.failure(IllegalArgumentException("Expected non-null string"))
+        is Schema.Primitive.Int -> str?.runCatching { toInt() as A } ?: Result.failure(IllegalArgumentException("Expected non-null int"))
+        is Schema.Primitive.Long -> str?.runCatching { toLong() as A } ?: Result.failure(IllegalArgumentException("Expected non-null long"))
+        is Schema.Primitive.Float -> str?.runCatching { toFloat() as A } ?: Result.failure(IllegalArgumentException("Expected non-null float"))
+        is Schema.Primitive.Double -> str?.runCatching { toDouble() as A } ?: Result.failure(IllegalArgumentException("Expected non-null double"))
+        is Schema.Primitive.Boolean -> str?.runCatching { toBooleanStrict() as A } ?: Result.failure(IllegalArgumentException("Expected non-null boolean"))
+        is Schema.Primitive.Enumeration -> str?.runCatching { values.first { it.toString() == str } } ?: Result.failure(IllegalArgumentException("Expected non-null enum value"))
         is Schema.StringMap<*> -> Result.failure(IllegalStateException("Cannot decode StringMap from String"))
         is Schema.Record -> Result.failure(IllegalStateException("Cannot decode Record from String"))
         is Schema.Union -> Result.failure(IllegalStateException("Cannot decode Union from String"))

@@ -94,14 +94,15 @@ fun <A> ParamsSchema<A>.parseCatching(
 fun <A> ParamSchema<A>.parse(getValue: (String) -> List<String>?): A =
     when (this) {
         is ParamSchema.WithMetadata -> schema.parse(getValue)
-        is ParamSchema.Single -> when (schema) {
-            is Schema.Collection<*> ->
-                @Suppress("UNCHECKED_CAST")
-                getValue(name).orEmpty().map { raw ->
-                    schema.itemSchema.decodePrimitiveString(raw).getOrThrow()
-                } as A
-
-            else -> schema.decodePrimitiveString(getValue(name)?.firstOrNull() ?: "").getOrThrow()
+        is ParamSchema.Single -> when (val itemSchema = schema.collectionItemSchema()) {
+            null -> schema.decodePrimitiveString(getValue(name)?.firstOrNull()).getOrThrow()
+            else -> {
+                val values = getValue(name)
+                @Suppress("UNCHECKED_CAST") when (values) {
+                    null -> schema.decodePrimitiveString(null).getOrThrow()
+                    else -> values.map { itemSchema.decodePrimitiveString(it).getOrThrow() } as A
+                }
+            }
         }
     }
 
@@ -112,8 +113,8 @@ fun <A> ParamsSchema<A>.parse(
     rawQueryParams: Map<String, List<String>>,
 ): A {
     return when (this) {
-        is ParamsSchema.HeaderSchema -> this.param.parse(rawHeaders::get)
-        is ParamsSchema.QuerySchema -> this.param.parse(rawQueryParams::get)
+        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders[name]?.filter { it.isNotEmpty() } }
+        is ParamsSchema.QuerySchema -> this.param.parse { name -> rawQueryParams[name]?.filter { it.isNotEmpty() } }
 
         is ParamsSchema.Combine<*, *> -> {
             val left = this.left.parse(rawPath, rawHeaders, rawQueryParams)
