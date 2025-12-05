@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.18](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.17...katalyst-v0.1.18) (2025-12-05)
+
+
+### Bug Fixes
+
+* clean up path-param tuple arity ([#32](https://github.com/bbasinsk/katalyst/issues/32)) ([4f384ff](https://github.com/bbasinsk/katalyst/commit/4f384ff88f5d14c30b4bc754cd0a6c12533ef564))
+
 ## [0.1.17](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.16...katalyst-v0.1.17) (2025-12-03)
 
 
