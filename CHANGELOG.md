@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.19](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.18...katalyst-v0.1.19) (2025-12-05)
+
+
+### Bug Fixes
+
+* 22 arity ([6526f98](https://github.com/bbasinsk/katalyst/commit/6526f98528e46a3c75f2be523b61cc0afc8ff868))
+
 ## [0.1.18](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.17...katalyst-v0.1.18) (2025-12-05)
 
 
