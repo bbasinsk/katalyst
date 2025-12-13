@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.20](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.19...katalyst-v0.1.20) (2025-12-13)
+
+
+### Bug Fixes
+
+* SSE streaming support ([dde192b](https://github.com/bbasinsk/katalyst/commit/dde192baa8996eb917e5f0d3af9b7317a390ae70))
+
 ## [0.1.19](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.18...katalyst-v0.1.19) (2025-12-05)
 
 
