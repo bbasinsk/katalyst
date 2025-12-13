@@ -5,6 +5,7 @@ import io.ktor.server.application.install
 import io.ktor.server.application.pluginOrNull
 import io.ktor.server.routing.Routing
 import io.ktor.server.routing.RoutingRoot
+import io.ktor.server.websocket.WebSockets
 import io.ktor.utils.io.KtorDsl
 
 @KtorDsl
@@ -12,6 +13,12 @@ fun Application.endpoints(
     builder: HttpEndpoints.() -> Unit
 ): Routing {
     val httpEndpoints = HttpEndpoints().apply(builder)
+
+    // Install WebSockets plugin if any WebSocket endpoints are registered
+    if (httpEndpoints.webSocketEndpoints.isNotEmpty()) {
+        pluginOrNull(WebSockets) ?: install(WebSockets)
+    }
+
     val configure = httpEndpoints.configure()
     @Suppress("UNCHECKED_CAST")
     val routing = pluginOrNull(RoutingRoot)?.apply(configure) ?: install(RoutingRoot, configure as Routing.() -> Unit)

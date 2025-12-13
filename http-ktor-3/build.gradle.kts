@@ -14,6 +14,7 @@ kotlin {
             dependencies {
                 api(libs.ktor3.server.core)
                 api(libs.ktor3.server.sse)
+                api(libs.ktor3.server.websockets)
 
                 api(project(":http"))
                 api(project(":http-openapi"))
@@ -38,6 +39,7 @@ kotlin {
             dependencies {
                 implementation(libs.kotlin.test)
                 implementation(libs.ktor3.server.test.host)
+                implementation(libs.ktor3.client.websockets)
             }
         }
     }
