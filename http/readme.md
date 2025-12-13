@@ -20,7 +20,7 @@ val messageSchema = Schema.record(
 )
 
 val streamApi = Http.get { Root / "events" }
-    .output { streaming { json { messageSchema } } }
+    .output { sse { json { messageSchema } } }
 ```
 
 ### Returning Streaming Responses
@@ -79,7 +79,7 @@ SSEEvent(
 ```kotlin
 val api = Http.get { Root / "stream" }
     .output { status(Ok) { json { dataSchema } } }
-    .error { streaming { json { errorSchema } } }
+    .error { sse { json { errorSchema } } }
 
 handle(api) {
     Response.streamingError(flow {
@@ -176,7 +176,7 @@ For plain text SSE (instead of JSON):
 
 ```kotlin
 val api = Http.get { Root / "log" }
-    .output { streaming { plain { string() } } }
+    .output { sse { plain { string() } } }
 
 handle(api) {
     Response.streamingSuccessData(flow {
@@ -195,7 +195,7 @@ val api = Http.get { Root / "data" }
     .output {
         oneOf(
             status(Ok) { json { resultSchema } },      // Regular response
-            streaming { json { resultSchema } }         // Or streaming
+            sse { json { resultSchema } }         // Or streaming
         )
     }
 

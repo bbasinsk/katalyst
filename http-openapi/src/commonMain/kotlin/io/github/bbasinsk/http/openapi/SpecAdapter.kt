@@ -19,11 +19,11 @@ fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emp
 
 private fun Http<*, *, *, *>.toComponents(resolver: DefinitionNameResolver): List<Pair<String, SchemaObject>> {
     val outputSchemas = when (val out = output) {
-        is ResponseSchema.Streaming -> listOf(out.bodySchema)
+        is ResponseSchema.EventStream -> listOf(out.bodySchema)
         else -> output.schemaByStatus().values
     }
     val errorSchemas = when (val err = error) {
-        is ResponseSchema.Streaming -> listOf(err.bodySchema)
+        is ResponseSchema.EventStream -> listOf(err.bodySchema)
         else -> error.schemaByStatus().values
     }
     val schemas = listOf(input) + outputSchemas + errorSchemas
@@ -55,8 +55,8 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.op
     resolver: DefinitionNameResolver
 ): Operation {
     val responses = when (val out = output) {
-        is ResponseSchema.Streaming -> mapOf(
-            "200" to out.bodySchema.toStreamingResponseObject(resolver)
+        is ResponseSchema.EventStream -> mapOf(
+            "200" to out.bodySchema.toServerSentEventStream(resolver)
         )
         else -> (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
             status.code.toString() to case.toResponseObject(status, resolver)
@@ -87,10 +87,10 @@ fun <A> BodySchema<A>.toResponseObject(status: ResponseStatus, resolver: Definit
     )
 
 /**
- * Converts a BodySchema to a ResponseObject for Server-Sent Events (SSE) streaming endpoints.
+ * Converts a BodySchema to a ResponseObject for Server-Sent Events (SSE) endpoints.
  * Uses text/event-stream content type and documents the data payload schema.
  */
-fun <A> BodySchema<A>.toStreamingResponseObject(resolver: DefinitionNameResolver): ResponseObject =
+fun <A> BodySchema<A>.toServerSentEventStream(resolver: DefinitionNameResolver): ResponseObject =
     ResponseObject(
         description = "Server-Sent Events stream",
         content = schema().toContentTypeObject(

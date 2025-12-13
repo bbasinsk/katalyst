@@ -98,7 +98,7 @@ Katalyst supports real-time streaming via SSE:
 
 ```kotlin
 val streamApi = Http.get { Root / "events" }
-    .output { streaming { json { messageSchema } } }
+    .output { sse { json { messageSchema } } }
 
 // In your server setup:
 handle(streamApi) {

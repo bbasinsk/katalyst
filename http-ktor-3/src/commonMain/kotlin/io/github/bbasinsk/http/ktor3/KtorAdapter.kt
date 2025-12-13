@@ -89,21 +89,21 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
         is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
         is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
         is Response.StreamingError -> {
-            val streamingSchema = endpoint.api.error.findStreamingSchema()
+            val sseSchema = endpoint.api.error.findEventStream()
                 ?: error(
-                    "Handler returned StreamingError but error schema has no streaming variant. " +
-                        "Add streaming { ... } to your error schema, or use oneOf(..., streaming { ... })."
+                    "Handler returned StreamingError but error schema has no SSE variant. " +
+                        "Add sse { ... } to your error schema, or use oneOf(..., sse { ... })."
                 )
-            call.respondSSE(streamingSchema.bodySchema, response.events)
+            call.respondSSE(sseSchema.bodySchema, response.events)
         }
 
         is Response.StreamingSuccess -> {
-            val streamingSchema = endpoint.api.output.findStreamingSchema()
+            val sseSchema = endpoint.api.output.findEventStream()
                 ?: error(
-                    "Handler returned StreamingSuccess but output schema has no streaming variant. " +
-                        "Add streaming { ... } to your output schema, or use oneOf(..., streaming { ... })."
+                    "Handler returned StreamingSuccess but output schema has no SSE variant. " +
+                        "Add sse { ... } to your output schema, or use oneOf(..., sse { ... })."
                 )
-            call.respondSSE(streamingSchema.bodySchema, response.events)
+            call.respondSSE(sseSchema.bodySchema, response.events)
         }
     }
 }

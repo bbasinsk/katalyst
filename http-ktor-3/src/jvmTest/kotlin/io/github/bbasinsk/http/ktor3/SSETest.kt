@@ -28,7 +28,7 @@ class SSETest {
         )
 
         val api = Http.get { Root / "stream" }
-            .output { streaming { json { messageSchema } } }
+            .output { sse { json { messageSchema } } }
 
         application {
             endpoints {
@@ -68,7 +68,7 @@ class SSETest {
     @Test
     fun `test SSE stream with custom event types`() = testApplication {
         val api = Http.get { Root / "events" }
-            .output { streaming { json { string() } } }
+            .output { sse { json { string() } } }
 
         application {
             endpoints {
@@ -107,7 +107,7 @@ class SSETest {
     @Test
     fun `test SSE stream with event IDs`() = testApplication {
         val api = Http.get { Root / "numbered" }
-            .output { streaming { json { Schema.int() } } }
+            .output { sse { json { Schema.int() } } }
 
         application {
             endpoints {
@@ -152,7 +152,7 @@ class SSETest {
     @Test
     fun `test SSE stream with retry configuration`() = testApplication {
         val api = Http.get { Root / "retry" }
-            .output { streaming { json { string() } } }
+            .output { sse { json { string() } } }
 
         application {
             endpoints {
@@ -187,7 +187,7 @@ class SSETest {
     @Test
     fun `test SSE stream with comments`() = testApplication {
         val api = Http.get { Root / "comments" }
-            .output { streaming { json { string() } } }
+            .output { sse { json { string() } } }
 
         application {
             endpoints {
@@ -229,7 +229,7 @@ class SSETest {
     @Test
     fun `test SSE stream with plain text content`() = testApplication {
         val api = Http.get { Root / "plain" }
-            .output { streaming { plain { string() } } }
+            .output { sse { plain { string() } } }
 
         application {
             endpoints {
@@ -275,7 +275,7 @@ class SSETest {
         )
 
         val api = Http.get { Root / "users" }
-            .output { streaming { json { userSchema } } }
+            .output { sse { json { userSchema } } }
 
         application {
             endpoints {
@@ -315,7 +315,7 @@ class SSETest {
     @Test
     fun `test SSE keepalive with comment-only events`() = testApplication {
         val api = Http.get { Root / "keepalive" }
-            .output { streaming { json { string() } } }
+            .output { sse { json { string() } } }
 
         application {
             endpoints {
@@ -365,7 +365,7 @@ class SSETest {
 
         val api = Http.get { Root / "error-stream" }
             .output { status(Ok) { json { Schema.string() } } }
-            .error { streaming { json { errorSchema } } }
+            .error { sse { json { errorSchema } } }
 
         application {
             endpoints {
@@ -404,7 +404,7 @@ class SSETest {
     @Test
     fun `test SSE exception handling sends error event`() = testApplication {
         val api = Http.get { Root / "exception-stream" }
-            .output { streaming { json { Schema.string() } } }
+            .output { sse { json { Schema.string() } } }
 
         application {
             endpoints {
@@ -453,7 +453,7 @@ class SSETest {
             .output {
                 oneOf(
                     status(Ok) { json { resultSchema } },
-                    streaming { json { resultSchema } }
+                    sse { json { resultSchema } }
                 )
             }
 
