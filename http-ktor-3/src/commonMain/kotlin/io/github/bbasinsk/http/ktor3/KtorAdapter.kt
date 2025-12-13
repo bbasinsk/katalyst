@@ -353,24 +353,11 @@ private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: 
     respond(status, schema.encodeToJsonElement(value))
 }
 
-private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: Schema<A>, value: A) {
-    when (schema) {
-        is Schema.OrElse<A, *> -> respond(status, schema.serialize(1, value)!!)
-        is Schema.Collection<*> -> respond(status, (schema as Schema<A>).serialize(1, value)!!)
-        is Schema.StringMap<*> -> respond(status, (schema as Schema<A>).serialize(1, value)!!)
-        is Schema.Record -> respond(status, schema.serialize(1, value)!!)
-        is Schema.Union -> respond(status, schema.serialize(1, value)!!)
-        is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
-        is Schema.Empty -> respond(status)
-        is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
-        is Schema.Metadata -> respondJson(status, schema.schema, value)
-        is Schema.Primitive -> respondText(value.toString(), status = status)
-        is Schema.Default -> respondAvro(status, schema.schema, value)
-        is Schema.Transform<A, *> -> @Suppress("UNCHECKED_CAST") respondAvro(status, schema.schema as Schema<Any?>, schema.encode(value))
-        is Schema.Optional<*> -> if (value == null) respond(status)
-        else @Suppress("UNCHECKED_CAST") respondAvro(status, schema.schema as Schema<Any?>, value)
+private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: Schema<A>, value: A) =
+    when (val bytes = schema.serialize(1, value)) {
+        null -> respond(status)
+        else -> respondBytes(bytes, io.ktor.http.ContentType.Application.OctetStream, status)
     }
-}
 
 data class SchemaError(
     val message: String
@@ -383,10 +370,7 @@ data class SchemaError(
 /**
  * Responds with a Server-Sent Events (SSE) stream.
  */
-private suspend fun <A> RoutingCall.respondSSE(
-    bodySchema: BodySchema<A>,
-    events: Flow<SSEEvent<A>>
-) {
+private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events: Flow<SSEEvent<A>>) {
     respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
         events.collect { event ->
             event.comment?.let { appendLine(": $it") }
