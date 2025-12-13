@@ -1,8 +1,8 @@
-package io.github.bbasinsk.http.ktor3
+package io.github.bbasinsk.websocket.ktor3
 
-import io.github.bbasinsk.http.WebSocket
-import io.github.bbasinsk.http.WebSocketMessage
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.websocket.WebSocket
+import io.github.bbasinsk.websocket.WebSocketMessage
 import io.ktor.client.plugins.websocket.*
 import io.ktor.server.testing.*
 import io.ktor.websocket.*
@@ -20,8 +20,8 @@ class WebSocketTest {
             .output { json { string() } }
 
         application {
-            endpoints {
-                handleWebSocket(api) { _, _ ->
+            webSocketEndpoints {
+                handle(api) { _, _ ->
                     incoming.collect { message ->
                         when (message) {
                             is WebSocketMessage.Text -> send(WebSocketMessage.text("Echo: ${message.data}"))
@@ -60,8 +60,8 @@ class WebSocketTest {
             .output { json { messageSchema } }
 
         application {
-            endpoints {
-                handleWebSocket(api) { _, _ ->
+            webSocketEndpoints {
+                handle(api) { _, _ ->
                     incoming.collect { message ->
                         when (message) {
                             is WebSocketMessage.Text -> {
@@ -97,8 +97,8 @@ class WebSocketTest {
             .output { json { string() } }
 
         application {
-            endpoints {
-                handleWebSocket(api) { roomId, _ ->
+            webSocketEndpoints {
+                handle(api) { roomId, _ ->
                     incoming.collect { message ->
                         when (message) {
                             is WebSocketMessage.Text -> send(WebSocketMessage.text("Room $roomId: ${message.data}"))
@@ -129,8 +129,8 @@ class WebSocketTest {
             .output { plain { string() } }
 
         application {
-            endpoints {
-                handleWebSocket(api) { _, _ ->
+            webSocketEndpoints {
+                handle(api) { _, _ ->
                     incoming.collect { message ->
                         when (message) {
                             is WebSocketMessage.Text -> send(WebSocketMessage.text("Received: ${message.data}"))
@@ -161,8 +161,8 @@ class WebSocketTest {
             .output { json { int() } }
 
         application {
-            endpoints {
-                handleWebSocket(api) { _, _ ->
+            webSocketEndpoints {
+                handle(api) { _, _ ->
                     var total = 0
                     incoming.collect { message ->
                         when (message) {
@@ -203,8 +203,8 @@ class WebSocketTest {
             .output { json { string() } }
 
         application {
-            endpoints {
-                handleWebSocket(api) { _, _ ->
+            webSocketEndpoints {
+                handle(api) { _, _ ->
                     incoming.collect { message ->
                         when (message) {
                             is WebSocketMessage.Text -> {

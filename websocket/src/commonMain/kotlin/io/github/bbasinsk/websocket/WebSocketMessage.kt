@@ -1,4 +1,4 @@
-package io.github.bbasinsk.http
+package io.github.bbasinsk.websocket
 
 sealed interface WebSocketMessage<out A> {
     data class Text<A>(val data: A) : WebSocketMessage<A>

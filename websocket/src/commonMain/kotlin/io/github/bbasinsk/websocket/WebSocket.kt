@@ -1,4 +1,9 @@
-package io.github.bbasinsk.http
+package io.github.bbasinsk.websocket
+
+import io.github.bbasinsk.http.BodySchema
+import io.github.bbasinsk.http.HttpMetadata
+import io.github.bbasinsk.http.ParamsSchema
+import io.github.bbasinsk.http.PathDsl
 
 data class WebSocket<Params, In, Out>(
     val params: ParamsSchema<Params>,
@@ -32,7 +37,7 @@ data class WebSocket<Params, In, Out>(
         )
 
     companion object {
-        fun <Path> route(path: PathDsl.() -> PathSchema<Path>): WebSocket<Path, Nothing?, Nothing?> =
+        fun <Path> route(path: PathDsl.() -> ParamsSchema<Path>): WebSocket<Path, Nothing?, Nothing?> =
             WebSocket(
                 params = PathDsl.path(),
                 input = BodySchema.empty(),

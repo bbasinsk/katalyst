@@ -30,5 +30,8 @@ include(":http-ktor-3")
 include(":http-openapi")
 include(":http-openapi-gradle-plugin")
 
+include(":websocket")
+include(":websocket-ktor-3")
+
 include(":tuple")
 include(":validation")

@@ -1,4 +1,4 @@
-package io.github.bbasinsk.http
+package io.github.bbasinsk.websocket
 
 import kotlinx.coroutines.flow.Flow
 
