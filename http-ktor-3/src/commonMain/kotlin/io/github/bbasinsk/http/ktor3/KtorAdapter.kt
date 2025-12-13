@@ -94,21 +94,21 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
         is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
         is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
         is Response.StreamingError -> {
-            val streamingSchema = endpoint.api.error.findStreamingSchema()
+            val sseSchema = endpoint.api.error.findEventStream()
                 ?: error(
-                    "Handler returned StreamingError but error schema has no streaming variant. " +
-                        "Add streaming { ... } to your error schema, or use oneOf(..., streaming { ... })."
+                    "Handler returned StreamingError but error schema has no SSE variant. " +
+                        "Add sse { ... } to your error schema, or use oneOf(..., sse { ... })."
                 )
-            call.respondSSE(streamingSchema.bodySchema, response.events)
+            call.respondSSE(sseSchema.bodySchema, response.events)
         }
 
         is Response.StreamingSuccess -> {
-            val streamingSchema = endpoint.api.output.findStreamingSchema()
+            val sseSchema = endpoint.api.output.findEventStream()
                 ?: error(
-                    "Handler returned StreamingSuccess but output schema has no streaming variant. " +
-                        "Add streaming { ... } to your output schema, or use oneOf(..., streaming { ... })."
+                    "Handler returned StreamingSuccess but output schema has no SSE variant. " +
+                        "Add sse { ... } to your output schema, or use oneOf(..., sse { ... })."
                 )
-            call.respondSSE(streamingSchema.bodySchema, response.events)
+            call.respondSSE(sseSchema.bodySchema, response.events)
         }
     }
 }
@@ -355,9 +355,9 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
         } catch (e: CancellationException) {
             throw e // Don't catch cancellation - let it propagate
         } catch (e: Exception) {
-            // Send error event before closing the stream
+            // Send generic error event - full error is logged below
             appendLine("event: error")
-            appendLine("data: ${e.message?.replace("\n", " ") ?: "Unknown error"}")
+            appendLine("data: An error occurred")
             appendLine()
             flush()
             application.environment.log.error("SSE stream error", e)

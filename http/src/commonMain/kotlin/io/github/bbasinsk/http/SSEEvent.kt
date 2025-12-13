@@ -71,7 +71,8 @@ data class SSEEvent<A>(
         )
 
         /**
-         * Creates a comment-only SSE event (keepalive).
+         * Creates a comment-only SSE event (keepalive), as per the SSE specification.
+         * The event will contain only a comment and no data field.
          */
         fun <A> keepalive(comment: String = "keepalive"): SSEEvent<A> =
             SSEEvent(data = null, comment = comment)

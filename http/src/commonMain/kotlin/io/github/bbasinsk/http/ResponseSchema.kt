@@ -4,15 +4,15 @@ sealed interface ResponseSchema<A> {
     data object None : ResponseSchema<Nothing>
     data class Multiple<A>(val left: ResponseSchema<A>, val right: ResponseSchema<A>) : ResponseSchema<A>
     data class Single<A, B : A>(val status: ResponseStatus, val res: BodySchema<B>, val deconstruct: (A) -> Boolean) : ResponseSchema<A>
-    data class Streaming<A>(val bodySchema: BodySchema<A>) : ResponseSchema<A>
+    data class EventStream<A>(val bodySchema: BodySchema<A>) : ResponseSchema<A>
 
     fun getStatus(value: A): ResponseStatus =
         get(value).key
 
-    fun findStreamingSchema(): Streaming<A>? =
+    fun findEventStream(): EventStream<A>? =
         when (this) {
-            is Streaming -> this
-            is Multiple -> left.findStreamingSchema() ?: right.findStreamingSchema()
+            is EventStream -> this
+            is Multiple -> left.findEventStream() ?: right.findEventStream()
             is Single<A, *> -> null
             is None -> null
         }
@@ -25,7 +25,7 @@ sealed interface ResponseSchema<A> {
             is Single<A, *> -> mapOf(status to this)
             is Multiple -> left.flatten() + right.flatten()
             is None -> emptyMap()
-            is Streaming -> emptyMap()
+            is EventStream -> emptyMap()
         }
 
     @Suppress("UNCHECKED_CAST")
@@ -67,9 +67,9 @@ sealed interface ResponseSchema<A> {
         ): ResponseSchema<A> =
             Single(status, BodySchema.schema()) { true }
 
-        fun <A> streaming(
-            schema: BodySchema.Companion.() -> BodySchema<A>,
+        fun <A> sse(
+            schema: BodySchema.Companion.() -> BodySchema<A>
         ): ResponseSchema<A> =
-            Streaming(BodySchema.schema())
+            EventStream(BodySchema.schema())
     }
 }
