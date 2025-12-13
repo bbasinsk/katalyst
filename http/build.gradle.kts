@@ -13,6 +13,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":schema"))
+                api(libs.kotlinx.coroutines.core)
             }
         }
         val commonTest by getting {

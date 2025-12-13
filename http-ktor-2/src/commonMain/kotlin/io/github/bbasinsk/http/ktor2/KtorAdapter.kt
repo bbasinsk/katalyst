@@ -36,14 +36,12 @@ import io.ktor.server.routing.PathSegmentConstantRouteSelector
 import io.ktor.server.routing.PathSegmentParameterRouteSelector
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.RouteSelector
-import io.ktor.util.flattenEntries
 import io.ktor.util.pipeline.PipelineInterceptor
 import kotlinx.serialization.json.JsonElement
 import kotlin.also
 import kotlin.collections.filter
 import kotlin.collections.fold
 import kotlin.collections.mapNotNull
-import kotlin.collections.toMap
 import kotlin.collections.toMutableList
 import kotlin.getOrThrow
 import kotlin.let
@@ -109,8 +107,10 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         }
 
         return@interceptor when (response) {
-            is Response.Error -> call.respondSchema(endpoint.api.error, response.value)
-            is Response.Success -> call.respondSchema(endpoint.api.output, response.value)
+            is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
+            is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
+            is Response.StreamingError<*, *> -> error("Streaming responses are not supported in Ktor 2.x")
+            is Response.StreamingSuccess<*, *> -> error("Streaming responses are not supported in Ktor 2.x")
         }
     }
 
@@ -148,6 +148,7 @@ private suspend fun <A> ApplicationCall.receiveRequest(request: BodySchema<A>): 
             is ContentType.Image -> Validation.valid(receive<ByteArray>()) as Validation<SchemaError, A>
             ContentType.Avro -> TODO("Avro not supported in Ktor 2 adapter")
             ContentType.MultipartFormData -> TODO("MultipartFormData not supported in Ktor 2 adapter")
+            ContentType.EventStream -> TODO("EventStream not supported in Ktor 2 adapter")
         }
     }
 

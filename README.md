@@ -92,6 +92,27 @@ fun main() {
 }
 ```
 
+### Streaming with Server-Sent Events (SSE)
+
+Katalyst supports real-time streaming via SSE:
+
+```kotlin
+val streamApi = Http.get { Root / "events" }
+    .output { sse { json { messageSchema } } }
+
+// In your server setup:
+handle(streamApi) {
+    Response.streamingSuccessData(flow {
+        repeat(10) { i ->
+            emit(Message("Event $i", System.currentTimeMillis()))
+            delay(1000)
+        }
+    })
+}
+```
+
+See [http/readme.md](http/readme.md) for detailed SSE documentation including keepalive, error handling, and best practices.
+
 ### Validation
 
 ```kotlin
