@@ -68,7 +68,7 @@ sealed interface ResponseSchema<A> {
             Single(status, BodySchema.schema()) { true }
 
         fun <A> streaming(
-            schema: BodySchema.Companion.() -> BodySchema<A>,
+            schema: BodySchema.Companion.() -> BodySchema<A>
         ): ResponseSchema<A> =
             Streaming(BodySchema.schema())
     }
