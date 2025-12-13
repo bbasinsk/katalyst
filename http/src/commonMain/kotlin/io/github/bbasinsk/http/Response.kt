@@ -1,6 +1,7 @@
 package io.github.bbasinsk.http
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 sealed interface Response<Error, Output> {
     data class Error<E, A>(val value: E) : Response<E, A>
@@ -37,13 +38,13 @@ sealed interface Response<Error, Output> {
          * Automatically wraps each value in an SSEEvent.
          */
         fun <E, A> streamingSuccessData(data: Flow<A>): Response<E, A> =
-            StreamingSuccess(kotlinx.coroutines.flow.map(data) { SSEEvent.data(it) })
+            StreamingSuccess(data.map { SSEEvent.data(it) })
 
         /**
          * Creates a streaming error response from a flow of error values.
          * Automatically wraps each value in an SSEEvent.
          */
         fun <E, A> streamingErrorData(errors: Flow<E>): Response<E, A> =
-            StreamingError(kotlinx.coroutines.flow.map(errors) { SSEEvent.data(it) })
+            StreamingError(errors.map { SSEEvent.data(it) })
     }
 }

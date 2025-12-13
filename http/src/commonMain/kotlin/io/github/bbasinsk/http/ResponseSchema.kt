@@ -25,6 +25,7 @@ sealed interface ResponseSchema<A> {
             is Single<A, *> -> mapOf(status to this)
             is Multiple -> left.flatten() + right.flatten()
             is None -> emptyMap()
+            is Streaming -> emptyMap()
         }
 
     @Suppress("UNCHECKED_CAST")
