@@ -32,6 +32,8 @@ ktor3-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref
 ktor3-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor3" }
 ktor3-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor3" }
 ktor3-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor3" }
+ktor3-server-websockets = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor3" }
+ktor3-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor3" }
 
 vanniktech-maven-publish = { module = "com.vanniktech:gradle-maven-publish-plugin", version.ref = "vanniktech-maven-publish" }
 

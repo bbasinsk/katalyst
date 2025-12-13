@@ -12,6 +12,7 @@ fun Application.endpoints(
     builder: HttpEndpoints.() -> Unit
 ): Routing {
     val httpEndpoints = HttpEndpoints().apply(builder)
+
     val configure = httpEndpoints.configure()
     @Suppress("UNCHECKED_CAST")
     val routing = pluginOrNull(RoutingRoot)?.apply(configure) ?: install(RoutingRoot, configure as Routing.() -> Unit)

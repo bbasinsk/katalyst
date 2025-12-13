@@ -403,3 +403,4 @@ private fun <A> serializeEventData(bodySchema: BodySchema<A>, data: A): String {
         }
     }
 }
+
