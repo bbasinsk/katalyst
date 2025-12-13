@@ -1,16 +1,12 @@
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.BodySchema.Companion.json
 import io.github.bbasinsk.http.Http
-import io.github.bbasinsk.http.PathSchema
 import io.github.bbasinsk.http.Response
-import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.SSEEvent
 import io.github.bbasinsk.schema.Schema
 import io.ktor.client.plugins.sse.*
-import io.ktor.client.request.*
 import io.ktor.server.testing.*
-import io.ktor.sse.ServerSentEvent
+import io.ktor.sse.*
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow

@@ -1,7 +1,5 @@
 package io.github.bbasinsk.http
 
-import io.github.bbasinsk.schema.Schema
-
 sealed interface ResponseSchema<A> {
     data object None : ResponseSchema<Nothing>
     data class Multiple<A>(val left: ResponseSchema<A>, val right: ResponseSchema<A>) : ResponseSchema<A>
@@ -10,6 +8,14 @@ sealed interface ResponseSchema<A> {
 
     fun getStatus(value: A): ResponseStatus =
         get(value).key
+
+    fun findStreamingSchema(): Streaming<A>? =
+        when (this) {
+            is Streaming -> this
+            is Multiple -> left.findStreamingSchema() ?: right.findStreamingSchema()
+            is Single<A, *> -> null
+            is None -> null
+        }
 
     fun schemaByStatus(): Map<ResponseStatus, BodySchema<*>> =
         flatten().mapValues { it.value.res }

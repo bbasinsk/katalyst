@@ -21,9 +21,11 @@ import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import io.ktor.utils.io.jvm.javaio.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonElement
+import java.io.Writer
 
 fun <Path, Input, Error, Output> RoutingNode.httpEndpointToRoute(
     endpoint: HttpEndpoint<Path, Input, Error, Output, RoutingCall>
@@ -84,17 +86,23 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
     }
 
     return@interceptor when (response) {
-        is Response.Error -> call.respondSchema(endpoint.api.error, response.value)
-        is Response.Success -> call.respondSchema(endpoint.api.output, response.value)
+        is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
+        is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
         is Response.StreamingError -> {
-            val streamingSchema = endpoint.api.error as? ResponseSchema.Streaming
-                ?: error("Streaming response requires ResponseSchema.Streaming")
+            val streamingSchema = endpoint.api.error.findStreamingSchema()
+                ?: error(
+                    "Handler returned StreamingError but error schema has no streaming variant. " +
+                        "Add streaming { ... } to your error schema, or use oneOf(..., streaming { ... })."
+                )
             call.respondSSE(streamingSchema.bodySchema, response.events)
         }
 
         is Response.StreamingSuccess -> {
-            val streamingSchema = endpoint.api.output as? ResponseSchema.Streaming
-                ?: error("Streaming response requires ResponseSchema.Streaming")
+            val streamingSchema = endpoint.api.output.findStreamingSchema()
+                ?: error(
+                    "Handler returned StreamingSuccess but output schema has no streaming variant. " +
+                        "Add streaming { ... } to your output schema, or use oneOf(..., streaming { ... })."
+                )
             call.respondSSE(streamingSchema.bodySchema, response.events)
         }
     }
@@ -331,23 +339,49 @@ data class SchemaError(
 
 /**
  * Responds with a Server-Sent Events (SSE) stream.
+ * Includes error handling - if the flow throws, an error event is sent before closing.
  */
 private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events: Flow<SSEEvent<A>>) {
     respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
-        events.collect { event ->
-            event.comment?.let { appendLine(": $it") }
-            event.id?.let { appendLine("id: $it") }
-            event.event?.let { appendLine("event: $it") }
-            event.retry?.let { appendLine("retry: $it") }
-            val data = event.data
-            when {
-                data != null -> appendLine("data: ${serializeEventData(bodySchema, data)}")
-                event.comment != null -> appendLine("data:") // Empty data for keepalive to trigger client event
+        try {
+            events.collect { event ->
+                writeSSEEvent(bodySchema, event)
             }
+        } catch (e: CancellationException) {
+            throw e // Don't catch cancellation - let it propagate
+        } catch (e: Exception) {
+            // Send error event before closing the stream
+            appendLine("event: error")
+            appendLine("data: ${e.message?.replace("\n", " ") ?: "Unknown error"}")
             appendLine()
             flush()
+            application.environment.log.error("SSE stream error", e)
         }
     }
+}
+
+/**
+ * Writes a single SSE event to the response writer.
+ * Handles multi-line data by prefixing each line with "data: " as per SSE spec.
+ */
+private suspend fun <A> Writer.writeSSEEvent(bodySchema: BodySchema<A>, event: SSEEvent<A>) {
+    event.comment?.let { appendLine(": $it") }
+    event.id?.let { appendLine("id: $it") }
+    event.event?.let { appendLine("event: $it") }
+    event.retry?.let { appendLine("retry: $it") }
+    val data = event.data
+    when {
+        data != null -> {
+            val serialized = serializeEventData(bodySchema, data)
+            // SSE protocol requires each line of data to have "data: " prefix
+            serialized.lines().forEach { line ->
+                appendLine("data: $line")
+            }
+        }
+        event.comment != null -> appendLine("data:") // Empty data for keepalive to trigger client event
+    }
+    appendLine()
+    flush()
 }
 
 /**
