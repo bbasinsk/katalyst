@@ -1,5 +1,62 @@
 # Changelog
 
+## [0.1.19](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.18...katalyst-v0.1.19) (2025-12-05)
+
+
+### Bug Fixes
+
+* 22 arity ([6526f98](https://github.com/bbasinsk/katalyst/commit/6526f98528e46a3c75f2be523b61cc0afc8ff868))
+
+## [0.1.18](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.17...katalyst-v0.1.18) (2025-12-05)
+
+
+### Bug Fixes
+
+* clean up path-param tuple arity ([#32](https://github.com/bbasinsk/katalyst/issues/32)) ([4f384ff](https://github.com/bbasinsk/katalyst/commit/4f384ff88f5d14c30b4bc754cd0a6c12533ef564))
+
+## [0.1.17](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.16...katalyst-v0.1.17) (2025-12-03)
+
+
+### Bug Fixes
+
+* implement form-url encoded support ([#36](https://github.com/bbasinsk/katalyst/issues/36)) ([d317c08](https://github.com/bbasinsk/katalyst/commit/d317c08cfbf31b1ffed1c8be85b3ebe3d1c2a739))
+
+## [0.1.16](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.15...katalyst-v0.1.16) (2025-12-03)
+
+
+### Bug Fixes
+
+* handle empty string params ([#34](https://github.com/bbasinsk/katalyst/issues/34)) ([8a6824a](https://github.com/bbasinsk/katalyst/commit/8a6824a9ffea3e4eecf9f30cc3ba227b5630302e))
+
+## [0.1.15](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.14...katalyst-v0.1.15) (2025-12-03)
+
+
+### Bug Fixes
+
+* handle nullable query params ([acdebbc](https://github.com/bbasinsk/katalyst/commit/acdebbc0e45ceb5b34e39ffcaa6f2c64b4064515))
+
+## [0.1.14](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.13...katalyst-v0.1.14) (2025-12-02)
+
+
+### Bug Fixes
+
+* properly parse complicated collection values from query params ([4d142f9](https://github.com/bbasinsk/katalyst/commit/4d142f9448a9e0185b5d96572f6a1c72086378bb))
+
+## [0.1.13](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.12...katalyst-v0.1.13) (2025-12-01)
+
+
+### Bug Fixes
+
+* try upping tupleValues arity to 12 ([3b61f3b](https://github.com/bbasinsk/katalyst/commit/3b61f3bea2138731c80fb1d127f23d946a4b4bd9))
+
+## [0.1.12](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.11...katalyst-v0.1.12) (2025-12-01)
+
+
+### Bug Fixes
+
+* handle varying content types, handle json string response ([f2bebe1](https://github.com/bbasinsk/katalyst/commit/f2bebe14d008d4a3b604fc46c37da25377f1f120))
+* support html response ([e8261f5](https://github.com/bbasinsk/katalyst/commit/e8261f531e1297cb845b1cc491f17bb0253d89c5))
+
 ## [0.1.11](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.10...katalyst-v0.1.11) (2025-10-16)
 
 

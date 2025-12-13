@@ -60,6 +60,54 @@ sealed interface Schema<A> {
     fun default(default: A): Schema<A> = Default(this, default)
     fun description(description: String) = Metadata(this, FieldMetadata(description = description))
 
+    fun isPrimitive(): Boolean = when (this) {
+        is Bytes -> true
+        is Primitive -> true
+        is Union -> false
+        is Record -> false
+        is Empty -> false
+        is StringMap<*> -> false
+        is Collection<*> -> false
+        is Default -> schema.isPrimitive()
+        is Lazy -> schema().isPrimitive()
+        is Metadata -> schema.isPrimitive()
+        is Optional<*> -> schema.isPrimitive()
+        is OrElse<*, *> -> preferred.isPrimitive()
+        is Transform<A, *> -> schema.isPrimitive()
+    }
+
+    fun isRequired(): Boolean = when (this) {
+        is Bytes -> true
+        is Default -> false
+        is Empty -> false
+        is Union -> true
+        is Record -> true
+        is Primitive -> true
+        is StringMap<*> -> true
+        is Collection<*> -> true
+        is Metadata -> schema.isRequired()
+        is Optional<*> -> false
+        is Lazy<*> -> schema().isRequired()
+        is OrElse<*, *> -> preferred.isRequired()
+        is Transform<*, *> -> schema.isRequired()
+    }
+
+    fun collectionItemSchema(): Schema<*>? = when (this) {
+        is Collection<*> -> itemSchema
+        is Default -> schema.collectionItemSchema()
+        is Optional<*> -> schema.collectionItemSchema()
+        is Metadata -> schema.collectionItemSchema()
+        is Lazy<*> -> schema().collectionItemSchema()
+        is OrElse<*, *> -> preferred.collectionItemSchema()
+        is Transform<*, *> -> schema.collectionItemSchema()
+        is Record -> null
+        is Union -> null
+        is Primitive -> null
+        is Bytes -> null
+        is Empty -> null
+        is StringMap<*> -> null
+    }
+
     companion object {
         fun <A> lazy(schema: () -> Schema<A>): Schema<A> = Lazy(schema)
         fun empty(): Schema<Nothing?> = Empty

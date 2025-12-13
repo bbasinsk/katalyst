@@ -62,8 +62,13 @@ sealed interface BodySchema<A> {
         fun <A> multipart(record: Schema.Companion.() -> Schema<A>): BodySchema<A> =
             Single(Schema.Companion.record(), ContentType.MultipartFormData)
 
+        fun <A> formUrlEncoded(record: Schema.Companion.() -> Schema<A>): BodySchema<A> =
+            Single(Schema.Companion.record(), ContentType.FormUrlEncoded)
+
         fun bytes(contentType: ContentType): BodySchema<ByteArray> =
             Single(Schema.Bytes, contentType)
+
+        fun html(): BodySchema<String> = Single(Schema.string(), ContentType.Html)
 
         // TODO: move out of http module into http-json, http-avro, etc.
         fun <A> json(schema: Schema.Companion.() -> Schema<A>): BodySchema<A> =

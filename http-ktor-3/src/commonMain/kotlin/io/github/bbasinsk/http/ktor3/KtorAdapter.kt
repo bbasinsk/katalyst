@@ -6,7 +6,8 @@ import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
 import io.github.bbasinsk.http.ParamsSchema
-import io.github.bbasinsk.http.PathSchema
+import io.github.bbasinsk.http.PathParam
+import io.github.bbasinsk.http.PathSegment
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
@@ -37,6 +38,7 @@ import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
+import io.ktor.server.request.receiveParameters
 import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
@@ -79,8 +81,8 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.to
 
 private fun ParamsSchema<*>.toSelector(): RouteSelector? =
     when (this) {
-        is PathSchema.Parameter -> PathSegmentParameterRouteSelector(param.name())
-        is PathSchema.Segment -> PathSegmentConstantRouteSelector(name)
+        is PathParam -> PathSegmentParameterRouteSelector(param.name())
+        is PathSegment -> PathSegmentConstantRouteSelector(name)
         else -> null
     }
 
@@ -162,7 +164,17 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
                 receiveMultipart(it)
             }
 
+            ContentType.FormUrlEncoded -> Validation.requireNotNull(request.schema() as? Schema.Record<A>) {
+                SchemaError("FormUrlEncoded must be Schema.Record, found ${request.schema()::class.simpleName}")
+            }.andThen {
+                receiveFormUrlEncoded(it)
+            }
+
             ContentType.Plain -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
+                SchemaError(it.message ?: "Error decoding")
+            }
+
+            ContentType.Html -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
                 SchemaError(it.message ?: "Error decoding")
             }
         }
@@ -233,6 +245,28 @@ private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): 
 }
 
 @Suppress("UNCHECKED_CAST")
+private suspend fun <A> RoutingCall.receiveFormUrlEncoded(schema: Schema.Record<A>): Validation<SchemaError, A> {
+    val params = receiveParameters()
+    val schemaFields = schema.unsafeFields()
+    val fieldValues = schemaFields.map { field ->
+        val values = params.getAll(field.name)
+        when (val fieldSchema = field.schema) {
+            is Schema.Collection<*> -> values?.map { v ->
+                fieldSchema.itemSchema.decodePrimitiveString(v).getOrElse { e ->
+                    return Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
+                }
+            } ?: emptyList<Any?>()
+
+            else -> fieldSchema.decodePrimitiveString(values?.firstOrNull()).getOrElse { e ->
+                return Validation.invalid(SchemaError("Error decoding field '${field.name}': ${e.message}"))
+            }
+        }
+    }
+
+    return Validation.valid(schema.unsafeConstruct(fieldValues))
+}
+
+@Suppress("UNCHECKED_CAST")
 private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> {
     return when (schema) {
         is Schema.Bytes -> {
@@ -297,8 +331,10 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
             is ContentType.Image -> respondBytes(contentType = schema.contentType.toKtorContentType(), status = status, bytes = value as ByteArray)
             ContentType.Json -> respondJson(status, schema.schema(), value)
             ContentType.Avro -> respondAvro(status, schema.schema(), value)
-            ContentType.Plain -> respondPlain(status, schema.schema(), value)
+            ContentType.Plain -> respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
+            ContentType.Html -> respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
             ContentType.MultipartFormData -> error("MultipartFormData is not supported as response type")
+            ContentType.FormUrlEncoded -> error("FormUrlEncoded is not supported as response type")
         }
     }
 }
@@ -321,7 +357,7 @@ private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: 
         is Schema.Empty -> respond(status)
         is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
         is Schema.Metadata -> respondJson(status, schema.schema, value)
-        is Schema.Primitive -> respondText(value.toString(), status = status)
+        is Schema.Primitive -> respond(status, schema.encodeToJsonElement(value))
     }
 }
 
@@ -341,10 +377,6 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
         is Schema.Metadata -> respondJson(status, schema.schema, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
     }
-}
-
-private suspend fun <A> RoutingCall.respondPlain(status: HttpStatusCode, schema: Schema<A>, value: A) {
-    respondText(schema.encodePrimitiveString(value).getOrThrow(), io.ktor.http.ContentType.Text.Plain, status = status)
 }
 
 data class SchemaError(

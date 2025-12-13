@@ -3,7 +3,6 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.*
 import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.isRequired
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 
 fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI {
@@ -44,10 +43,10 @@ private fun List<Http<*, *, *, *>>.toOpenApiPaths(resolver: DefinitionNameResolv
         }
 
 private fun ParamsSchema<*>.toFormattedPath(): String =
-    pathSchemas().mapNotNull { param ->
-        when (param) {
-            is PathSchema.Parameter -> "{${param.param.name()}}"
-            is PathSchema.Segment -> param.name
+    pathSchemas().mapNotNull { schema ->
+        when (schema) {
+            is PathParam -> "{${schema.param.name()}}"
+            is PathSegment -> schema.name
             else -> null
         }
     }.joinToString(separator = "/", prefix = "/")
@@ -106,9 +105,12 @@ fun <A> BodySchema<A>.toStreamingResponseObject(resolver: DefinitionNameResolver
 private fun <A> ParamsSchema<A>.pathParams(resolver: DefinitionNameResolver): List<Parameter> =
     when (this) {
         is ParamsSchema.Combine<*, *> -> left.pathParams(resolver) + right.pathParams(resolver)
-        is PathSchema.Combine<*, *> -> left.pathParams(resolver) + right.pathParams(resolver)
-        is PathSchema.Segment, PathSchema.RootSchema -> listOf()
-        is PathSchema.Parameter -> listOf(param.toParameter(`in` = "path", resolver = resolver))
+        is ParamsSchema.CombineEmpty<*> -> path.pathParams(resolver) + other.pathParams(resolver)
+        is EmptyPathSchema.Root -> listOf()
+        is EmptyPathSchema.Segment -> prefix.pathParams(resolver)
+        is NonEmptyPathSchema.First<*> -> prefix.pathParams(resolver) + listOf(param.toParameter(`in` = "path", resolver = resolver))
+        is NonEmptyPathSchema.Segment<*> -> prefix.pathParams(resolver)
+        is NonEmptyPathSchema.Next<*, *> -> prefix.pathParams(resolver) + listOf(param.toParameter(`in` = "path", resolver = resolver))
         is ParamsSchema.HeaderSchema -> listOf(param.toParameter(`in` = "header", resolver = resolver))
         is ParamsSchema.QuerySchema -> listOf(param.toParameter(`in` = "query", resolver = resolver))
     }
@@ -171,7 +173,7 @@ private fun <A> Schema<A>.toContentTypeObject(
         is Schema.Optional<*> -> schema.toContentTypeObject(contentType, examples, resolver)
         is Schema.OrElse<A, *> -> preferred.toContentTypeObject(contentType, examples, resolver)
         is Schema.Primitive -> mapOf(
-            "text/plain" to MediaTypeObject(
+            contentType to MediaTypeObject(
                 schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
                 examples = examples.ifEmpty { null }
             ),
