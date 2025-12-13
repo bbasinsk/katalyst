@@ -13,7 +13,6 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(libs.ktor2.server.core)
-                api(libs.ktor2.server.sse)
 
                 api(project(":http"))
                 api(project(":http-openapi"))

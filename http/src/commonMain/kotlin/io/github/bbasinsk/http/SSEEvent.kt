@@ -16,7 +16,7 @@ data class SSEEvent<A>(
     /**
      * The data payload of the event. Will be serialized according to the schema.
      */
-    val data: A,
+    val data: A?,
 
     /**
      * Optional event type. If null, defaults to "message" event.
@@ -73,7 +73,7 @@ data class SSEEvent<A>(
         /**
          * Creates a comment-only SSE event (keepalive).
          */
-        fun keepalive(comment: String = "keepalive"): SSEEvent<Unit> =
-            SSEEvent(data = Unit, comment = comment)
+        fun <A> keepalive(comment: String = "keepalive"): SSEEvent<A> =
+            SSEEvent(data = null, comment = comment)
     }
 }

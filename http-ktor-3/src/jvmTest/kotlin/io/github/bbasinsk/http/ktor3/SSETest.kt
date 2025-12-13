@@ -1,5 +1,6 @@
 package io.github.bbasinsk.http.ktor3
 
+import io.github.bbasinsk.http.BodySchema.Companion.json
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.PathSchema
 import io.github.bbasinsk.http.Response
@@ -9,6 +10,8 @@ import io.github.bbasinsk.schema.Schema
 import io.ktor.client.plugins.sse.*
 import io.ktor.client.request.*
 import io.ktor.server.testing.*
+import io.ktor.sse.ServerSentEvent
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlin.test.Test
@@ -28,7 +31,7 @@ class SSETest {
             ::Message
         )
 
-        val api = Http.get { PathSchema.Root / "stream" }
+        val api = Http.get { Root / "stream" }
             .output { streaming { json { messageSchema } } }
 
         application {
@@ -54,7 +57,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 5) {
-                    close()
+                    cancel()
                 }
             }
         }
@@ -68,7 +71,7 @@ class SSETest {
 
     @Test
     fun `test SSE stream with custom event types`() = testApplication {
-        val api = Http.get { PathSchema.Root / "events" }
+        val api = Http.get { Root / "events" }
             .output { streaming { json { Schema.string() } } }
 
         application {
@@ -93,7 +96,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 2) {
-                    close()
+                    cancel()
                 }
             }
         }
@@ -107,7 +110,7 @@ class SSETest {
 
     @Test
     fun `test SSE stream with event IDs`() = testApplication {
-        val api = Http.get { PathSchema.Root / "numbered" }
+        val api = Http.get { Root / "numbered" }
             .output { streaming { json { Schema.int() } } }
 
         application {
@@ -136,7 +139,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 3) {
-                    close()
+                    cancel()
                 }
             }
         }
@@ -152,8 +155,8 @@ class SSETest {
 
     @Test
     fun `test SSE stream with retry configuration`() = testApplication {
-        val api = Http.get { PathSchema.Root / "retry" }
-            .output { streaming({ json { Schema.string() } }, defaultRetry = 3000) }
+        val api = Http.get { Root / "retry" }
+            .output { streaming({ json { Schema.string() } }) }
 
         application {
             endpoints {
@@ -177,7 +180,7 @@ class SSETest {
         client.sse("/retry") {
             incoming.collect { event ->
                 receivedEvents.add(event)
-                close()
+                cancel()
             }
         }
 
@@ -187,7 +190,7 @@ class SSETest {
 
     @Test
     fun `test SSE stream with comments`() = testApplication {
-        val api = Http.get { PathSchema.Root / "comments" }
+        val api = Http.get { Root / "comments" }
             .output { streaming { json { Schema.string() } } }
 
         application {
@@ -217,7 +220,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 2) {
-                    close()
+                    cancel()
                 }
             }
         }
@@ -229,7 +232,7 @@ class SSETest {
 
     @Test
     fun `test SSE stream with plain text content`() = testApplication {
-        val api = Http.get { PathSchema.Root / "plain" }
+        val api = Http.get { Root / "plain" }
             .output { streaming { plain { Schema.string() } } }
 
         application {
@@ -254,7 +257,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 2) {
-                    close()
+                    cancel()
                 }
             }
         }
@@ -275,7 +278,7 @@ class SSETest {
             ::User
         )
 
-        val api = Http.get { PathSchema.Root / "users" }
+        val api = Http.get { Root / "users" }
             .output { streaming { json { userSchema } } }
 
         application {
@@ -302,7 +305,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 3) {
-                    close()
+                    cancel()
                 }
             }
         }
@@ -315,7 +318,7 @@ class SSETest {
 
     @Test
     fun `test SSE keepalive with comment-only events`() = testApplication {
-        val api = Http.get { PathSchema.Root / "keepalive" }
+        val api = Http.get { Root / "keepalive" }
             .output { streaming { json { Schema.string() } } }
 
         application {
@@ -342,7 +345,7 @@ class SSETest {
             incoming.collect { event ->
                 receivedEvents.add(event)
                 if (receivedEvents.size >= 3) {
-                    close()
+                    cancel()
                 }
             }
         }

@@ -11,11 +11,9 @@ import io.github.bbasinsk.http.PathSegment
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
-import io.github.bbasinsk.http.SSEEvent
 import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
-import io.github.bbasinsk.schema.encodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -34,10 +32,6 @@ import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.HttpMethodRouteSelector
-import io.ktor.server.sse.ServerSSESession
-import io.ktor.server.sse.sse
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
 import io.ktor.server.routing.PathSegmentConstantRouteSelector
 import io.ktor.server.routing.PathSegmentParameterRouteSelector
 import io.ktor.server.routing.Route
@@ -117,16 +111,8 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         return@interceptor when (response) {
             is Response.Error -> call.respondSchema(endpoint.api.error, response.value)
             is Response.Success -> call.respondSchema(endpoint.api.output, response.value)
-            is Response.StreamingError -> {
-                val streamingSchema = endpoint.api.error as? ResponseSchema.Streaming
-                    ?: error("Streaming response requires ResponseSchema.Streaming")
-                call.respondSSE(streamingSchema.bodySchema, response.events)
-            }
-            is Response.StreamingSuccess -> {
-                val streamingSchema = endpoint.api.output as? ResponseSchema.Streaming
-                    ?: error("Streaming response requires ResponseSchema.Streaming")
-                call.respondSSE(streamingSchema.bodySchema, response.events)
-            }
+            is Response.StreamingError<*, *> -> error("Streaming responses are not supported in Ktor 2.x")
+            is Response.StreamingSuccess<*, *> -> error("Streaming responses are not supported in Ktor 2.x")
         }
     }
 
@@ -164,6 +150,7 @@ private suspend fun <A> ApplicationCall.receiveRequest(request: BodySchema<A>): 
             is ContentType.Image -> Validation.valid(receive<ByteArray>()) as Validation<SchemaError, A>
             ContentType.Avro -> TODO("Avro not supported in Ktor 2 adapter")
             ContentType.MultipartFormData -> TODO("MultipartFormData not supported in Ktor 2 adapter")
+            ContentType.EventStream -> TODO("EventStream not supported in Ktor 2 adapter")
         }
     }
 
@@ -244,91 +231,5 @@ data class SchemaError(
 ) {
     companion object {
         val schema = Schema.string().transform({ SchemaError(it) }) { it.message }
-    }
-}
-
-/**
- * Responds with a Server-Sent Events (SSE) stream.
- */
-private suspend fun <A> ApplicationCall.respondSSE(
-    bodySchema: BodySchema<A>,
-    events: kotlinx.coroutines.flow.Flow<SSEEvent<A>>
-) {
-    sse {
-        events.onEach { event ->
-            sendSSEEvent(bodySchema, event)
-        }.collect()
-    }
-}
-
-/**
- * Sends a single SSE event through the ServerSSESession.
- */
-private suspend fun <A> ServerSSESession.sendSSEEvent(
-    bodySchema: BodySchema<A>,
-    event: SSEEvent<A>
-) {
-    when {
-        // Handle comment-only events (keepalive)
-        event.comment != null && event.data == null -> {
-            send(io.ktor.sse.ServerSentEvent(
-                data = null,
-                event = null,
-                id = null,
-                retry = null,
-                comments = event.comment
-            ))
-        }
-        // Handle regular events with data
-        else -> {
-            val serializedData = serializeEventData(bodySchema, event.data)
-            send(io.ktor.sse.ServerSentEvent(
-                data = serializedData,
-                event = event.event,
-                id = event.id,
-                retry = event.retry,
-                comments = event.comment
-            ))
-        }
-    }
-}
-
-/**
- * Serializes event data according to the body schema.
- */
-@Suppress("UNCHECKED_CAST")
-private fun <A> serializeEventData(bodySchema: BodySchema<A>, data: A): String {
-    return when (bodySchema) {
-        is BodySchema.WithMetadata -> serializeEventData(bodySchema.schema, data)
-        is BodySchema.Single -> when (bodySchema.contentType) {
-            ContentType.Json -> serializeToJsonString(bodySchema.schema(), data)
-            ContentType.Plain -> bodySchema.schema().encodePrimitiveString(data).getOrThrow()
-            ContentType.Avro -> error("Avro serialization is not supported for SSE")
-            is ContentType.Image -> error("Image content type is not supported for SSE")
-            ContentType.MultipartFormData -> error("MultipartFormData is not supported for SSE")
-            ContentType.EventStream -> error("EventStream content type should not be used for event data serialization")
-        }
-    }
-}
-
-/**
- * Serializes data to JSON string.
- */
-@Suppress("UNCHECKED_CAST")
-private fun <A> serializeToJsonString(schema: Schema<A>, value: A): String {
-    return when (schema) {
-        is Schema.Default -> TODO()
-        is Schema.Optional<*> -> TODO()
-        is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<A, *> -> schema.encodeToJsonElement(value).toString()
-        is Schema.Collection<*> -> (schema as Schema<Any?>).encodeToJsonElement(value).toString()
-        is Schema.StringMap<*> -> (schema as Schema<Any?>).encodeToJsonElement(value).toString()
-        is Schema.Record -> schema.encodeToJsonElement(value).toString()
-        is Schema.Union -> schema.encodeToJsonElement(value).toString()
-        is Schema.Bytes -> error("Bytes schema cannot be serialized to JSON for SSE")
-        is Schema.Empty -> ""
-        is Schema.Lazy -> serializeToJsonString(with(schema) { schema() }, value)
-        is Schema.Metadata -> serializeToJsonString(schema.schema, value)
-        is Schema.Primitive -> value.toString()
     }
 }

@@ -23,6 +23,7 @@ import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
+import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonString
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.andThen
@@ -43,11 +44,9 @@ import io.ktor.server.request.receiveText
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
+import io.ktor.server.response.respondTextWriter
 import io.ktor.server.routing.HttpMethodRouteSelector
-import io.ktor.server.sse.ServerSSESession
-import io.ktor.server.sse.sse
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.onEach
 import io.ktor.server.routing.PathSegmentConstantRouteSelector
 import io.ktor.server.routing.PathSegmentParameterRouteSelector
 import io.ktor.server.routing.Route
@@ -59,8 +58,10 @@ import io.ktor.http.decodeURLPart
 import io.ktor.utils.io.availableForRead
 import io.ktor.utils.io.core.remaining
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import kotlinx.coroutines.flow.Flow
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 
 fun <Path, Input, Error, Output> RoutingNode.httpEndpointToRoute(
     endpoint: HttpEndpoint<Path, Input, Error, Output, RoutingCall>
@@ -128,6 +129,7 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
                 ?: error("Streaming response requires ResponseSchema.Streaming")
             call.respondSSE(streamingSchema.bodySchema, response.events)
         }
+
         is Response.StreamingSuccess -> {
             val streamingSchema = endpoint.api.output as? ResponseSchema.Streaming
                 ?: error("Streaming response requires ResponseSchema.Streaming")
@@ -177,6 +179,10 @@ private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Vali
             ContentType.Html -> Validation.fromResult(request.schema().decodePrimitiveString(receiveText())) {
                 SchemaError(it.message ?: "Error decoding")
             }
+
+            ContentType.EventStream -> Validation.invalid(
+                SchemaError("EventStream cannot be used as request content type")
+            )
         }
     }
 
@@ -335,6 +341,7 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
             ContentType.Html -> respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
             ContentType.MultipartFormData -> error("MultipartFormData is not supported as response type")
             ContentType.FormUrlEncoded -> error("FormUrlEncoded is not supported as response type")
+            ContentType.EventStream -> error("EventStream responses should use Response.StreamingSuccess/StreamingError")
         }
     }
 }
@@ -342,30 +349,12 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
 private fun ContentType.toKtorContentType(): io.ktor.http.ContentType =
     io.ktor.http.ContentType(this.contentType, this.contentSubtype)
 
-@Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: Schema<A>, value: A) {
-    when (schema) {
-        is Schema.Default -> TODO()
-        is Schema.Optional<*> -> TODO()
-        is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<A, *> -> respond(status, schema.encodeToJsonElement(value))
-        is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
-        is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
-        is Schema.Record -> respond(status, schema.encodeToJsonElement(value))
-        is Schema.Union -> respond(status, schema.encodeToJsonElement(value))
-        is Schema.Bytes -> respondBytes(value as ByteArray, null, status)
-        is Schema.Empty -> respond(status)
-        is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
-        is Schema.Metadata -> respondJson(status, schema.schema, value)
-        is Schema.Primitive -> respond(status, schema.encodeToJsonElement(value))
-    }
+    respond(status, schema.encodeToJsonElement(value))
 }
 
 private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: Schema<A>, value: A) {
     when (schema) {
-        is Schema.Default -> TODO()
-        is Schema.Optional<*> -> TODO()
-        is Schema.Transform<*, *> -> TODO()
         is Schema.OrElse<A, *> -> respond(status, schema.serialize(1, value)!!)
         is Schema.Collection<*> -> respond(status, (schema as Schema<A>).serialize(1, value)!!)
         is Schema.StringMap<*> -> respond(status, (schema as Schema<A>).serialize(1, value)!!)
@@ -376,6 +365,10 @@ private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: 
         is Schema.Lazy -> respondJson(status, with(schema) { schema() }, value)
         is Schema.Metadata -> respondJson(status, schema.schema, value)
         is Schema.Primitive -> respondText(value.toString(), status = status)
+        is Schema.Default -> respondAvro(status, schema.schema, value)
+        is Schema.Transform<A, *> -> @Suppress("UNCHECKED_CAST") respondAvro(status, schema.schema as Schema<Any?>, schema.encode(value))
+        is Schema.Optional<*> -> if (value == null) respond(status)
+        else @Suppress("UNCHECKED_CAST") respondAvro(status, schema.schema as Schema<Any?>, value)
     }
 }
 
@@ -392,43 +385,21 @@ data class SchemaError(
  */
 private suspend fun <A> RoutingCall.respondSSE(
     bodySchema: BodySchema<A>,
-    events: kotlinx.coroutines.flow.Flow<SSEEvent<A>>
+    events: Flow<SSEEvent<A>>
 ) {
-    sse {
-        events.onEach { event ->
-            sendSSEEvent(bodySchema, event)
-        }.collect()
-    }
-}
-
-/**
- * Sends a single SSE event through the ServerSSESession.
- */
-private suspend fun <A> ServerSSESession.sendSSEEvent(
-    bodySchema: BodySchema<A>,
-    event: SSEEvent<A>
-) {
-    when {
-        // Handle comment-only events (keepalive)
-        event.comment != null && event.data == null -> {
-            send(io.ktor.sse.ServerSentEvent(
-                data = null,
-                event = null,
-                id = null,
-                retry = null,
-                comments = event.comment
-            ))
-        }
-        // Handle regular events with data
-        else -> {
-            val serializedData = serializeEventData(bodySchema, event.data)
-            send(io.ktor.sse.ServerSentEvent(
-                data = serializedData,
-                event = event.event,
-                id = event.id,
-                retry = event.retry,
-                comments = event.comment
-            ))
+    respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
+        events.collect { event ->
+            event.comment?.let { appendLine(": $it") }
+            event.id?.let { appendLine("id: $it") }
+            event.event?.let { appendLine("event: $it") }
+            event.retry?.let { appendLine("retry: $it") }
+            val data = event.data
+            when {
+                data != null -> appendLine("data: ${serializeEventData(bodySchema, data)}")
+                event.comment != null -> appendLine("data:") // Empty data for keepalive to trigger client event
+            }
+            appendLine()
+            flush()
         }
     }
 }
@@ -441,34 +412,14 @@ private fun <A> serializeEventData(bodySchema: BodySchema<A>, data: A): String {
     return when (bodySchema) {
         is BodySchema.WithMetadata -> serializeEventData(bodySchema.schema, data)
         is BodySchema.Single -> when (bodySchema.contentType) {
-            ContentType.Json -> serializeToJsonString(bodySchema.schema(), data)
+            ContentType.Json -> bodySchema.schema().encodeToJsonString(data)
             ContentType.Plain -> bodySchema.schema().encodePrimitiveString(data).getOrThrow()
+            ContentType.Html -> bodySchema.schema().encodePrimitiveString(data).getOrThrow()
             ContentType.Avro -> error("Avro serialization is not supported for SSE")
             is ContentType.Image -> error("Image content type is not supported for SSE")
             ContentType.MultipartFormData -> error("MultipartFormData is not supported for SSE")
+            ContentType.FormUrlEncoded -> error("FormUrlEncoded is not supported for SSE")
             ContentType.EventStream -> error("EventStream content type should not be used for event data serialization")
         }
-    }
-}
-
-/**
- * Serializes data to JSON string.
- */
-@Suppress("UNCHECKED_CAST")
-private fun <A> serializeToJsonString(schema: Schema<A>, value: A): String {
-    return when (schema) {
-        is Schema.Default -> TODO()
-        is Schema.Optional<*> -> TODO()
-        is Schema.Transform<*, *> -> TODO()
-        is Schema.OrElse<A, *> -> schema.encodeToJsonElement(value).toString()
-        is Schema.Collection<*> -> (schema as Schema<Any?>).encodeToJsonElement(value).toString()
-        is Schema.StringMap<*> -> (schema as Schema<Any?>).encodeToJsonElement(value).toString()
-        is Schema.Record -> schema.encodeToJsonElement(value).toString()
-        is Schema.Union -> schema.encodeToJsonElement(value).toString()
-        is Schema.Bytes -> error("Bytes schema cannot be serialized to JSON for SSE")
-        is Schema.Empty -> ""
-        is Schema.Lazy -> serializeToJsonString(with(schema) { schema() }, value)
-        is Schema.Metadata -> serializeToJsonString(schema.schema, value)
-        is Schema.Primitive -> value.toString()
     }
 }
