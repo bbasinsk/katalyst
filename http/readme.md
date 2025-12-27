@@ -1,6 +1,107 @@
 # Http
 
-Type-safe HTTP API definitions with support for streaming via Server-Sent Events (SSE).
+Type-safe HTTP API definitions with support for authentication and streaming via Server-Sent Events (SSE).
+
+## Authentication
+
+Katalyst provides type-safe authentication with phantom types to ensure compile-time safety between your auth schema and validator.
+
+### Auth Types
+
+#### Bearer Token
+
+```kotlin
+data class User(val id: String, val name: String)
+
+val api = Http.get { Root / "profile" }
+    .auth { bearer<User>(format = "JWT") }
+    .output { status(Ok) { json { userSchema } } }
+```
+
+#### Basic Auth
+
+```kotlin
+data class Credentials(val username: String, val roles: List<String>)
+
+val api = Http.get { Root / "admin" }
+    .auth { basic<Credentials>() }
+    .output { status(Ok) { json { dataSchema } } }
+```
+
+#### API Key
+
+```kotlin
+data class ApiToken(val clientId: String, val scopes: List<String>)
+
+// API key in header
+val api = Http.get { Root / "data" }
+    .auth { apiKey<ApiToken>(ApiKey.Location.Header, "X-API-Key") }
+    .output { status(Ok) { json { dataSchema } } }
+
+// API key in query parameter
+val api = Http.get { Root / "data" }
+    .auth { apiKey<ApiToken>(ApiKey.Location.Query, "api_key") }
+    .output { status(Ok) { json { dataSchema } } }
+```
+
+### Optional Authentication
+
+Wrap any auth type with `.optional()` to allow unauthenticated access:
+
+```kotlin
+val api = Http.get { Root / "content" }
+    .auth { bearer<User>().optional() }
+    .output { status(Ok) { json { contentSchema } } }
+
+// In handler, auth is nullable
+handle(api, validator) { request ->
+    val user: User? = request.auth
+    if (user != null) {
+        Response.success(personalizedContent(user))
+    } else {
+        Response.success(publicContent())
+    }
+}
+```
+
+### Implementing Validators
+
+Provide an `AuthValidator` when registering handlers:
+
+```kotlin
+val bearerValidator = AuthValidator<User> { token ->
+    // Validate JWT and extract user, return null if invalid
+    jwtService.validateAndDecode(token)
+}
+
+val basicValidator = AuthValidator<Credentials> { base64Credentials ->
+    // Decode base64 "username:password" and validate
+    val decoded = Base64.decode(base64Credentials)
+    val (username, password) = decoded.split(":")
+    authService.authenticate(username, password)
+}
+
+val apiKeyValidator = AuthValidator<ApiToken> { key ->
+    // Look up API key and return token info
+    apiKeyService.validate(key)
+}
+```
+
+### OpenAPI Generation
+
+Auth schemas automatically generate OpenAPI security schemes:
+
+```json
+{
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+      "basicAuth": { "type": "http", "scheme": "basic" },
+      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+    }
+  }
+}
+```
 
 ## Server-Sent Events (SSE) Streaming
 
