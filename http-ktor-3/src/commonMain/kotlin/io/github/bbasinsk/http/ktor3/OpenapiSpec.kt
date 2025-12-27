@@ -12,7 +12,7 @@ import kotlinx.serialization.json.encodeToJsonElement
 
 fun Route.openapiSpecJson(
     path: String,
-    apis: List<Http<*, *, *, *>>,
+    apis: List<Http<*, *, *, *, *>>,
     info: Info,
     servers: List<Server>
 ) {

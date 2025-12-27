@@ -1,5 +1,7 @@
 package io.github.bbasinsk.http.openapi
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -51,6 +53,7 @@ data class Operation(
     val requestBody: RequestBody?,
     val responses: Map<String, ResponseObject>,
     val deprecated: Boolean?,
+    val security: List<Map<String, List<String>>>? = null
 )
 
 @Serializable
@@ -100,8 +103,20 @@ data class SchemaObject(
 data class DiscriminatorObject(val propertyName: String, val mapping: Map<String, String>?)
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class Components(
-    val schemas: Map<String, SchemaObject>
+    val schemas: Map<String, SchemaObject>,
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val securitySchemes: Map<String, SecurityScheme> = emptyMap()
+)
+
+@Serializable
+data class SecurityScheme(
+    val type: String,
+    val scheme: String? = null,
+    val bearerFormat: String? = null,
+    @SerialName("in") val location: String? = null,
+    val name: String? = null
 )
 
 @Serializable
