@@ -420,20 +420,17 @@ private suspend fun <A> validateAuth(
     is AuthSchema.None -> Result.success(Unit as A)
 
     is AuthSchema.Bearer -> {
-        val token = extractBearerToken(headers)
-            ?: return Result.failure(Exception("Missing bearer token"))
+        val token = extractBearerToken(headers) ?: return Result.failure(Exception("Missing bearer token"))
         validateWithToken(validator, token)
     }
 
     is AuthSchema.Basic -> {
-        val credentials = extractBasicCredentials(headers)
-            ?: return Result.failure(Exception("Missing basic auth credentials"))
+        val credentials = extractBasicCredentials(headers) ?: return Result.failure(Exception("Missing basic auth credentials"))
         validateWithToken(validator, credentials)
     }
 
     is AuthSchema.ApiKeyHeader -> {
-        val key = headers[schema.name]
-            ?: return Result.failure(Exception("Missing API key"))
+        val key = headers[schema.headerName] ?: return Result.failure(Exception("Missing API key"))
         validateWithToken(validator, key)
     }
 
@@ -445,11 +442,11 @@ private suspend fun <A> validateAuth(
 
 private suspend fun <A> validateWithToken(validator: AuthValidator<*>?, token: String): Result<A> {
     @Suppress("UNCHECKED_CAST")
-    val typedValidator = validator as? AuthValidator<A>
-        ?: return Result.failure(Exception("Missing auth validator"))
-    return typedValidator.validate(token)
-        ?.let { Result.success(it) }
-        ?: Result.failure(Exception("Invalid credentials"))
+    val typedValidator = validator as? AuthValidator<A> ?: return Result.failure(Exception("Missing auth validator"))
+    return when (val principal = typedValidator.validate(token)) {
+        null -> Result.failure(Exception("Invalid credentials"))
+        else -> Result.success(principal)
+    }
 }
 
 private fun extractBearerToken(headers: io.ktor.http.Headers): String? =

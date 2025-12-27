@@ -21,13 +21,9 @@ fun List<Http<*, *, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = 
 private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
     when (this) {
         is AuthSchema.None -> null
-        is AuthSchema.Bearer<*> -> "bearerAuth" to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
-        is AuthSchema.Basic<*> -> "basicAuth" to SecurityScheme(type = "http", scheme = "basic")
-        is AuthSchema.ApiKeyHeader<*> -> "apiKeyAuth" to SecurityScheme(
-            type = "apiKey",
-            location = "header",
-            name = name
-        )
+        is AuthSchema.Bearer<*> -> schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
+        is AuthSchema.Basic<*> -> schemeName to SecurityScheme(type = "http", scheme = "basic")
+        is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
         is AuthSchema.Optional<*> -> inner.toSecurityScheme()
     }
 
@@ -410,17 +406,17 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             anyOf = withDiscriminatorRefs,
                         )
                     } else {
-                            SchemaObject(
-                                nullable = field.nullable,
-                                oneOf = withDiscriminatorRefs,
-                                discriminator = DiscriminatorObject(
-                                    propertyName = key,
-                                    mapping = unsafeCases().associate { case ->
-                                        case.name to refPath("$baseName.${case.name}WithDiscriminator")
-                                    }
-                                )
+                        SchemaObject(
+                            nullable = field.nullable,
+                            oneOf = withDiscriminatorRefs,
+                            discriminator = DiscriminatorObject(
+                                propertyName = key,
+                                mapping = unsafeCases().associate { case ->
+                                    case.name to refPath("$baseName.${case.name}WithDiscriminator")
+                                }
                             )
-                        }
+                        )
+                    }
                 }
             }
 

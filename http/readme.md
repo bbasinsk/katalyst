@@ -100,6 +100,39 @@ Auth schemas automatically generate OpenAPI security schemes:
 }
 ```
 
+#### Custom Scheme Names
+
+Use the `schemeName` parameter to avoid collisions when multiple endpoints use different auth configurations of the same type:
+
+```kotlin
+// Two Bearer auth endpoints with different configurations
+val jwtEndpoint = Http.get { Root / "jwt-protected" }
+    .auth { bearer<User>(format = "JWT", schemeName = "jwtAuth") }
+
+val opaqueEndpoint = Http.get { Root / "opaque-protected" }
+    .auth { bearer<User>(schemeName = "opaqueAuth") }
+
+// Two API Key endpoints with different header names
+val apiKeyEndpoint = Http.get { Root / "api" }
+    .auth { apiKeyHeader<ApiToken>("X-API-Key", schemeName = "apiKeyAuth") }
+
+val customKeyEndpoint = Http.get { Root / "custom" }
+    .auth { apiKeyHeader<ApiToken>("X-Custom-Key", schemeName = "customKeyAuth") }
+```
+
+This generates distinct security schemes in OpenAPI:
+
+```json
+{
+  "securitySchemes": {
+    "jwtAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
+    "opaqueAuth": { "type": "http", "scheme": "bearer" },
+    "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" },
+    "customKeyAuth": { "type": "apiKey", "in": "header", "name": "X-Custom-Key" }
+  }
+}
+```
+
 ## Server-Sent Events (SSE) Streaming
 
 Katalyst supports SSE streaming endpoints for real-time data delivery to clients.
