@@ -431,8 +431,8 @@ private suspend fun <A> validateAuth(
         validateWithToken(validator, credentials)
     }
 
-    is AuthSchema.ApiKey -> {
-        val key = extractApiKey(schema, headers, queryParams)
+    is AuthSchema.ApiKeyHeader -> {
+        val key = headers[schema.name]
             ?: return Result.failure(Exception("Missing API key"))
         validateWithToken(validator, key)
     }
@@ -461,12 +461,3 @@ private fun extractBasicCredentials(headers: io.ktor.http.Headers): String? =
     headers["Authorization"]
         ?.takeIf { it.startsWith("Basic ", ignoreCase = true) }
         ?.substring(6)
-
-private fun extractApiKey(
-    schema: AuthSchema.ApiKey<*>,
-    headers: io.ktor.http.Headers,
-    queryParams: Map<String, List<String>>
-): String? = when (schema.location) {
-    AuthSchema.ApiKey.Location.Header -> headers[schema.name]
-    AuthSchema.ApiKey.Location.Query -> queryParams[schema.name]?.firstOrNull()
-}

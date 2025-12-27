@@ -23,12 +23,9 @@ private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
         is AuthSchema.None -> null
         is AuthSchema.Bearer<*> -> "bearerAuth" to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
         is AuthSchema.Basic<*> -> "basicAuth" to SecurityScheme(type = "http", scheme = "basic")
-        is AuthSchema.ApiKey<*> -> "apiKeyAuth" to SecurityScheme(
+        is AuthSchema.ApiKeyHeader<*> -> "apiKeyAuth" to SecurityScheme(
             type = "apiKey",
-            location = when (location) {
-                AuthSchema.ApiKey.Location.Header -> "header"
-                AuthSchema.ApiKey.Location.Query -> "query"
-            },
+            location = "header",
             name = name
         )
         is AuthSchema.Optional<*> -> inner.toSecurityScheme()

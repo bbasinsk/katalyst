@@ -58,22 +58,6 @@ data class HttpEndpoints(
             underlying.add(it)
         }
 
-    // Handle for endpoints with optional auth - validator provides non-null type, framework makes it nullable
-    @KtorDsl
-    @JvmName("handleOptionalAuth")
-    fun <Path, Input, Error, Output, Auth> handle(
-        api: Http<Path, Input, Error, Output, Auth?>,
-        validator: AuthValidator<Auth?>,
-        handler: suspend Response.Companion.(request: Request<Path, Input, Auth?, RoutingCall>) -> Response<Error, Output>
-    ): HttpEndpoint<Path, Input, Error, Output, Auth?, RoutingCall> =
-        HttpEndpoint(
-            api = api.tag(*tags.toTypedArray()),
-            validator = validator,
-            handle = handler
-        ).also {
-            underlying.add(it)
-        }
-
     internal fun configure(): RoutingRoot.() -> Unit = {
         underlying.forEach { httpEndpointToRoute(it) }
     }

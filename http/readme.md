@@ -28,21 +28,17 @@ val api = Http.get { Root / "admin" }
     .output { status(Ok) { json { dataSchema } } }
 ```
 
-#### API Key
+#### API Key (Header)
 
 ```kotlin
 data class ApiToken(val clientId: String, val scopes: List<String>)
 
-// API key in header
 val api = Http.get { Root / "data" }
-    .auth { apiKey<ApiToken>(ApiKey.Location.Header, "X-API-Key") }
-    .output { status(Ok) { json { dataSchema } } }
-
-// API key in query parameter
-val api = Http.get { Root / "data" }
-    .auth { apiKey<ApiToken>(ApiKey.Location.Query, "api_key") }
+    .auth { apiKeyHeader<ApiToken>("X-API-Key") }
     .output { status(Ok) { json { dataSchema } } }
 ```
+
+Note: API keys are only supported in headers (not query params) for security reasons.
 
 ### Optional Authentication
 
@@ -75,9 +71,10 @@ val bearerValidator = AuthValidator<User> { token ->
 }
 
 val basicValidator = AuthValidator<Credentials> { base64Credentials ->
-    // Decode base64 "username:password" and validate
-    val decoded = Base64.decode(base64Credentials)
-    val (username, password) = decoded.split(":")
+    // Note: Credentials are passed as base64-encoded "username:password"
+    // You must decode before validating
+    val decoded = Base64.getDecoder().decode(base64Credentials).decodeToString()
+    val (username, password) = decoded.split(":", limit = 2)
     authService.authenticate(username, password)
 }
 

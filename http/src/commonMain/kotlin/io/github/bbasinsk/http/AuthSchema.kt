@@ -21,10 +21,9 @@ sealed interface AuthSchema<A> {
         }
     }
 
-    class ApiKey<A> private constructor(val location: Location, val name: String) : AuthSchema<A> {
-        enum class Location { Header, Query }
+    class ApiKeyHeader<A> private constructor(val name: String) : AuthSchema<A> {
         companion object {
-            operator fun <A> invoke(location: Location, name: String): ApiKey<A> = ApiKey(location, name)
+            operator fun <A> invoke(name: String): ApiKeyHeader<A> = ApiKeyHeader(name)
         }
     }
 
@@ -34,14 +33,14 @@ sealed interface AuthSchema<A> {
         is None -> false
         is Bearer<*> -> false
         is Basic<*> -> false
-        is ApiKey<*> -> false
+        is ApiKeyHeader<*> -> false
         is Optional<*> -> true
     }
 
     companion object {
         fun <A> bearer(format: String? = null): Bearer<A> = Bearer(format)
         fun <A> basic(): Basic<A> = Basic()
-        fun <A> apiKey(location: ApiKey.Location, name: String): ApiKey<A> = ApiKey(location, name)
+        fun <A> apiKeyHeader(name: String): ApiKeyHeader<A> = ApiKeyHeader(name)
     }
 }
 
