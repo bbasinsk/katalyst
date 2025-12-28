@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.21](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.20...katalyst-v0.1.21) (2025-12-28)
+
+
+### Bug Fixes
+
+* add auth support ([#45](https://github.com/bbasinsk/katalyst/issues/45)) ([6b473af](https://github.com/bbasinsk/katalyst/commit/6b473af8ad0335fa33942d788e95ec9e56224c6b))
+* simplify record fns ([#43](https://github.com/bbasinsk/katalyst/issues/43)) ([ca22c5d](https://github.com/bbasinsk/katalyst/commit/ca22c5dac11832b1a272736de29dd11303a7ca2d))
+
 ## [0.1.20](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.19...katalyst-v0.1.20) (2025-12-13)
 
 
