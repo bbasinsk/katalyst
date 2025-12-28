@@ -13,7 +13,7 @@ import io.ktor.util.KtorDsl
 fun HttpEndpoints.httpEndpoints(builder: HttpEndpoints.() -> Unit) = apply(builder)
 
 data class HttpEndpoints(
-    val underlying: MutableList<HttpEndpoint<*, *, *, *, ApplicationCall>> = mutableListOf(),
+    val underlying: MutableList<HttpEndpoint<*, *, *, *, Unit, ApplicationCall>> = mutableListOf(),
     var openApiBuilder: OpenApiBuilder? = null
 ) {
 
@@ -27,15 +27,15 @@ data class HttpEndpoints(
 
     @KtorDsl
     fun <Path, Input, Error, Output> handle(
-        api: Http<Path, Input, Error, Output>,
-        handler: suspend Response.Companion.(request: Request<Path, Input, ApplicationCall>) -> Response<Error, Output>
-    ): HttpEndpoint<Path, Input, Error, Output, ApplicationCall> =
-        HttpEndpoint(api, handler).also { underlying.add(it) }
+        api: Http<Path, Input, Error, Output, Unit>,
+        handler: suspend Response.Companion.(request: Request<Path, Input, Unit, ApplicationCall>) -> Response<Error, Output>
+    ): HttpEndpoint<Path, Input, Error, Output, Unit, ApplicationCall> =
+        HttpEndpoint(api, null, handler).also { underlying.add(it) }
 
     internal fun configure(): Routing.() -> Unit = {
         underlying.forEach { httpEndpointToRoute(it) }
     }
 
-    internal fun apis(): List<Http<*, *, *, *>> =
+    internal fun apis(): List<Http<*, *, *, *, *>> =
         underlying.map { it.api }
 }

@@ -5,19 +5,41 @@ import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 
-fun List<Http<*, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI {
+fun List<Http<*, *, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI {
     val resolver = DefinitionNameResolver()
     return OpenAPI(
         info = info,
         servers = servers,
         paths = this.toOpenApiPaths(resolver),
         components = Components(
-            schemas = this.flatMap { it.toComponents(resolver) }.toMap()
+            schemas = this.flatMap { it.toComponents(resolver) }.toMap(),
+            securitySchemes = this.collectSecuritySchemes()
         )
     )
 }
 
-private fun Http<*, *, *, *>.toComponents(resolver: DefinitionNameResolver): List<Pair<String, SchemaObject>> {
+private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
+    when (this) {
+        is AuthSchema.None -> null
+        is AuthSchema.Bearer<*> -> schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
+        is AuthSchema.Basic<*> -> schemeName to SecurityScheme(type = "http", scheme = "basic")
+        is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
+        is AuthSchema.Optional<*> -> inner.toSecurityScheme()
+    }
+
+private fun List<Http<*, *, *, *, *>>.collectSecuritySchemes(): Map<String, SecurityScheme> =
+    mapNotNull { it.auth.toSecurityScheme() }.toMap()
+
+private fun Http<*, *, *, *, *>.toSecurityRequirement(): List<Map<String, List<String>>>? {
+    val (schemeName, _) = auth.toSecurityScheme() ?: return null
+    return if (auth.isOptional()) {
+        listOf(mapOf(schemeName to emptyList()), emptyMap())
+    } else {
+        listOf(mapOf(schemeName to emptyList()))
+    }
+}
+
+private fun Http<*, *, *, *, *>.toComponents(resolver: DefinitionNameResolver): List<Pair<String, SchemaObject>> {
     val outputSchemas = when (val out = output) {
         is ResponseSchema.EventStream -> listOf(out.bodySchema)
         else -> output.schemaByStatus().values
@@ -32,7 +54,7 @@ private fun Http<*, *, *, *>.toComponents(resolver: DefinitionNameResolver): Lis
     }
 }
 
-private fun List<Http<*, *, *, *>>.toOpenApiPaths(resolver: DefinitionNameResolver): Map<String, Map<String, Operation>> =
+private fun List<Http<*, *, *, *, *>>.toOpenApiPaths(resolver: DefinitionNameResolver): Map<String, Map<String, Operation>> =
     this
         .map { it to it.operation(resolver) }
         .groupBy { (endpoint, _) -> endpoint.params.toFormattedPath() }
@@ -51,7 +73,7 @@ private fun ParamsSchema<*>.toFormattedPath(): String =
         }
     }.joinToString(separator = "/", prefix = "/")
 
-private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.operation(
+private fun <Params, Input, Error, Output, Auth> Http<Params, Input, Error, Output, Auth>.operation(
     resolver: DefinitionNameResolver
 ): Operation {
     val responses = when (val out = output) {
@@ -70,7 +92,8 @@ private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.op
         operationId = null,
         parameters = params.pathParams(resolver),
         requestBody = requestBody(this.input, resolver),
-        responses = responses
+        responses = responses,
+        security = toSecurityRequirement()
     )
 }
 
@@ -383,17 +406,17 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             anyOf = withDiscriminatorRefs,
                         )
                     } else {
-                            SchemaObject(
-                                nullable = field.nullable,
-                                oneOf = withDiscriminatorRefs,
-                                discriminator = DiscriminatorObject(
-                                    propertyName = key,
-                                    mapping = unsafeCases().associate { case ->
-                                        case.name to refPath("$baseName.${case.name}WithDiscriminator")
-                                    }
-                                )
+                        SchemaObject(
+                            nullable = field.nullable,
+                            oneOf = withDiscriminatorRefs,
+                            discriminator = DiscriminatorObject(
+                                propertyName = key,
+                                mapping = unsafeCases().associate { case ->
+                                    case.name to refPath("$baseName.${case.name}WithDiscriminator")
+                                }
                             )
-                        }
+                        )
+                    }
                 }
             }
 

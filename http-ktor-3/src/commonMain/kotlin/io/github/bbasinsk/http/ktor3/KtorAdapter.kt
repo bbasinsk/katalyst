@@ -27,8 +27,8 @@ import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonElement
 import java.io.Writer
 
-fun <Path, Input, Error, Output> RoutingNode.httpEndpointToRoute(
-    endpoint: HttpEndpoint<Path, Input, Error, Output, RoutingCall>
+fun <Path, Input, Error, Output, Auth> RoutingNode.httpEndpointToRoute(
+    endpoint: HttpEndpoint<Path, Input, Error, Output, Auth, RoutingCall>
 ): Route =
     endpoint.api.toRoute(this)
         .withChildren(httpRoutingHandler(endpoint))
@@ -36,7 +36,7 @@ fun <Path, Input, Error, Output> RoutingNode.httpEndpointToRoute(
 private fun RoutingNode.withChildren(handler: RoutingHandler): Route =
     parent?.withChildren(handler)?.createChild(selector)?.also { it.handle(handler) } ?: this
 
-private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.toRoute(parent: RoutingNode): RoutingNode =
+private fun <Params, Input, Error, Output, Auth> Http<Params, Input, Error, Output, Auth>.toRoute(parent: RoutingNode): RoutingNode =
     RoutingNode(
         parent = params.toRoute(parent),
         selector = HttpMethodRouteSelector(io.ktor.http.HttpMethod.parse(method.name)),
@@ -61,8 +61,8 @@ private fun ParamsSchema<*>.toRoute(parent: RoutingNode): RoutingNode =
         )
     }
 
-private fun <Path, Input, Error, Output> httpRoutingHandler(
-    endpoint: HttpEndpoint<Path, Input, Error, Output, RoutingCall>
+private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
+    endpoint: HttpEndpoint<Path, Input, Error, Output, Auth, RoutingCall>
 ): RoutingHandler = interceptor@{
     if (call.request.httpMethod != endpoint.api.method.toKtorMethod()) {
         return@interceptor call.respond(HttpStatusCode.MethodNotAllowed)
@@ -76,13 +76,16 @@ private fun <Path, Input, Error, Output> httpRoutingHandler(
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
+    val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, query)
+        .getOrElse { return@interceptor call.respond(HttpStatusCode.Unauthorized) }
+
     val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
         errors.onEach { call.application.environment.log.warn(it.message) }
         return@interceptor call.respondJson(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
     }
 
     val response = with(endpoint) {
-        Response.handle(Request(path, input, call))
+        Response.handle(Request(path, input, auth, call))
     }
 
     return@interceptor when (response) {
@@ -403,3 +406,55 @@ private fun <A> serializeEventData(bodySchema: BodySchema<A>, data: A): String {
         }
     }
 }
+
+/**
+ * Validates authentication based on the auth schema and validator.
+ */
+@Suppress("UNCHECKED_CAST")
+private suspend fun <A> validateAuth(
+    schema: AuthSchema<A>,
+    validator: AuthValidator<*>?,
+    headers: io.ktor.http.Headers,
+    queryParams: Map<String, List<String>>
+): Result<A> = when (schema) {
+    is AuthSchema.None -> Result.success(Unit as A)
+
+    is AuthSchema.Bearer -> {
+        val token = extractBearerToken(headers) ?: return Result.failure(Exception("Missing bearer token"))
+        validateWithToken(validator, token)
+    }
+
+    is AuthSchema.Basic -> {
+        val credentials = extractBasicCredentials(headers) ?: return Result.failure(Exception("Missing basic auth credentials"))
+        validateWithToken(validator, credentials)
+    }
+
+    is AuthSchema.ApiKeyHeader -> {
+        val key = headers[schema.headerName] ?: return Result.failure(Exception("Missing API key"))
+        validateWithToken(validator, key)
+    }
+
+    is AuthSchema.Optional<*> -> {
+        val innerResult = validateAuth(schema.inner, validator, headers, queryParams)
+        Result.success(innerResult.getOrNull() as A)
+    }
+}
+
+private suspend fun <A> validateWithToken(validator: AuthValidator<*>?, token: String): Result<A> {
+    @Suppress("UNCHECKED_CAST")
+    val typedValidator = validator as? AuthValidator<A> ?: return Result.failure(Exception("Missing auth validator"))
+    return when (val principal = typedValidator.validate(token)) {
+        null -> Result.failure(Exception("Invalid credentials"))
+        else -> Result.success(principal)
+    }
+}
+
+private fun extractBearerToken(headers: io.ktor.http.Headers): String? =
+    headers["Authorization"]
+        ?.takeIf { it.startsWith("Bearer ", ignoreCase = true) }
+        ?.substring(7)
+
+private fun extractBasicCredentials(headers: io.ktor.http.Headers): String? =
+    headers["Authorization"]
+        ?.takeIf { it.startsWith("Basic ", ignoreCase = true) }
+        ?.substring(6)

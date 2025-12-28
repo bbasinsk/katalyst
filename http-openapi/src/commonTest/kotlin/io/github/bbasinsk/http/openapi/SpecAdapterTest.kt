@@ -2,6 +2,7 @@ package io.github.bbasinsk.http.openapi
 
 import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
+import io.github.bbasinsk.http.auth
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.encodeToString
@@ -1296,6 +1297,39 @@ class SpecAdapterTest {
         )
 
         assertEquals(expected, json)
+    }
+
+    @Test
+    fun `unique scheme names preserve multiple auth configurations`() {
+        data class User(val id: String)
+
+        val jwtEndpoint = Http.get { Root / "jwt-protected" }
+            .auth { bearer<User>(format = "JWT", schemeName = "jwtAuth") }
+            .output { status(Ok) { plain { string() } } }
+
+        val opaqueEndpoint = Http.get { Root / "opaque-protected" }
+            .auth { bearer<User>(schemeName = "opaqueAuth") }
+            .output { status(Ok) { plain { string() } } }
+
+        val apiKeyEndpoint = Http.get { Root / "api-key-protected" }
+            .auth { apiKeyHeader<User>("X-API-Key", schemeName = "apiKeyAuth") }
+            .output { status(Ok) { plain { string() } } }
+
+        val customApiKeyEndpoint = Http.get { Root / "custom-api-key" }
+            .auth { apiKeyHeader<User>("X-Custom-Key", schemeName = "customApiKeyAuth") }
+            .output { status(Ok) { plain { string() } } }
+
+        val result = listOf(jwtEndpoint, opaqueEndpoint, apiKeyEndpoint, customApiKeyEndpoint).toOpenApiSpec(info)
+
+        val securitySchemes = result.components?.securitySchemes ?: emptyMap()
+
+        assertEquals(4, securitySchemes.size)
+        assertEquals(setOf("jwtAuth", "opaqueAuth", "apiKeyAuth", "customApiKeyAuth"), securitySchemes.keys)
+
+        assertEquals("JWT", securitySchemes["jwtAuth"]?.bearerFormat)
+        assertEquals(null, securitySchemes["opaqueAuth"]?.bearerFormat)
+        assertEquals("X-API-Key", securitySchemes["apiKeyAuth"]?.name)
+        assertEquals("X-Custom-Key", securitySchemes["customApiKeyAuth"]?.name)
     }
 }
 

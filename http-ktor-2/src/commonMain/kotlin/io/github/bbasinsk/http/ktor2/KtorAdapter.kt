@@ -49,7 +49,7 @@ import kotlin.text.isNotBlank
 import kotlin.text.split
 
 fun <Path, Input, Error, Output> Route.httpEndpointToRoute(
-    endpoint: HttpEndpoint<Path, Input, Error, Output, ApplicationCall>
+    endpoint: HttpEndpoint<Path, Input, Error, Output, Unit, ApplicationCall>
 ): Route =
     endpoint.api.toRoute(this)
         .withChildren(httpPipelineInterceptor(endpoint))
@@ -57,7 +57,7 @@ fun <Path, Input, Error, Output> Route.httpEndpointToRoute(
 private fun Route.withChildren(handler: PipelineInterceptor<Unit, ApplicationCall>): Route =
     parent?.withChildren(handler)?.createChild(selector)?.also { it.handle(handler) } ?: this
 
-private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output>.toRoute(parent: Route): Route =
+private fun <Params, Input, Error, Output> Http<Params, Input, Error, Output, *>.toRoute(parent: Route): Route =
     Route(
         parent = params.toRoute(parent),
         selector = HttpMethodRouteSelector(io.ktor.http.HttpMethod.parse(method.name)),
@@ -83,7 +83,7 @@ private fun ParamsSchema<*>.toRoute(parent: Route): Route =
     }
 
 private fun <Path, Input, Error, Output> httpPipelineInterceptor(
-    endpoint: HttpEndpoint<Path, Input, Error, Output, ApplicationCall>
+    endpoint: HttpEndpoint<Path, Input, Error, Output, Unit, ApplicationCall>
 ): PipelineInterceptor<Unit, ApplicationCall> =
     interceptor@{
         if (context.request.httpMethod != endpoint.api.method.toKtorMethod()) {
@@ -103,7 +103,7 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
             }
 
         val response = with(endpoint) {
-            Response.handle(Request(path, input, context))
+            Response.handle(Request(path, input, Unit, context))
         }
 
         return@interceptor when (response) {
