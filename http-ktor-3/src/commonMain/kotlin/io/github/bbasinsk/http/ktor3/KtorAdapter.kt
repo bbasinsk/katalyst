@@ -74,15 +74,7 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
         .map { it.decodeURLPart() }
     val headers = call.request.headers.entries().associate { it.key to it.value }
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
-    val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query)
-        .getOrElse { e ->
-            call.application.environment.log.warn("Path parsing failed: ${e.message}")
-            return@interceptor call.respondText(
-                text = "Bad Request",
-                contentType = io.ktor.http.ContentType.Text.Plain,
-                status = HttpStatusCode.BadRequest
-            )
-        }
+    val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
     val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, query)
         .getOrElse { return@interceptor call.respond(HttpStatusCode.Unauthorized) }
