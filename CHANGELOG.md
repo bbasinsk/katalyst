@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.22](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.21...katalyst-v0.1.22) (2025-12-29)
+
+
+### Bug Fixes
+
+* http error handling ([#46](https://github.com/bbasinsk/katalyst/issues/46)) ([5cd8cf6](https://github.com/bbasinsk/katalyst/commit/5cd8cf6d9efde97e99ff3bdcac5b306a83740c16))
+
 ## [0.1.21](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.20...katalyst-v0.1.21) (2025-12-28)
 
 
