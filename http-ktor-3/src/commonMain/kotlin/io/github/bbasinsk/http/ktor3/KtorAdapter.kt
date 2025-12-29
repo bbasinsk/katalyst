@@ -64,50 +64,61 @@ private fun ParamsSchema<*>.toRoute(parent: RoutingNode): RoutingNode =
 private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
     endpoint: HttpEndpoint<Path, Input, Error, Output, Auth, RoutingCall>
 ): RoutingHandler = interceptor@{
-    if (call.request.httpMethod != endpoint.api.method.toKtorMethod()) {
-        return@interceptor call.respond(HttpStatusCode.MethodNotAllowed)
-    }
-
-    val rawPath = call.request.path()
-        .split("/")
-        .filter { it.isNotBlank() }
-        .map { it.decodeURLPart() }
-    val headers = call.request.headers.entries().associate { it.key to it.value }
-    val query = call.request.queryParameters.entries().associate { it.key to it.value }
-    val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
-
-    val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, query)
-        .getOrElse { return@interceptor call.respond(HttpStatusCode.Unauthorized) }
-
-    val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
-        errors.onEach { call.application.environment.log.warn(it.message) }
-        return@interceptor call.respondJson(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
-    }
-
-    val response = with(endpoint) {
-        Response.handle(Request(path, input, auth, call))
-    }
-
-    return@interceptor when (response) {
-        is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
-        is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
-        is Response.StreamingError -> {
-            val sseSchema = endpoint.api.error.findEventStream()
-                ?: error(
-                    "Handler returned StreamingError but error schema has no SSE variant. " +
-                        "Add sse { ... } to your error schema, or use oneOf(..., sse { ... })."
-                )
-            call.respondSSE(sseSchema.bodySchema, response.events)
+    try {
+        if (call.request.httpMethod != endpoint.api.method.toKtorMethod()) {
+            return@interceptor call.respond(HttpStatusCode.MethodNotAllowed)
         }
 
-        is Response.StreamingSuccess -> {
-            val sseSchema = endpoint.api.output.findEventStream()
-                ?: error(
-                    "Handler returned StreamingSuccess but output schema has no SSE variant. " +
-                        "Add sse { ... } to your output schema, or use oneOf(..., sse { ... })."
-                )
-            call.respondSSE(sseSchema.bodySchema, response.events)
+        val rawPath = call.request.path()
+            .split("/")
+            .filter { it.isNotBlank() }
+            .map { it.decodeURLPart() }
+        val headers = call.request.headers.entries().associate { it.key to it.value }
+        val query = call.request.queryParameters.entries().associate { it.key to it.value }
+        val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
+
+        val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, query)
+            .getOrElse { return@interceptor call.respond(HttpStatusCode.Unauthorized) }
+
+        val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
+            errors.onEach { call.application.environment.log.warn(it.message) }
+            return@interceptor call.respondJson(UnprocessableEntity, Schema.list(SchemaError.schema), errors)
         }
+
+        val response = with(endpoint) {
+            Response.handle(Request(path, input, auth, call))
+        }
+
+        return@interceptor when (response) {
+            is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
+            is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
+            is Response.StreamingError -> {
+                val sseSchema = endpoint.api.error.findEventStream()
+                    ?: error(
+                        "Handler returned StreamingError but error schema has no SSE variant. " +
+                            "Add sse { ... } to your error schema, or use oneOf(..., sse { ... })."
+                    )
+                call.respondSSE(sseSchema.bodySchema, response.events)
+            }
+
+            is Response.StreamingSuccess -> {
+                val sseSchema = endpoint.api.output.findEventStream()
+                    ?: error(
+                        "Handler returned StreamingSuccess but output schema has no SSE variant. " +
+                            "Add sse { ... } to your output schema, or use oneOf(..., sse { ... })."
+                    )
+                call.respondSSE(sseSchema.bodySchema, response.events)
+            }
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        call.application.environment.log.error("Unhandled exception in endpoint handler", e)
+        call.respondText(
+            text = "Internal Server Error",
+            contentType = io.ktor.http.ContentType.Text.Plain,
+            status = HttpStatusCode.InternalServerError
+        )
     }
 }
 
