@@ -45,6 +45,7 @@ data class HttpEndpoints(
 
     // Handle for endpoints with auth required - validator must be provided
     @KtorDsl
+    @JvmName("handleRequiredAuth")
     fun <Path, Input, Error, Output, Auth> handle(
         api: Http<Path, Input, Error, Output, Auth>,
         validator: AuthValidator<Auth>,
@@ -53,6 +54,22 @@ data class HttpEndpoints(
         HttpEndpoint(
             api = api.tag(*tags.toTypedArray()),
             validator = validator,
+            handle = handler
+        ).also {
+            underlying.add(it)
+        }
+
+    // Handle for endpoints with auth optional - validator must be provided
+    @KtorDsl
+    @JvmName("handleOptionalAuth")
+    fun <Path, Input, Error, Output, Auth> handle(
+        api: Http<Path, Input, Error, Output, Auth?>,
+        validator: AuthValidator<Auth>,
+        handler: suspend Response.Companion.(request: Request<Path, Input, Auth?, RoutingCall>) -> Response<Error, Output>
+    ): HttpEndpoint<Path, Input, Error, Output, Auth?, RoutingCall> =
+        HttpEndpoint(
+            api = api.tag(*tags.toTypedArray()),
+            validator = validator::validate,
             handle = handler
         ).also {
             underlying.add(it)

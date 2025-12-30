@@ -3,12 +3,10 @@ package io.github.bbasinsk.http.ktor3
 import io.github.bbasinsk.http.AuthValidator
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
-import io.github.bbasinsk.http.ResponseSchema.Companion.Ok
 import io.github.bbasinsk.http.auth
 import io.github.bbasinsk.http.optional
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import io.ktor.http.*
 import io.ktor.server.testing.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -135,7 +133,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator.optional()) { request ->
+                handle(api, userValidator) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -157,7 +155,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator.optional()) { request ->
+                handle(api, userValidator) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -177,7 +175,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator.optional()) { request ->
+                handle(api, userValidator) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }

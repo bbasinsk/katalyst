@@ -9,6 +9,3 @@ package io.github.bbasinsk.http
 fun interface AuthValidator<A> {
     suspend fun validate(token: String): A?
 }
-
-fun <A> AuthValidator<A>.optional(): AuthValidator<A?> =
-    AuthValidator { token -> validate(token) }

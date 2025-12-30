@@ -1,12 +1,6 @@
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.AuthSchema
-import io.github.bbasinsk.http.AuthValidator
-import io.github.bbasinsk.http.Http
-import io.github.bbasinsk.http.HttpEndpointGroup
-import io.github.bbasinsk.http.ResponseSchema.Companion.Ok
-import io.github.bbasinsk.http.auth
-import io.github.bbasinsk.http.optional
+import io.github.bbasinsk.http.*
 import io.github.bbasinsk.schema.Schema
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -93,7 +87,7 @@ fun main() {
             }
 
             // Optional auth - validator provided, framework handles null case
-            handle(AuthExampleEndpoints.feedEndpoint, userValidator.optional()) { req ->
+            handle(AuthExampleEndpoints.feedEndpoint, userValidator) { req ->
                 val user: User? = req.auth  // Type-safe, nullable
                 if (user != null) {
                     success("Personalized feed for ${user.name}")
