@@ -105,6 +105,17 @@ data class Http<Params, Input, Error, Output, Auth>(
                 auth = AuthSchema.None,
                 metadata = HttpMetadata()
             )
+
+        fun <Path> patch(path: PathDsl.() -> PathSchema<Path>): Http<Path, Nothing?, Nothing, Nothing, Unit> =
+            Http(
+                method = HttpMethod.PATCH,
+                params = PathDsl.path(),
+                input = BodySchema.empty(),
+                error = ResponseSchema.nothing(),
+                output = ResponseSchema.nothing(),
+                auth = AuthSchema.None,
+                metadata = HttpMetadata()
+            )
     }
 }
 

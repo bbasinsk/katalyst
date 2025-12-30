@@ -219,4 +219,102 @@ class KtorAdapterTest {
         assertEquals(200, response.status.value)
         assertEquals("name=[]", response.bodyAsText())
     }
+
+    @Test
+    fun patchWithJsonInputAndOutput() = testApplication {
+        data class Input(val value: String)
+        data class Output(val result: String)
+
+        val inputSchema = Schema.record(
+            Schema.field(Schema.string(), "value") { value },
+            ::Input
+        )
+
+        val outputSchema = Schema.record(
+            Schema.field(Schema.string(), "result") { result },
+            ::Output
+        )
+
+        val api = Http.patch { Root / "resource" / param("id") { string() } }
+            .input { json { inputSchema } }
+            .output { status(Ok) { json { outputSchema } } }
+
+        install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
+            json(json)
+        }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (id) = tupleValues(request.params)
+                    Response.success(Output("patched-$id-${request.input.value}"))
+                }
+            }
+        }
+
+        val client = createClient {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        val response = client.patch("/resource/123") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"value":"test"}""")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("""{"result":"patched-123-test"}""", response.bodyAsText())
+    }
+
+    @Test
+    fun patchWithQueryParams() = testApplication {
+        val api = Http.patch { Root / "items" }
+            .query { schema("id") { string() } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (id) = tupleValues(request.params)
+                    Response.success("updated-$id")
+                }
+            }
+        }
+
+        val response = client.patch("/items?id=abc123")
+        assertEquals(200, response.status.value)
+        assertEquals("updated-abc123", response.bodyAsText())
+    }
+
+    @Test
+    fun patchWithFormUrlEncoded() = testApplication {
+        data class FormInput(val name: String, val status: String)
+
+        val formSchema = Schema.record(
+            Schema.field(Schema.string(), "name") { name },
+            Schema.field(Schema.string(), "status") { status },
+            ::FormInput
+        )
+
+        val api = Http.patch { Root / "update" }
+            .input { formUrlEncoded { formSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("${request.input.name}:${request.input.status}")
+                }
+            }
+        }
+
+        val response = client.patch("/update") {
+            contentType(ContentType.Application.FormUrlEncoded)
+            setBody("name=item&status=active")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("item:active", response.bodyAsText())
+    }
 }
