@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.23](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.22...katalyst-v0.1.23) (2025-12-30)
+
+
+### Bug Fixes
+
+* add patch http method ([056283d](https://github.com/bbasinsk/katalyst/commit/056283df2a51d5852708968e106ffbb9fcfe99dd))
+* cleaner optional validation ([9ea4e2c](https://github.com/bbasinsk/katalyst/commit/9ea4e2cf7dc328653f5176ea4ea1ea57a350b2eb))
+
 ## [0.1.22](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.21...katalyst-v0.1.22) (2025-12-29)
 
 
