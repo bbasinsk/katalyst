@@ -24,6 +24,7 @@ private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
         is AuthSchema.Bearer<*> -> schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
         is AuthSchema.Basic<*> -> schemeName to SecurityScheme(type = "http", scheme = "basic")
         is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
+        is AuthSchema.Cookie<*> -> schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName)
         is AuthSchema.Optional<*> -> inner.toSecurityScheme()
     }
 

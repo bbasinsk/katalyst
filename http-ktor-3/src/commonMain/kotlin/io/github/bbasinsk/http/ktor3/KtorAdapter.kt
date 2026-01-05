@@ -76,7 +76,7 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
-    val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, query)
+    val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, call.request.cookies, query)
         .getOrElse { return@interceptor call.respond(HttpStatusCode.Unauthorized) }
 
     val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
@@ -426,6 +426,7 @@ private suspend fun <A> validateAuth(
     schema: AuthSchema<A>,
     validator: AuthValidator<*>?,
     headers: io.ktor.http.Headers,
+    cookies: RequestCookies,
     queryParams: Map<String, List<String>>
 ): Result<A> = when (schema) {
     is AuthSchema.None -> Result.success(Unit as A)
@@ -445,8 +446,13 @@ private suspend fun <A> validateAuth(
         validateWithToken(validator, key)
     }
 
+    is AuthSchema.Cookie -> {
+        val value = cookies[schema.cookieName] ?: return Result.failure(Exception("Missing cookie"))
+        validateWithToken(validator, value)
+    }
+
     is AuthSchema.Optional<*> -> {
-        val innerResult = validateAuth(schema.inner, validator, headers, queryParams)
+        val innerResult = validateAuth(schema.inner, validator, headers, cookies, queryParams)
         Result.success(innerResult.getOrNull() as A)
     }
 }

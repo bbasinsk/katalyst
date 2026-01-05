@@ -40,6 +40,31 @@ val api = Http.get { Root / "data" }
 
 Note: API keys are only supported in headers (not query params) for security reasons.
 
+### Security Best Practices
+
+#### Cookie Authentication
+- Always set `HttpOnly` and `Secure` flags on session cookies to prevent XSS attacks and ensure HTTPS-only transmission
+- Use `SameSite=Strict` or `SameSite=Lax` to protect against CSRF attacks
+- Implement short expiration times and session rotation
+- Store session tokens securely server-side (not user data in the cookie itself)
+
+#### General Recommendations
+- Use HTTPS for all authenticated endpoints
+- Implement rate limiting to prevent brute-force attacks
+- Validate and sanitize all input in validators
+- Log authentication failures for monitoring and alerting
+- Consider token rotation and refresh mechanisms for long-lived sessions
+
+#### Cookie
+
+```kotlin
+data class Session(val userId: String, val roles: List<String>)
+
+val api = Http.get { Root / "dashboard" }
+    .auth { cookie<Session>("token") }
+    .output { status(Ok) { json { dashboardSchema } } }
+```
+
 ### Optional Authentication
 
 Wrap any auth type with `.optional()` to allow unauthenticated access:
@@ -82,6 +107,11 @@ val apiKeyValidator = AuthValidator<ApiToken> { key ->
     // Look up API key and return token info
     apiKeyService.validate(key)
 }
+
+val cookieValidator = AuthValidator<Session> { cookieValue ->
+    // Look up session by cookie value
+    sessionService.validateSession(cookieValue)
+}
 ```
 
 ### OpenAPI Generation
@@ -94,7 +124,8 @@ Auth schemas automatically generate OpenAPI security schemes:
     "securitySchemes": {
       "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
       "basicAuth": { "type": "http", "scheme": "basic" },
-      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" },
+      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "token" }
     }
   }
 }
