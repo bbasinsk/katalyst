@@ -40,6 +40,21 @@ val api = Http.get { Root / "data" }
 
 Note: API keys are only supported in headers (not query params) for security reasons.
 
+### Security Best Practices
+
+#### Cookie Authentication
+- Always set `HttpOnly` and `Secure` flags on session cookies to prevent XSS attacks and ensure HTTPS-only transmission
+- Use `SameSite=Strict` or `SameSite=Lax` to protect against CSRF attacks
+- Implement short expiration times and session rotation
+- Store session tokens securely server-side (not user data in the cookie itself)
+
+#### General Recommendations
+- Use HTTPS for all authenticated endpoints
+- Implement rate limiting to prevent brute-force attacks
+- Validate and sanitize all input in validators
+- Log authentication failures for monitoring and alerting
+- Consider token rotation and refresh mechanisms for long-lived sessions
+
 #### Cookie
 
 ```kotlin

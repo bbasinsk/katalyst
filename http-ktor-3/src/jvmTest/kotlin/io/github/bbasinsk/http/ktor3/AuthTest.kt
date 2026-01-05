@@ -26,6 +26,10 @@ class AuthTest {
         if (key == "secret-api-key") User("1", "API User") else null
     }
 
+    private val cookieValidator = AuthValidator<User> { cookieValue ->
+        if (cookieValue == "valid-session") User("1", "Cookie User") else null
+    }
+
     @Test
     fun bearerAuthSuccess() = testApplication {
         val api = Http.get { Root / "profile" }
@@ -123,6 +127,107 @@ class AuthTest {
 
         val response = client.get("/data")
         assertEquals(401, response.status.value)
+    }
+
+    @Test
+    fun cookieAuthSuccess() = testApplication {
+        val api = Http.get { Root / "dashboard" }
+            .auth { cookie<User>("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, cookieValidator) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/dashboard") {
+            cookie("session", "valid-session")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Cookie User", response.bodyAsText())
+    }
+
+    @Test
+    fun cookieAuthMissingReturns401() = testApplication {
+        val api = Http.get { Root / "dashboard" }
+            .auth { cookie<User>("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, cookieValidator) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/dashboard")
+        assertEquals(401, response.status.value)
+    }
+
+    @Test
+    fun cookieAuthInvalidReturns401() = testApplication {
+        val api = Http.get { Root / "dashboard" }
+            .auth { cookie<User>("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, cookieValidator) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/dashboard") {
+            cookie("session", "invalid-session")
+        }
+        assertEquals(401, response.status.value)
+    }
+
+    @Test
+    fun optionalCookieAuthWithValidCookie() = testApplication {
+        val api = Http.get { Root / "content" }
+            .auth { cookie<User>("session").optional() }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, cookieValidator) { request ->
+                    val greeting = request.auth?.name ?: "Anonymous"
+                    Response.success("Hello $greeting")
+                }
+            }
+        }
+
+        val response = client.get("/content") {
+            cookie("session", "valid-session")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Cookie User", response.bodyAsText())
+    }
+
+    @Test
+    fun optionalCookieAuthWithoutCookieReturnsNull() = testApplication {
+        val api = Http.get { Root / "content" }
+            .auth { cookie<User>("session").optional() }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, cookieValidator) { request ->
+                    val greeting = request.auth?.name ?: "Anonymous"
+                    Response.success("Hello $greeting")
+                }
+            }
+        }
+
+        val response = client.get("/content")
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Anonymous", response.bodyAsText())
     }
 
     @Test

@@ -447,7 +447,7 @@ private suspend fun <A> validateAuth(
     }
 
     is AuthSchema.Cookie -> {
-        val value = cookies[schema.cookieName] ?: return Result.failure(Exception("Missing cookie: ${schema.cookieName}"))
+        val value = cookies[schema.cookieName] ?: return Result.failure(Exception("Missing cookie"))
         validateWithToken(validator, value)
     }
 
