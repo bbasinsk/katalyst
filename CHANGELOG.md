@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.24](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.23...katalyst-v0.1.24) (2026-01-05)
+
+
+### Bug Fixes
+
+* add cookie auth support ([#49](https://github.com/bbasinsk/katalyst/issues/49)) ([328abc0](https://github.com/bbasinsk/katalyst/commit/328abc06f25fe8f33aa2589941fbc2336c6e71c3))
+
 ## [0.1.23](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.22...katalyst-v0.1.23) (2025-12-30)
 
 
