@@ -40,6 +40,16 @@ val api = Http.get { Root / "data" }
 
 Note: API keys are only supported in headers (not query params) for security reasons.
 
+#### Cookie
+
+```kotlin
+data class Session(val userId: String, val roles: List<String>)
+
+val api = Http.get { Root / "dashboard" }
+    .auth { cookie<Session>("token") }
+    .output { status(Ok) { json { dashboardSchema } } }
+```
+
 ### Optional Authentication
 
 Wrap any auth type with `.optional()` to allow unauthenticated access:
@@ -82,6 +92,11 @@ val apiKeyValidator = AuthValidator<ApiToken> { key ->
     // Look up API key and return token info
     apiKeyService.validate(key)
 }
+
+val cookieValidator = AuthValidator<Session> { cookieValue ->
+    // Look up session by cookie value
+    sessionService.validateSession(cookieValue)
+}
 ```
 
 ### OpenAPI Generation
@@ -94,7 +109,8 @@ Auth schemas automatically generate OpenAPI security schemes:
     "securitySchemes": {
       "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
       "basicAuth": { "type": "http", "scheme": "basic" },
-      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" }
+      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" },
+      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "token" }
     }
   }
 }

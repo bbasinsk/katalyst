@@ -36,6 +36,13 @@ sealed interface AuthSchema<A> {
         }
     }
 
+    class Cookie<A> private constructor(val cookieName: String, override val schemeName: String) : AuthSchema<A> {
+        companion object {
+            operator fun <A> invoke(cookieName: String, schemeName: String = "cookieAuth"): Cookie<A> =
+                Cookie(cookieName, schemeName)
+        }
+    }
+
     data class Optional<A>(val inner: AuthSchema<A>) : AuthSchema<A?> {
         override val schemeName: String? = inner.schemeName
     }
@@ -45,6 +52,7 @@ sealed interface AuthSchema<A> {
         is Bearer<*> -> false
         is Basic<*> -> false
         is ApiKeyHeader<*> -> false
+        is Cookie<*> -> false
         is Optional<*> -> true
     }
 
@@ -54,6 +62,8 @@ sealed interface AuthSchema<A> {
         fun <A> basic(schemeName: String = "basicAuth"): Basic<A> = Basic(schemeName)
         fun <A> apiKeyHeader(headerName: String, schemeName: String = "apiKeyAuth"): ApiKeyHeader<A> =
             ApiKeyHeader(headerName, schemeName)
+        fun <A> cookie(cookieName: String, schemeName: String = "cookieAuth"): Cookie<A> =
+            Cookie(cookieName, schemeName)
     }
 }
 
