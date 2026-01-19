@@ -21,8 +21,10 @@ import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import io.ktor.utils.io.core.*
 import io.ktor.utils.io.jvm.javaio.*
+import io.ktor.util.cio.ChannelWriteException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
+import java.nio.channels.ClosedChannelException
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.JsonElement
 import java.io.Writer
@@ -393,20 +395,12 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
  * Checks if the exception (or its cause chain) indicates a closed channel,
  * which typically means the client disconnected.
  */
-private fun Throwable.isChannelClosedException(): Boolean {
-    var current: Throwable? = this
-    while (current != null) {
-        val className = current::class.qualifiedName ?: ""
-        if (className.contains("ClosedWriteChannelException") ||
-            className.contains("ClosedByteChannelException") ||
-            className.contains("ChannelWriteException") ||
-            className.contains("ClosedChannelException")) {
-            return true
-        }
-        current = current.cause
+internal fun Throwable.isChannelClosedException(): Boolean =
+    generateSequence(this) { it.cause }.any {
+        it is ChannelWriteException ||
+            it is ClosedWriteChannelException ||
+            it is ClosedChannelException
     }
-    return false
-}
 
 /**
  * Writes a single SSE event to the response writer.
