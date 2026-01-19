@@ -536,7 +536,7 @@ class SSETest {
 
     @Test
     fun `test isChannelClosedException detects ChannelWriteException`() {
-        val exception = ChannelWriteException("test")
+        val exception = ChannelWriteException("test", ClosedChannelException())
         assertTrue(exception.isChannelClosedException())
     }
 
