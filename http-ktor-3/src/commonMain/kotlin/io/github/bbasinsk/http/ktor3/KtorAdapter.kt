@@ -354,6 +354,7 @@ data class SchemaError(
 /**
  * Responds with a Server-Sent Events (SSE) stream.
  * Includes error handling - if the flow throws, an error event is sent before closing.
+ * Gracefully handles client disconnections without logging errors.
  */
 private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events: Flow<SSEEvent<A>>) {
     respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
@@ -364,15 +365,35 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
         } catch (e: CancellationException) {
             throw e // Don't catch cancellation - let it propagate
         } catch (e: Exception) {
-            // Send generic error event - full error is logged below
-            appendLine("event: error")
-            appendLine("data: An error occurred")
-            appendLine()
-            flush()
+            // Check if this is a channel closed exception (client disconnected)
+            if (e.isChannelClosedException()) {
+                application.environment.log.info("SSE client disconnected", e)
+                return@respondTextWriter
+            }
+            // Try to send error event, but don't fail if channel is closed
+            try {
+                appendLine("event: error")
+                appendLine("data: An error occurred")
+                appendLine()
+                flush()
+            } catch (writeException: Exception) {
+                // Channel closed while trying to write error - client disconnected
+                if (writeException.isChannelClosedException()) {
+                    application.environment.log.info("SSE client disconnected while sending", writeException)
+                    return@respondTextWriter
+                }
+                throw writeException
+            }
             application.environment.log.error("SSE stream error", e)
         }
     }
 }
+
+/**
+ * Checks if the exception (or its cause chain) indicates a closed channel,
+ * which typically means the client disconnected.
+ */
+internal expect fun Throwable.isChannelClosedException(): Boolean
 
 /**
  * Writes a single SSE event to the response writer.

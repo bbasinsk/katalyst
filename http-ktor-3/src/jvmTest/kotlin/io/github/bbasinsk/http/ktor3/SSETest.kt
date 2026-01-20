@@ -7,11 +7,15 @@ import io.github.bbasinsk.schema.Schema
 import io.ktor.client.plugins.sse.*
 import io.ktor.server.testing.*
 import io.ktor.sse.*
+import io.ktor.util.cio.ChannelWriteException
+import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
+import java.nio.channels.ClosedChannelException
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -487,5 +491,86 @@ class SSETest {
         assertEquals(2, receivedEvents.size)
         assertTrue(receivedEvents[0].data!!.contains("\"value\":\"streamed-1\""))
         assertTrue(receivedEvents[1].data!!.contains("\"value\":\"streamed-2\""))
+    }
+
+    @Test
+    fun `test early client disconnect is handled gracefully`() = testApplication {
+        val api = Http.get { Root / "long-stream" }
+            .output { sse { json { Schema.int() } } }
+
+        application {
+            endpoints {
+                handle(api) {
+                    Response.streamingSuccessData(flow {
+                        repeat(100) { i ->
+                            emit(i)
+                            delay(50)
+                        }
+                    })
+                }
+            }
+        }
+
+        val client = createClient {
+            install(SSE)
+        }
+
+        val receivedEvents = mutableListOf<ServerSentEvent>()
+
+        // Client disconnects after receiving just 2 events
+        client.sse("/long-stream") {
+            incoming.collect { event ->
+                receivedEvents.add(event)
+                if (receivedEvents.size >= 2) {
+                    cancel() // Simulate client disconnect
+                }
+            }
+        }
+
+        // Verify we got the expected events before disconnect
+        assertEquals(2, receivedEvents.size)
+        assertEquals("0", receivedEvents[0].data)
+        assertEquals("1", receivedEvents[1].data)
+        // The test passes if no exception is thrown - server handles disconnect gracefully
+    }
+
+    @Test
+    fun `test isChannelClosedException detects ChannelWriteException`() {
+        val exception = ChannelWriteException("test", ClosedChannelException())
+        assertTrue(exception.isChannelClosedException())
+    }
+
+    @Test
+    fun `test isChannelClosedException detects ClosedWriteChannelException`() {
+        val exception = ClosedWriteChannelException(Exception("test"))
+        assertTrue(exception.isChannelClosedException())
+    }
+
+    @Test
+    fun `test isChannelClosedException detects ClosedChannelException`() {
+        val exception = ClosedChannelException()
+        assertTrue(exception.isChannelClosedException())
+    }
+
+    @Test
+    fun `test isChannelClosedException detects nested channel exceptions`() {
+        val rootCause = ClosedChannelException()
+        val wrappedException = RuntimeException("wrapper", rootCause)
+        assertTrue(wrappedException.isChannelClosedException())
+    }
+
+    @Test
+    fun `test isChannelClosedException returns false for unrelated exceptions`() {
+        val exception = IllegalStateException("not a channel exception")
+        assertFalse(exception.isChannelClosedException())
+    }
+
+    @Test
+    fun `test isChannelClosedException handles deep cause chain`() {
+        val rootCause = ClosedWriteChannelException(Exception("root"))
+        val level1 = RuntimeException("level1", rootCause)
+        val level2 = IllegalStateException("level2", level1)
+        val level3 = Exception("level3", level2)
+        assertTrue(level3.isChannelClosedException())
     }
 }
