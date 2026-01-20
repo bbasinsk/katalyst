@@ -542,7 +542,7 @@ class SSETest {
 
     @Test
     fun `test isChannelClosedException detects ClosedWriteChannelException`() {
-        val exception = ClosedWriteChannelException("test")
+        val exception = ClosedWriteChannelException(Exception("test"))
         assertTrue(exception.isChannelClosedException())
     }
 
@@ -567,7 +567,7 @@ class SSETest {
 
     @Test
     fun `test isChannelClosedException handles deep cause chain`() {
-        val rootCause = ClosedWriteChannelException("root")
+        val rootCause = ClosedWriteChannelException(Exception("root"))
         val level1 = RuntimeException("level1", rootCause)
         val level2 = IllegalStateException("level2", level1)
         val level3 = Exception("level3", level2)

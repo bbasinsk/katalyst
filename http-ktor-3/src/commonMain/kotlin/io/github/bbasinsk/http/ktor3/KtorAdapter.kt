@@ -369,7 +369,7 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
         } catch (e: Exception) {
             // Check if this is a channel closed exception (client disconnected)
             if (e.isChannelClosedException()) {
-                application.environment.log.debug("SSE client disconnected", e)
+                application.environment.log.info("SSE client disconnected", e)
                 return@respondTextWriter
             }
             // Try to send error event, but don't fail if channel is closed
@@ -381,7 +381,7 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
             } catch (writeException: Exception) {
                 // Channel closed while trying to write error - client disconnected
                 if (writeException.isChannelClosedException()) {
-                    application.environment.log.debug("SSE client disconnected while sending error", e)
+                    application.environment.log.info("SSE client disconnected while sending", writeException)
                     return@respondTextWriter
                 }
                 throw writeException
