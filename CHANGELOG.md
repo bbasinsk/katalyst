@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.25](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.24...katalyst-v0.1.25) (2026-01-20)
+
+
+### Bug Fixes
+
+* handle SSE channel close gracefully when client disconnects ([#51](https://github.com/bbasinsk/katalyst/issues/51)) ([974ad7e](https://github.com/bbasinsk/katalyst/commit/974ad7e5961c92737306f47591508ec5b4f73c54))
+
 ## [0.1.24](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.23...katalyst-v0.1.24) (2026-01-05)
 
 
