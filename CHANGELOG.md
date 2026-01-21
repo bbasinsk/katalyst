@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.27](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.26...katalyst-v0.1.27) (2026-01-21)
+
+
+### Bug Fixes
+
+* catch write closed on cleanup ([8f29d1c](https://github.com/bbasinsk/katalyst/commit/8f29d1c8fcab05433604b14b7ed5210f34b16daf))
+
 ## [0.1.26](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.25...katalyst-v0.1.26) (2026-01-21)
 
 
