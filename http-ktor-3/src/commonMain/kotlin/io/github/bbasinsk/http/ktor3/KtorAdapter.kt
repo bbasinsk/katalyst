@@ -355,27 +355,36 @@ data class SchemaError(
  * Gracefully handles client disconnections without logging errors.
  */
 private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events: Flow<SSEEvent<A>>) {
-    respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
-        try {
-            events.collect { event ->
-                writeSSEEvent(bodySchema, event)
-            }
-        } catch (e: CancellationException) {
-            throw e // Don't catch cancellation - let it propagate
-        } catch (e: Exception) {
-            // Check if this is a channel closed exception (client disconnected)
-            if (e.isChannelClosedException()) {
-                application.environment.log.debug("SSE client disconnected", e)
-                return@respondTextWriter
-            }
+    try {
+        respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
+            try {
+                events.collect { event ->
+                    writeSSEEvent(bodySchema, event)
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (e.isChannelClosedException()) {
+                    application.environment.log.debug("SSE client disconnected", e)
+                    return@respondTextWriter
+                }
 
-            appendLine("event: error")
-            appendLine("data: An error occurred")
-            appendLine()
-            flush()
+                appendLine("event: error")
+                appendLine("data: An error occurred")
+                appendLine()
+                flush()
 
-            application.environment.log.error("An error occurred writing an SSE event", e)
+                application.environment.log.error("An error occurred writing an SSE event", e)
+            }
         }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        if (e.isChannelClosedException()) {
+            application.environment.log.debug("SSE client disconnected during cleanup", e)
+            return
+        }
+        throw e
     }
 }
 
