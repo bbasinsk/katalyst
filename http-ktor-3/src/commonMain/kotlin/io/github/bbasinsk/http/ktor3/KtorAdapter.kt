@@ -364,16 +364,10 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (e.isChannelClosedException()) {
-                    application.environment.log.debug("SSE client disconnected", e)
-                    return@respondTextWriter
-                }
-
                 appendLine("event: error")
                 appendLine("data: An error occurred")
                 appendLine()
                 flush()
-
                 application.environment.log.error("An error occurred writing an SSE event", e)
             }
         }
@@ -381,7 +375,7 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
         throw e
     } catch (e: Exception) {
         if (e.isChannelClosedException()) {
-            application.environment.log.debug("SSE client disconnected during cleanup", e)
+            application.environment.log.debug("SSE client disconnected", e)
             return
         }
         throw e
