@@ -8,6 +8,7 @@ import io.ktor.client.plugins.sse.*
 import io.ktor.server.testing.*
 import io.ktor.sse.*
 import io.ktor.util.cio.ChannelWriteException
+import io.ktor.utils.io.ClosedByteChannelException
 import io.ktor.utils.io.ClosedWriteChannelException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -543,6 +544,12 @@ class SSETest {
     @Test
     fun `test isChannelClosedException detects ClosedWriteChannelException`() {
         val exception = ClosedWriteChannelException(Exception("test"))
+        assertTrue(exception.isChannelClosedException())
+    }
+
+    @Test
+    fun `test isChannelClosedException detects ClosedByteChannelException`() {
+        val exception = ClosedByteChannelException()
         assertTrue(exception.isChannelClosedException())
     }
 
