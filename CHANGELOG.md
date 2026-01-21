@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.26](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.25...katalyst-v0.1.26) (2026-01-21)
+
+
+### Bug Fixes
+
+* handle ClosedByteChannelException ([#53](https://github.com/bbasinsk/katalyst/issues/53)) ([a0fdc61](https://github.com/bbasinsk/katalyst/commit/a0fdc61d25f3c9a80d3ac9486427308d55eef0fb))
+
 ## [0.1.25](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.24...katalyst-v0.1.25) (2026-01-20)
 
 
