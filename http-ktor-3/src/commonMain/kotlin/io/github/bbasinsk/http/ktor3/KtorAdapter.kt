@@ -370,11 +370,11 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
             }
 
             appendLine("event: error")
-            appendLine("data: An error occurred: ${e.message ?: "Unknown error"}")
+            appendLine("data: An error occurred")
             appendLine()
             flush()
 
-            application.environment.log.error("SSE stream error", e)
+            application.environment.log.error("An error occurred writing an SSE event", e)
         }
     }
 }
