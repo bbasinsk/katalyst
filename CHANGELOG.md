@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.28](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.27...katalyst-v0.1.28) (2026-01-21)
+
+
+### Bug Fixes
+
+* cleanup duplicate code ([1cecb4b](https://github.com/bbasinsk/katalyst/commit/1cecb4b521a02cc87f8cdc9dc721e81857cc275c))
+
 ## [0.1.27](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.26...katalyst-v0.1.27) (2026-01-21)
 
 
