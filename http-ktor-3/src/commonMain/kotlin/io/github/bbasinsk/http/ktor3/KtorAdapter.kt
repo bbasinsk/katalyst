@@ -93,20 +93,18 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
             is Response.CompletionError -> call.respondSchema(endpoint.api.error, response.value)
             is Response.CompletionSuccess -> call.respondSchema(endpoint.api.output, response.value)
             is Response.StreamingError -> {
-                val sseSchema = endpoint.api.error.findEventStream()
-                    ?: error(
-                        "Handler returned StreamingError but error schema has no SSE variant. " +
+                val sseSchema = endpoint.api.error.findEventStream() ?: error(
+                    "Handler returned StreamingError but error schema has no SSE variant. " +
                             "Add sse { ... } to your error schema, or use oneOf(..., sse { ... })."
-                    )
+                )
                 call.respondSSE(sseSchema.bodySchema, response.events)
             }
 
             is Response.StreamingSuccess -> {
-                val sseSchema = endpoint.api.output.findEventStream()
-                    ?: error(
-                        "Handler returned StreamingSuccess but output schema has no SSE variant. " +
+                val sseSchema = endpoint.api.output.findEventStream() ?: error(
+                    "Handler returned StreamingSuccess but output schema has no SSE variant. " +
                             "Add sse { ... } to your output schema, or use oneOf(..., sse { ... })."
-                    )
+                )
                 call.respondSSE(sseSchema.bodySchema, response.events)
             }
         }
@@ -367,23 +365,15 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
         } catch (e: Exception) {
             // Check if this is a channel closed exception (client disconnected)
             if (e.isChannelClosedException()) {
-                application.environment.log.info("SSE client disconnected", e)
+                application.environment.log.debug("SSE client disconnected", e)
                 return@respondTextWriter
             }
-            // Try to send error event, but don't fail if channel is closed
-            try {
-                appendLine("event: error")
-                appendLine("data: An error occurred")
-                appendLine()
-                flush()
-            } catch (writeException: Exception) {
-                // Channel closed while trying to write error - client disconnected
-                if (writeException.isChannelClosedException()) {
-                    application.environment.log.info("SSE client disconnected while sending", writeException)
-                    return@respondTextWriter
-                }
-                throw writeException
-            }
+
+            appendLine("event: error")
+            appendLine("data: An error occurred: ${e.message ?: "Unknown error"}")
+            appendLine()
+            flush()
+
             application.environment.log.error("SSE stream error", e)
         }
     }
@@ -399,7 +389,7 @@ internal expect fun Throwable.isChannelClosedException(): Boolean
  * Writes a single SSE event to the response writer.
  * Handles multi-line data by prefixing each line with "data: " as per SSE spec.
  */
-private suspend fun <A> Writer.writeSSEEvent(bodySchema: BodySchema<A>, event: SSEEvent<A>) {
+private fun <A> Writer.writeSSEEvent(bodySchema: BodySchema<A>, event: SSEEvent<A>) {
     event.comment?.let { appendLine(": $it") }
     event.id?.let { appendLine("id: $it") }
     event.event?.let { appendLine("event: $it") }
