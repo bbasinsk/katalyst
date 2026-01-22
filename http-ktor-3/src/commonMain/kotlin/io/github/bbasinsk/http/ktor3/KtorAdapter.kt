@@ -364,6 +364,8 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                if (e.isChannelClosedException()) return@respondTextWriter
+
                 appendLine("event: error")
                 appendLine("data: An error occurred")
                 appendLine()
