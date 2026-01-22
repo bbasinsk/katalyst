@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.29](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.28...katalyst-v0.1.29) (2026-01-22)
+
+
+### Bug Fixes
+
+* short circuit on channel exception ([ef504b6](https://github.com/bbasinsk/katalyst/commit/ef504b68ace6617091f905464e82e7f56e9c25cd))
+
 ## [0.1.28](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.27...katalyst-v0.1.28) (2026-01-21)
 
 
