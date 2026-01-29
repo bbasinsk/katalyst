@@ -52,6 +52,10 @@ implementation("io.github.bbasinsk:http:{{version}}")
 implementation("io.github.bbasinsk:http-ktor-3:{{version}}")
 ```
 
+### Build Requirements
+
+- JDK 17 (the convention plugins target Java 17 for Gradle compatibility).
+
 ### Basic Schema Definition
 
 ```kotlin
