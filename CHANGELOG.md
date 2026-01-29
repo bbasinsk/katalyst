@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.30](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.29...katalyst-v0.1.30) (2026-01-29)
+
+
+### Bug Fixes
+
+* Update Kotlin/Ktor versions and document JDK 17 baseline ([#58](https://github.com/bbasinsk/katalyst/issues/58)) ([6d062e0](https://github.com/bbasinsk/katalyst/commit/6d062e0bc7ae5203609f45542a852db5faaaa4a1))
+
 ## [0.1.29](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.28...katalyst-v0.1.29) (2026-01-22)
 
 
