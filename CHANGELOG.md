@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.31](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.30...katalyst-v0.1.31) (2026-01-29)
+
+
+### Bug Fixes
+
+* handle CancellationException ([cef906e](https://github.com/bbasinsk/katalyst/commit/cef906ef163ad668b5595f52b6dfa9c7e6ea728b))
+
 ## [0.1.30](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.29...katalyst-v0.1.30) (2026-01-29)
 
 
