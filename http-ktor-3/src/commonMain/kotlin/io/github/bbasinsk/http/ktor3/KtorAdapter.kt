@@ -109,7 +109,7 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
             }
         }
     } catch (e: CancellationException) {
-        call.application.environment.log.info("Request was cancelled", e)
+        call.application.environment.log.info("Request was cancelled")
     } catch (e: Exception) {
         call.application.environment.log.error("Unhandled exception in endpoint handler", e)
         call.respondText(
