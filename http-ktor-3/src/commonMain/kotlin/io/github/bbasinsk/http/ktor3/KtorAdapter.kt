@@ -377,7 +377,7 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
         throw e
     } catch (e: Exception) {
         if (e.isChannelClosedException()) {
-            application.environment.log.debug("SSE client disconnected", e)
+            application.environment.log.debug("SSE client disconnected")
             return
         }
         throw e

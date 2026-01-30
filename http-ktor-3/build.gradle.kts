@@ -28,6 +28,7 @@ kotlin {
             dependencies {
                 implementation("ch.qos.logback:logback-classic:1.5.12")
                 implementation(libs.ktor3.server.cio) // For example / main
+                implementation(libs.ktor3.server.netty) // For example / main
                 implementation(libs.ktor3.server.call.logging) // For example / main
                 implementation(libs.ktor3.client.content.negotiation) // For example / main
                 implementation(libs.ktor3.server.content.negotiation) // For example / main

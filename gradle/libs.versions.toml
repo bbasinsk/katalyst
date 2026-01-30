@@ -23,6 +23,7 @@ ktor2-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor2" }
 
 ktor3-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor3" }
 ktor3-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor3" }
+ktor3-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor3" }
 ktor3-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor3" }
 ktor3-server-sse = { module = "io.ktor:ktor-server-sse", version.ref = "ktor3" }
 ktor3-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor3" }
