@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.32](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.31...katalyst-v0.1.32) (2026-01-30)
+
+
+### Bug Fixes
+
+* don't log cancellation exception ([b7a4923](https://github.com/bbasinsk/katalyst/commit/b7a492379f35317b85973a11881f93a5b15ef9f8))
+* remove exception from log ([36a0095](https://github.com/bbasinsk/katalyst/commit/36a0095adedf3d56a1673bf0f7d52ca16be5134f))
+
 ## [0.1.31](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.30...katalyst-v0.1.31) (2026-01-29)
 
 
