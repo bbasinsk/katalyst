@@ -2,14 +2,23 @@
 
 package io.github.bbasinsk.http.ktor3
 
+import io.github.bbasinsk.http.Http
+import io.github.bbasinsk.http.HttpEndpointGroup
+import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
+import io.github.bbasinsk.schema.Schema
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.http.HttpRequestLifecycle
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.isActive
 import kotlin.random.Random
 import kotlin.random.nextInt
 import kotlin.uuid.ExperimentalUuidApi
@@ -21,6 +30,9 @@ fun main() {
         install(CallLogging)
         install(ContentNegotiation) {
             json()
+        }
+        install(HttpRequestLifecycle) {
+            cancelCallOnClose = true
         }
 
         val domainService = {
@@ -45,6 +57,34 @@ fun main() {
             )
             multipartEndpoints()
             personEndpoints(domainService)
+            sseEndpoints()
         }
     }.start(wait = true)
+}
+
+data class HeartbeatEvent(val count: Long, val timestamp: Long)
+
+object SSEEndpoints : HttpEndpointGroup("SSE") {
+    private val heartbeatSchema = Schema.record(
+        Schema.field(Schema.long(), "count") { count },
+        Schema.field(Schema.long(), "timestamp") { timestamp },
+        ::HeartbeatEvent
+    )
+
+    val longLivedStream = http {
+        get { Root / "sse" / "heartbeat" }
+            .output { sse { json { heartbeatSchema } } }
+    }
+}
+
+fun HttpEndpoints.sseEndpoints() {
+    handle(SSEEndpoints.longLivedStream) {
+        Response.streamingSuccessData(flow {
+            var count = 0L
+            while (currentCoroutineContext().isActive) {
+                emit(HeartbeatEvent(count++, System.currentTimeMillis()))
+                delay(1000)
+            }
+        })
+    }
 }
