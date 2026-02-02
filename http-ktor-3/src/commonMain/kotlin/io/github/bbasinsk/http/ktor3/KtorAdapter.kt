@@ -76,8 +76,13 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
-    val auth: Auth = validateAuth(endpoint.api.auth, endpoint.validator, call.request.headers, call.request.cookies, query)
-        .getOrElse { return@interceptor call.respond(HttpStatusCode.Unauthorized) }
+    val auth: Auth = validateAuth(endpoint.api.auth.schema, endpoint.validator, call.request.headers, call.request.cookies, query)
+        .getOrElse {
+            return@interceptor when (val failure = endpoint.api.auth.onFailure) {
+                is AuthFailure.Unauthorized -> call.respond(HttpStatusCode.Unauthorized)
+                is AuthFailure.Redirect -> call.respondRedirect(failure.location)
+            }
+        }
 
     val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
         errors.onEach { call.application.environment.log.warn(it.message) }
