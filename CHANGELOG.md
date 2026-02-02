@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.32...katalyst-v0.2.0) (2026-02-02)
+
+
+### Features
+
+* **http:** add configurable auth failure behavior ([#62](https://github.com/bbasinsk/katalyst/issues/62)) ([92ff7e9](https://github.com/bbasinsk/katalyst/commit/92ff7e98f164cce37065bf74cf3b6ff9e1d9c309))
+
 ## [0.1.32](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.31...katalyst-v0.1.32) (2026-01-30)
 
 
