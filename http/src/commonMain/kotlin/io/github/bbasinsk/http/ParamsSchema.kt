@@ -82,6 +82,15 @@ fun <A, B> ParamsSchema<A>.withQuery(right: ParamSchema<B>): ParamsSchema<Pair<A
 fun <A, B> ParamsSchema<A>.withHeader(right: ParamSchema<B>): ParamsSchema<Pair<A, B>> =
     ParamsSchema.Combine(this, ParamsSchema.HeaderSchema(right))
 
+fun ParamsSchema<*>.renderPath(): String =
+    pathSchemas().mapNotNull { schema ->
+        when (schema) {
+            is PathSegment -> schema.name
+            is PathParam -> "{${schema.param.name()}}"
+            else -> null
+        }
+    }.joinToString(separator = "/", prefix = "/")
+
 fun <A> ParamsSchema<A>.parseCatching(
     path: List<String>,
     headers: Map<String, List<String>>,

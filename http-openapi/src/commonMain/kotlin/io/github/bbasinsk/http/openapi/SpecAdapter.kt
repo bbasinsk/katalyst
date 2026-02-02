@@ -29,11 +29,11 @@ private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
     }
 
 private fun List<Http<*, *, *, *, *>>.collectSecuritySchemes(): Map<String, SecurityScheme> =
-    mapNotNull { it.auth.toSecurityScheme() }.toMap()
+    mapNotNull { it.auth.schema.toSecurityScheme() }.toMap()
 
 private fun Http<*, *, *, *, *>.toSecurityRequirement(): List<Map<String, List<String>>>? {
-    val (schemeName, _) = auth.toSecurityScheme() ?: return null
-    return if (auth.isOptional()) {
+    val (schemeName, _) = auth.schema.toSecurityScheme() ?: return null
+    return if (auth.schema.isOptional()) {
         listOf(mapOf(schemeName to emptyList()), emptyMap())
     } else {
         listOf(mapOf(schemeName to emptyList()))
