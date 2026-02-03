@@ -75,7 +75,7 @@ val api = Http.get { Root / "content" }
     .output { status(Ok) { json { contentSchema } } }
 
 // In handler, auth is nullable
-handle(api, validator) { request ->
+handle(api, authHandler) { request ->
     val user: User? = request.auth
     if (user != null) {
         Response.success(personalizedContent(user))
@@ -85,17 +85,41 @@ handle(api, validator) { request ->
 }
 ```
 
-### Implementing Validators
+### Implementing Auth Handlers
 
-Provide an `AuthValidator` when registering handlers:
+Provide an `AuthHandler` when registering handlers. The handler receives the token (or null if missing) and returns an `AuthResult`:
 
 ```kotlin
-val bearerValidator = AuthValidator<User> { token ->
+// Standard handler: returns Unauthorized on missing/invalid token
+val bearerHandler = AuthHandler.standard<User> { token ->
     // Validate JWT and extract user, return null if invalid
     jwtService.validateAndDecode(token)
 }
 
-val basicValidator = AuthValidator<Credentials> { base64Credentials ->
+// Redirect handler: redirects to login page on failure
+val redirectHandler = AuthHandler.withRedirect<User>("/login") { token ->
+    jwtService.validateAndDecode(token)
+}
+
+// Dev mode: always succeeds with a static user
+val devHandler = AuthHandler.static(User("dev", "Developer"))
+
+// Custom handler: full control over AuthResult
+val customHandler = AuthHandler<User> { token ->
+    when {
+        token == null -> AuthResult.Redirect("/login")
+        else -> when (val user = jwtService.validateAndDecode(token)) {
+            null -> AuthResult.Unauthorized
+            else -> AuthResult.Success(user)
+        }
+    }
+}
+```
+
+#### Example Handlers
+
+```kotlin
+val basicHandler = AuthHandler.standard<Credentials> { base64Credentials ->
     // Note: Credentials are passed as base64-encoded "username:password"
     // You must decode before validating
     val decoded = Base64.getDecoder().decode(base64Credentials).decodeToString()
@@ -103,12 +127,12 @@ val basicValidator = AuthValidator<Credentials> { base64Credentials ->
     authService.authenticate(username, password)
 }
 
-val apiKeyValidator = AuthValidator<ApiToken> { key ->
+val apiKeyHandler = AuthHandler.standard<ApiToken> { key ->
     // Look up API key and return token info
     apiKeyService.validate(key)
 }
 
-val cookieValidator = AuthValidator<Session> { cookieValue ->
+val cookieHandler = AuthHandler.withRedirect<Session>("/login") { cookieValue ->
     // Look up session by cookie value
     sessionService.validateSession(cookieValue)
 }

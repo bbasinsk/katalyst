@@ -13,7 +13,7 @@ import io.ktor.server.plugins.contentnegotiation.*
  *
  * Key concepts:
  * 1. AuthSchema defines WHAT auth is required (Bearer, etc.) with phantom type for the principal
- * 2. AuthValidator is provided at handler registration to actually validate tokens
+ * 2. AuthHandler is provided at handler registration to validate tokens and determine failure behavior
  * 3. The Request.auth field is type-safe - its type matches the AuthSchema declaration
  *
  * Test with:
@@ -61,8 +61,9 @@ object AuthExampleEndpoints : HttpEndpointGroup("Auth Example") {
 }
 
 fun main() {
-    // Runtime: validator is a dependency that knows how to validate tokens
-    val userValidator = AuthValidator<User> { token ->
+    // Runtime: AuthHandler validates tokens AND specifies failure behavior
+    // Standard: returns Unauthorized on failure
+    val userHandler = AuthHandler.standard<User> { token ->
         // In production, this would decode a JWT, check a database, etc.
         if (token == "secret-token") {
             User(id = "user-123", name = "John Doe")
@@ -71,23 +72,29 @@ fun main() {
         }
     }
 
+    // Alternative: redirect to login on failure
+    // val userHandler = AuthHandler.withRedirect<User>("/login") { token -> ... }
+
+    // Alternative: always succeed (dev mode)
+    // val userHandler = AuthHandler.static(User("dev", "Developer"))
+
     embeddedServer(CIO, port = 33334) {
         install(ContentNegotiation) { json() }
 
         endpoints {
-            // Public - no validator needed
+            // Public - no handler needed
             handle(AuthExampleEndpoints.publicEndpoint) {
                 success("This is public content")
             }
 
-            // Protected - validator required, type must match
-            handle(AuthExampleEndpoints.profileEndpoint, userValidator) { req ->
+            // Protected - handler required, type must match
+            handle(AuthExampleEndpoints.profileEndpoint, userHandler) { req ->
                 val user: User = req.auth  // Type-safe, guaranteed non-null
                 success(user)
             }
 
-            // Optional auth - validator provided, framework handles null case
-            handle(AuthExampleEndpoints.feedEndpoint, userValidator) { req ->
+            // Optional auth - handler provided, framework handles null case
+            handle(AuthExampleEndpoints.feedEndpoint, userHandler) { req ->
                 val user: User? = req.auth  // Type-safe, nullable
                 if (user != null) {
                     success("Personalized feed for ${user.name}")

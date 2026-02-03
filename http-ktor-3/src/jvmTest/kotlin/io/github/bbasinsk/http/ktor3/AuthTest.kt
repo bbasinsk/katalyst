@@ -1,10 +1,11 @@
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.AuthValidator
+import io.github.bbasinsk.http.AuthHandler
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.auth
 import io.github.bbasinsk.http.optional
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.server.testing.*
@@ -14,19 +15,19 @@ import kotlin.test.assertEquals
 class AuthTest {
     data class User(val id: String, val name: String)
 
-    private val userValidator = AuthValidator<User> { token ->
+    private val userHandler = AuthHandler.standard<User> { token ->
         if (token == "valid-token") User("1", "Test User") else null
     }
 
-    private val basicValidator = AuthValidator<User> { base64Credentials ->
+    private val basicHandler = AuthHandler.standard<User> { base64Credentials ->
         if (base64Credentials == "dXNlcjpwYXNz") User("1", "Basic User") else null
     }
 
-    private val apiKeyValidator = AuthValidator<User> { key ->
+    private val apiKeyHandler = AuthHandler.standard<User> { key ->
         if (key == "secret-api-key") User("1", "API User") else null
     }
 
-    private val cookieValidator = AuthValidator<User> { cookieValue ->
+    private val cookieHandler = AuthHandler.standard<User> { cookieValue ->
         if (cookieValue == "valid-session") User("1", "Cookie User") else null
     }
 
@@ -38,7 +39,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -59,7 +60,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -77,7 +78,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, basicValidator) { request ->
+                handle(api, basicHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -98,7 +99,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, apiKeyValidator) { request ->
+                handle(api, apiKeyHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -119,7 +120,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, apiKeyValidator) { request ->
+                handle(api, apiKeyHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -137,7 +138,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, cookieValidator) { request ->
+                handle(api, cookieHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -158,7 +159,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, cookieValidator) { request ->
+                handle(api, cookieHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -176,7 +177,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, cookieValidator) { request ->
+                handle(api, cookieHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -196,7 +197,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, cookieValidator) { request ->
+                handle(api, cookieHandler) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -218,7 +219,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, cookieValidator) { request ->
+                handle(api, cookieHandler) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -238,7 +239,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator) { request ->
+                handle(api, userHandler) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -260,7 +261,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator) { request ->
+                handle(api, userHandler) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -280,7 +281,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, userValidator) { request ->
+                handle(api, userHandler) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -292,5 +293,180 @@ class AuthTest {
         }
         assertEquals(200, response.status.value)
         assertEquals("Hello Anonymous", response.bodyAsText())
+    }
+
+    @Test
+    fun authWithRedirectOnFailure() = testApplication {
+        val api = Http.get { Root / "protected" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val redirectHandler = AuthHandler.withRedirect<User>("/login") { token ->
+            if (token == "valid-token") User("1", "Test User") else null
+        }
+
+        application {
+            endpoints {
+                handle(api, redirectHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val noRedirectClient = createClient {
+            followRedirects = false
+        }
+        val response = noRedirectClient.get("/protected")
+        assertEquals(302, response.status.value)
+        assertEquals("/login", response.headers["Location"])
+    }
+
+    @Test
+    fun authWithStaticHandler() = testApplication {
+        val api = Http.get { Root / "dev" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val devHandler = AuthHandler.static(User("dev", "Dev User"))
+
+        application {
+            endpoints {
+                handle(api, devHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/dev")
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Dev User", response.bodyAsText())
+    }
+
+    @Test
+    fun staticIgnoresProvidedToken() = testApplication {
+        val api = Http.get { Root / "dev" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val devHandler = AuthHandler.static(User("dev", "Dev User"))
+
+        application {
+            endpoints {
+                handle(api, devHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/dev") {
+            header("Authorization", "Bearer any-token-is-ignored")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Dev User", response.bodyAsText())
+    }
+
+    @Test
+    fun withRedirectInvalidTokenReturnsRedirect() = testApplication {
+        val api = Http.get { Root / "protected" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val redirectHandler = AuthHandler.withRedirect<User>("/login") { token ->
+            if (token == "valid-token") User("1", "Test User") else null
+        }
+
+        application {
+            endpoints {
+                handle(api, redirectHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val noRedirectClient = createClient {
+            followRedirects = false
+        }
+        val response = noRedirectClient.get("/protected") {
+            header("Authorization", "Bearer invalid-token")
+        }
+        assertEquals(302, response.status.value)
+        assertEquals("/login", response.headers["Location"])
+    }
+
+    @Test
+    fun withRedirectValidTokenReturnsSuccess() = testApplication {
+        val api = Http.get { Root / "protected" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val redirectHandler = AuthHandler.withRedirect<User>("/login") { token ->
+            if (token == "valid-token") User("1", "Test User") else null
+        }
+
+        application {
+            endpoints {
+                handle(api, redirectHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/protected") {
+            header("Authorization", "Bearer valid-token")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Test User", response.bodyAsText())
+    }
+
+    @Test
+    fun standardHandlerCatchesValidationExceptions() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val throwingHandler = AuthHandler.standard<User> { _ ->
+            throw RuntimeException("JWT parsing failed")
+        }
+
+        application {
+            endpoints {
+                handle(api, throwingHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/profile") {
+            header("Authorization", "Bearer malformed-token")
+        }
+        assertEquals(401, response.status.value)
+    }
+
+    @Test
+    fun withRedirectHandlerCatchesValidationExceptions() = testApplication {
+        val api = Http.get { Root / "protected" }
+            .auth { bearer<User>() }
+            .output { status(Ok) { plain { string() } } }
+
+        val throwingHandler = AuthHandler.withRedirect<User>("/login") { _ ->
+            throw RuntimeException("JWT parsing failed")
+        }
+
+        application {
+            endpoints {
+                handle(api, throwingHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val noRedirectClient = createClient {
+            followRedirects = false
+        }
+        val response = noRedirectClient.get("/protected") {
+            header("Authorization", "Bearer malformed-token")
+        }
+        assertEquals(302, response.status.value)
+        assertEquals("/login", response.headers["Location"])
     }
 }

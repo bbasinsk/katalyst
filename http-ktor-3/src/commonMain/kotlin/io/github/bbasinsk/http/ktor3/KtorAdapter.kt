@@ -1,8 +1,21 @@
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.*
+import io.github.bbasinsk.http.AuthHandler
+import io.github.bbasinsk.http.AuthResult
+import io.github.bbasinsk.http.AuthSchema
+import io.github.bbasinsk.http.BodySchema
 import io.github.bbasinsk.http.ContentType
+import io.github.bbasinsk.http.Http
+import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
+import io.github.bbasinsk.http.ParamsSchema
+import io.github.bbasinsk.http.PathParam
+import io.github.bbasinsk.http.PathSegment
+import io.github.bbasinsk.http.Request
+import io.github.bbasinsk.http.parseCatching
+import io.github.bbasinsk.http.Response
+import io.github.bbasinsk.http.ResponseSchema
+import io.github.bbasinsk.http.SSEEvent
 import io.github.bbasinsk.schema.*
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
@@ -76,13 +89,11 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
     val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
 
-    val auth: Auth = validateAuth(endpoint.api.auth.schema, endpoint.validator, call.request.headers, call.request.cookies, query)
-        .getOrElse {
-            return@interceptor when (val failure = endpoint.api.auth.onFailure) {
-                is AuthFailure.Unauthorized -> call.respond(HttpStatusCode.Unauthorized)
-                is AuthFailure.Redirect -> call.respondRedirect(failure.location)
-            }
-        }
+    val auth: Auth = when (val result = handleAuth(endpoint.api.auth, endpoint.authHandler, call.request.headers, call.request.cookies, query)) {
+        is AuthResult.Success -> result.principal
+        is AuthResult.Unauthorized -> return@interceptor call.respond(HttpStatusCode.Unauthorized)
+        is AuthResult.Redirect -> return@interceptor call.respondRedirect(result.location)
+    }
 
     val input = call.receiveRequest(endpoint.api.input).getOrElse { errors ->
         errors.onEach { call.application.environment.log.warn(it.message) }
@@ -440,51 +451,48 @@ private fun <A> serializeEventData(bodySchema: BodySchema<A>, data: A): String {
 }
 
 /**
- * Validates authentication based on the auth schema and validator.
+ * Handles authentication based on the auth schema and handler.
  */
 @Suppress("UNCHECKED_CAST")
-private suspend fun <A> validateAuth(
+private suspend fun <A> handleAuth(
     schema: AuthSchema<A>,
-    validator: AuthValidator<*>?,
+    authHandler: AuthHandler<*>?,
     headers: io.ktor.http.Headers,
     cookies: RequestCookies,
     queryParams: Map<String, List<String>>
-): Result<A> = when (schema) {
-    is AuthSchema.None -> Result.success(Unit as A)
+): AuthResult<A> = when (schema) {
+    is AuthSchema.None -> AuthResult.Success(Unit as A)
 
     is AuthSchema.Bearer -> {
-        val token = extractBearerToken(headers) ?: return Result.failure(Exception("Missing bearer token"))
-        validateWithToken(validator, token)
+        val token = extractBearerToken(headers)
+        invokeHandler(authHandler, token)
     }
 
     is AuthSchema.Basic -> {
-        val credentials = extractBasicCredentials(headers) ?: return Result.failure(Exception("Missing basic auth credentials"))
-        validateWithToken(validator, credentials)
+        val credentials = extractBasicCredentials(headers)
+        invokeHandler(authHandler, credentials)
     }
 
     is AuthSchema.ApiKeyHeader -> {
-        val key = headers[schema.headerName] ?: return Result.failure(Exception("Missing API key"))
-        validateWithToken(validator, key)
+        val key = headers[schema.headerName]
+        invokeHandler(authHandler, key)
     }
 
     is AuthSchema.Cookie -> {
-        val value = cookies[schema.cookieName] ?: return Result.failure(Exception("Missing cookie"))
-        validateWithToken(validator, value)
+        val value = cookies[schema.cookieName]
+        invokeHandler(authHandler, value)
     }
 
     is AuthSchema.Optional<*> -> {
-        val innerResult = validateAuth(schema.inner, validator, headers, cookies, queryParams)
-        Result.success(innerResult.getOrNull() as A)
+        val innerResult = handleAuth(schema.inner, authHandler, headers, cookies, queryParams)
+        AuthResult.Success((innerResult as? AuthResult.Success)?.principal as A)
     }
 }
 
-private suspend fun <A> validateWithToken(validator: AuthValidator<*>?, token: String): Result<A> {
-    @Suppress("UNCHECKED_CAST")
-    val typedValidator = validator as? AuthValidator<A> ?: return Result.failure(Exception("Missing auth validator"))
-    return when (val principal = typedValidator.validate(token)) {
-        null -> Result.failure(Exception("Invalid credentials"))
-        else -> Result.success(principal)
-    }
+@Suppress("UNCHECKED_CAST")
+private suspend fun <A> invokeHandler(handler: AuthHandler<*>?, token: String?): AuthResult<A> {
+    val typedHandler = handler as? AuthHandler<A> ?: return AuthResult.Unauthorized
+    return typedHandler.handle(token)
 }
 
 private fun extractBearerToken(headers: io.ktor.http.Headers): String? =

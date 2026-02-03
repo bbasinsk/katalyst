@@ -1,6 +1,6 @@
 package io.github.bbasinsk.http.ktor3
 
-import io.github.bbasinsk.http.AuthValidator
+import io.github.bbasinsk.http.AuthHandler
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.Request
@@ -37,39 +37,39 @@ data class HttpEndpoints(
     ): HttpEndpoint<Path, Input, Error, Output, Unit, RoutingCall> =
         HttpEndpoint(
             api = api.tag(*tags.toTypedArray()),
-            validator = null,
+            authHandler = null,
             handle = handler
         ).also {
             underlying.add(it)
         }
 
-    // Handle for endpoints with auth required - validator must be provided
+    // Handle for endpoints with auth required - authHandler must be provided
     @KtorDsl
     @JvmName("handleRequiredAuth")
     fun <Path, Input, Error, Output, Auth> handle(
         api: Http<Path, Input, Error, Output, Auth>,
-        validator: AuthValidator<Auth>,
+        authHandler: AuthHandler<Auth>,
         handler: suspend Response.Companion.(request: Request<Path, Input, Auth, RoutingCall>) -> Response<Error, Output>
     ): HttpEndpoint<Path, Input, Error, Output, Auth, RoutingCall> =
         HttpEndpoint(
             api = api.tag(*tags.toTypedArray()),
-            validator = validator,
+            authHandler = authHandler,
             handle = handler
         ).also {
             underlying.add(it)
         }
 
-    // Handle for endpoints with auth optional - validator must be provided
+    // Handle for endpoints with auth optional - authHandler must be provided
     @KtorDsl
     @JvmName("handleOptionalAuth")
     fun <Path, Input, Error, Output, Auth> handle(
         api: Http<Path, Input, Error, Output, Auth?>,
-        validator: AuthValidator<Auth>,
+        authHandler: AuthHandler<Auth>,
         handler: suspend Response.Companion.(request: Request<Path, Input, Auth?, RoutingCall>) -> Response<Error, Output>
     ): HttpEndpoint<Path, Input, Error, Output, Auth?, RoutingCall> =
         HttpEndpoint(
             api = api.tag(*tags.toTypedArray()),
-            validator = validator::validate,
+            authHandler = authHandler::handle,
             handle = handler
         ).also {
             underlying.add(it)
