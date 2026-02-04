@@ -443,6 +443,32 @@ class AuthTest {
     }
 
     @Test
+    fun optionalAuthWithRedirectHandlerAndInvalidTokenReturnsNull() = testApplication {
+        val api = Http.get { Root / "feed" }
+            .auth { bearer<User>().optional() }
+            .output { status(Ok) { plain { string() } } }
+
+        val redirectHandler = AuthHandler.withRedirect<User>("/login") { token ->
+            if (token == "valid-token") User("1", "Test User") else null
+        }
+
+        application {
+            endpoints {
+                handle(api, redirectHandler) { request ->
+                    val greeting = request.auth?.name ?: "Anonymous"
+                    Response.success("Hello $greeting")
+                }
+            }
+        }
+
+        val response = client.get("/feed") {
+            header("Authorization", "Bearer invalid-token")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Anonymous", response.bodyAsText())
+    }
+
+    @Test
     fun withRedirectHandlerCatchesValidationExceptions() = testApplication {
         val api = Http.get { Root / "protected" }
             .auth { bearer<User>() }

@@ -484,6 +484,8 @@ private suspend fun <A> handleAuth(
     }
 
     is AuthSchema.Optional<*> -> {
+        // For optional auth, any failure (Unauthorized or Redirect) is treated as unauthenticated (null).
+        // This allows pages to serve public content while optionally personalizing for logged-in users.
         val innerResult = handleAuth(schema.inner, authHandler, headers, cookies, queryParams)
         AuthResult.Success((innerResult as? AuthResult.Success)?.principal as A)
     }

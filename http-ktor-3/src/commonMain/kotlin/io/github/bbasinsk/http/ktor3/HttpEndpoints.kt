@@ -5,6 +5,7 @@ import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
+import io.github.bbasinsk.http.optional
 import io.github.bbasinsk.http.openapi.Info
 import io.github.bbasinsk.http.openapi.Server
 import io.ktor.server.routing.RoutingCall
@@ -69,7 +70,7 @@ data class HttpEndpoints(
     ): HttpEndpoint<Path, Input, Error, Output, Auth?, RoutingCall> =
         HttpEndpoint(
             api = api.tag(*tags.toTypedArray()),
-            authHandler = authHandler::handle,
+            authHandler = authHandler.optional(),
             handle = handler
         ).also {
             underlying.add(it)
