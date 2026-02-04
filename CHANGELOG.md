@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.0...katalyst-v0.2.1) (2026-02-04)
+
+
+### Bug Fixes
+
+* allow for static auth handler for dev override ([#64](https://github.com/bbasinsk/katalyst/issues/64)) ([5f5b963](https://github.com/bbasinsk/katalyst/commit/5f5b9636c508b7b05cc8422f072485c67ca52897))
+
 ## [0.2.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.1.32...katalyst-v0.2.0) (2026-02-02)
 
 
