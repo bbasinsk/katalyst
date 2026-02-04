@@ -14,7 +14,7 @@ data class Http<Params, Input, Error, Output, Auth>(
     val input: BodySchema<Input>,
     val error: ResponseSchema<Error>,
     val output: ResponseSchema<Output>,
-    val auth: AuthConfig<Auth>,
+    val auth: AuthSchema<Auth>,
     val metadata: HttpMetadata
 ) {
 
@@ -69,7 +69,7 @@ data class Http<Params, Input, Error, Output, Auth>(
                 input = BodySchema.empty(),
                 error = ResponseSchema.nothing(),
                 output = ResponseSchema.nothing(),
-                auth = AuthConfig(AuthSchema.None, AuthFailure.Unauthorized),
+                auth = AuthSchema.None,
                 metadata = HttpMetadata()
             )
 
@@ -80,7 +80,7 @@ data class Http<Params, Input, Error, Output, Auth>(
                 input = BodySchema.empty(),
                 error = ResponseSchema.nothing(),
                 output = ResponseSchema.nothing(),
-                auth = AuthConfig(AuthSchema.None, AuthFailure.Unauthorized),
+                auth = AuthSchema.None,
                 metadata = HttpMetadata()
             )
 
@@ -91,7 +91,7 @@ data class Http<Params, Input, Error, Output, Auth>(
                 input = BodySchema.empty(),
                 error = ResponseSchema.nothing(),
                 output = ResponseSchema.nothing(),
-                auth = AuthConfig(AuthSchema.None, AuthFailure.Unauthorized),
+                auth = AuthSchema.None,
                 metadata = HttpMetadata()
             )
 
@@ -102,7 +102,7 @@ data class Http<Params, Input, Error, Output, Auth>(
                 input = BodySchema.empty(),
                 error = ResponseSchema.nothing(),
                 output = ResponseSchema.nothing(),
-                auth = AuthConfig(AuthSchema.None, AuthFailure.Unauthorized),
+                auth = AuthSchema.None,
                 metadata = HttpMetadata()
             )
 
@@ -113,7 +113,7 @@ data class Http<Params, Input, Error, Output, Auth>(
                 input = BodySchema.empty(),
                 error = ResponseSchema.nothing(),
                 output = ResponseSchema.nothing(),
-                auth = AuthConfig(AuthSchema.None, AuthFailure.Unauthorized),
+                auth = AuthSchema.None,
                 metadata = HttpMetadata()
             )
     }
@@ -174,7 +174,6 @@ fun <Params, Input, Error, Output, Auth, Params2> Http<Params, Input, Error, Out
 
 // Extension function for auth - only available when Auth = Unit
 fun <Params, Input, Error, Output, Auth2> Http<Params, Input, Error, Output, Unit>.auth(
-    onFailure: AuthFailure = AuthFailure.Unauthorized,
     auth: AuthSchema.Companion.() -> AuthSchema<Auth2>
 ): Http<Params, Input, Error, Output, Auth2> = Http(
     method = method,
@@ -182,6 +181,6 @@ fun <Params, Input, Error, Output, Auth2> Http<Params, Input, Error, Output, Uni
     input = input,
     error = error,
     output = output,
-    auth = AuthConfig(AuthSchema.auth(), onFailure),
+    auth = AuthSchema.auth(),
     metadata = metadata
 )

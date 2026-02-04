@@ -2,9 +2,9 @@ package io.github.bbasinsk.http
 
 /**
  * Describes authentication requirements for an endpoint.
- * Uses phantom type [A] to carry the principal type without needing a validator instance.
+ * Uses phantom type [A] to carry the principal type without needing a handler instance.
  *
- * The actual validation logic is provided via [AuthValidator] at handler registration time.
+ * The actual validation logic is provided via [AuthHandler] at handler registration time.
  *
  * Each auth type includes a [schemeName] for OpenAPI security scheme generation.
  * Use unique names when multiple auth configurations of the same type exist.
