@@ -214,11 +214,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
         is Schema.Metadata -> receiveJson(schema.schema)
-        is Schema.Primitive -> receiveText().let { raw ->
-            Validation.fromResult(schema.decodePrimitiveString(raw)) {
-                InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
-            }
-        }
+        is Schema.Primitive -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
 
         is Schema.Record -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
         is Schema.Union -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
