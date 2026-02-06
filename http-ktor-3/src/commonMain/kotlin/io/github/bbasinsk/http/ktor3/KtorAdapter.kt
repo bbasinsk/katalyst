@@ -193,9 +193,9 @@ private suspend fun <A> RoutingCall.receiveAvro(schema: Schema<A>): Validation<S
 private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
     when (schema) {
         is Schema.Optional<*> -> receiveJson(schema.schema).orElse { Validation.valid(null) } as Validation<InvalidJson, A>
-        is Schema.Transform<A, *> -> receiveJson((schema as Schema.Transform<A, Any?>)).andThen {
-            Validation.fromResult(schema.decode(it)) { _ ->
-                InvalidJson.FieldError(expected = schema.metadata.name, found = it.toString(), path = emptyList())
+        is Schema.Transform<A, *> -> receiveJson(schema.schema).andThen { b ->
+            Validation.fromResult(schema.unsafeDecode(b)) { e ->
+                InvalidJson.FieldError(expected = schema.metadata.name, found = b.toString(), path = emptyList())
             }
         }
 
