@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.1...katalyst-v0.2.2) (2026-02-07)
+
+
+### Bug Fixes
+
+* **ktor3:** fix stack overflow in receiveJson for Schema.Transform ([97d0944](https://github.com/bbasinsk/katalyst/commit/97d094441dc64cb2cefe821269597cbd5b052ca8))
+* **performance:** encode json directly into bytes ([#68](https://github.com/bbasinsk/katalyst/issues/68)) ([487c6c5](https://github.com/bbasinsk/katalyst/commit/487c6c5b286e15a97f06306d2c23600e847b6f40))
+
 ## [0.2.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.0...katalyst-v0.2.1) (2026-02-04)
 
 
