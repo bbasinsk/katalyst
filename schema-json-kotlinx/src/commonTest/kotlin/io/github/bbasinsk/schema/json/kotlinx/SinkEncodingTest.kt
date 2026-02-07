@@ -2,6 +2,7 @@ package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Companion.case
+import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
@@ -219,6 +220,82 @@ class SinkEncodingTest {
         Schema.tree(),
         Tree.Branch(Tree.Leaf(1), Tree.Branch(Tree.Leaf(2), Tree.Leaf(3)))
     )
+
+    // Union with OrElse
+
+    sealed interface Event {
+        data class Click(val x: Int, val y: Int) : Event
+        data class Key(val code: Int) : Event
+    }
+
+    private data class ClickStrings(val x: String, val y: String)
+
+    private fun Schema.Companion.click(): Schema<Event.Click> =
+        record(
+            field(int(), "x") { x },
+            field(int(), "y") { y },
+            Event::Click
+        )
+
+    private fun Schema.Companion.clickOrElse(): Schema<Event.Click> =
+        click().orElse(
+            record(
+                field(string(), "x") { x },
+                field(string(), "y") { y },
+                ::ClickStrings
+            )
+        ) { Event.Click(it.x.toInt(), it.y.toInt()) }
+
+    private fun Schema.Companion.key(): Schema<Event.Key> =
+        record(
+            field(int(), "code") { code },
+            Event::Key
+        )
+
+    private fun Schema.Companion.eventWithOrElse(): Schema<Event> = union(
+        case(clickOrElse()),
+        case(key())
+    )
+
+    @Test
+    fun `union with orElse case`() =
+        assertEncodingsMatch(Schema.eventWithOrElse(), Event.Click(10, 20))
+
+    @Test
+    fun `union with orElse case - second case`() =
+        assertEncodingsMatch(Schema.eventWithOrElse(), Event.Key(42))
+
+    // Special floating point values
+
+    @Test
+    fun `double NaN with allowSpecialFloatingPointValues`() {
+        val json = Json { allowSpecialFloatingPointValues = true }
+        assertEncodingsMatch(Schema.double(), Double.NaN, json)
+    }
+
+    @Test
+    fun `double Infinity with allowSpecialFloatingPointValues`() {
+        val json = Json { allowSpecialFloatingPointValues = true }
+        assertEncodingsMatch(Schema.double(), Double.POSITIVE_INFINITY, json)
+    }
+
+    @Test
+    fun `double negative Infinity with allowSpecialFloatingPointValues`() {
+        val json = Json { allowSpecialFloatingPointValues = true }
+        assertEncodingsMatch(Schema.double(), Double.NEGATIVE_INFINITY, json)
+    }
+
+    @Test
+    fun `float NaN with allowSpecialFloatingPointValues`() {
+        val json = Json { allowSpecialFloatingPointValues = true }
+        assertEncodingsMatch(Schema.float(), Float.NaN, json)
+    }
+
+    @Test
+    fun `float Infinity with allowSpecialFloatingPointValues`() {
+        val json = Json { allowSpecialFloatingPointValues = true }
+        assertEncodingsMatch(Schema.float(), Float.POSITIVE_INFINITY, json)
+    }
 
     // encodeToJsonBytes round-trip
 

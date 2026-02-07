@@ -15,26 +15,35 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun <A> Schema<A>.encodeToJsonBytes(value: A, json: Json = Json.Default): ByteArray =
-    kotlinx.io.Buffer().also { encodeToSink(value, it, json.configuration.explicitNulls) }.readByteArray()
+    encodeToJsonBytes(value, json.toEncodingConfig())
+
+fun <A> Schema<A>.encodeToJsonBytes(value: A, config: JsonEncodingConfig): ByteArray =
+    kotlinx.io.Buffer().also { encodeToSink(value, it, config) }.readByteArray()
 
 fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): String =
-    encodeToJsonBytes(value, json).decodeToString()
+    encodeToJsonString(value, json.toEncodingConfig())
+
+fun <A> Schema<A>.encodeToJsonString(value: A, config: JsonEncodingConfig): String =
+    encodeToJsonBytes(value, config).decodeToString()
 
 fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): JsonElement =
+    encodeToJsonElement(value, json.toEncodingConfig())
+
+fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value)
-        is Schema.Lazy -> schema().encodeToJsonElement(value, json)
-        is Schema.Metadata -> schema.encodeToJsonElement(value, json)
-        is Schema.Optional<*> -> encodeOptional(value, json)
-        is Schema.Default -> schema.encodeToJsonElement(value, json)
-        is Schema.OrElse<A, *> -> preferred.encodeToJsonElement(value, json)
-        is Schema.Transform<A, *> -> encodeTransform(value, json)
-        is Schema.Collection<*> -> encodeList(value as List<*>, json)
-        is Schema.StringMap<*> -> encodeStringMap(value as Map<*, *>, json)
-        is Schema.Union<*> -> encodeUnion(value, json)
-        is Schema.Record<*> -> encodeRecord(value, json)
+        is Schema.Lazy -> schema().encodeToJsonElement(value, config)
+        is Schema.Metadata -> schema.encodeToJsonElement(value, config)
+        is Schema.Optional<*> -> encodeOptional(value, config)
+        is Schema.Default -> schema.encodeToJsonElement(value, config)
+        is Schema.OrElse<A, *> -> preferred.encodeToJsonElement(value, config)
+        is Schema.Transform<A, *> -> encodeTransform(value, config)
+        is Schema.Collection<*> -> encodeList(value as List<*>, config)
+        is Schema.StringMap<*> -> encodeStringMap(value as Map<*, *>, config)
+        is Schema.Union<*> -> encodeUnion(value, config)
+        is Schema.Record<*> -> encodeRecord(value, config)
     }
 
 @Suppress("UNCHECKED_CAST")
@@ -50,32 +59,32 @@ private fun <A> Schema.Primitive<A>.encodePrimitive(value: A): JsonPrimitive =
     }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Optional<A>.encodeOptional(value: Any?, json: Json): JsonElement =
-    if (value == null) JsonNull else schema.encodeToJsonElement(value as A, json)
+private fun <A> Schema.Optional<A>.encodeOptional(value: Any?, config: JsonEncodingConfig): JsonElement =
+    if (value == null) JsonNull else schema.encodeToJsonElement(value as A, config)
 
-private fun <A, B> Schema.Transform<A, B>.encodeTransform(value: A, json: Json): JsonElement =
-    this.schema.encodeToJsonElement(this.encode(value), json)
-
-@Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Collection<A>.encodeList(value: List<Any?>, json: Json): JsonArray =
-    JsonArray(value.map { this.itemSchema.encodeToJsonElement(it as A, json) })
+private fun <A, B> Schema.Transform<A, B>.encodeTransform(value: A, config: JsonEncodingConfig): JsonElement =
+    this.schema.encodeToJsonElement(this.encode(value), config)
 
 @Suppress("UNCHECKED_CAST")
-private fun <V> Schema.StringMap<V>.encodeStringMap(value: Map<*, *>, json: Json): JsonObject =
+private fun <A> Schema.Collection<A>.encodeList(value: List<Any?>, config: JsonEncodingConfig): JsonArray =
+    JsonArray(value.map { this.itemSchema.encodeToJsonElement(it as A, config) })
+
+@Suppress("UNCHECKED_CAST")
+private fun <V> Schema.StringMap<V>.encodeStringMap(value: Map<*, *>, config: JsonEncodingConfig): JsonObject =
     JsonObject(
         value.mapKeys { it.key as String }
-            .mapValues { this.valueSchema.encodeToJsonElement(it.value as V, json) }
+            .mapValues { this.valueSchema.encodeToJsonElement(it.value as V, config) }
     )
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Record<A>.encodeRecord(value: Any?, json: Json): JsonElement =
+private fun <A> Schema.Record<A>.encodeRecord(value: Any?, config: JsonEncodingConfig): JsonElement =
     JsonObject(
         this.unsafeFields().mapNotNull { field ->
             val schema = field.schema as Schema<Any?>
             val fieldValue = field.extract(value as A)
-            val encodedValue = schema.encodeToJsonElement(fieldValue, json)
+            val encodedValue = schema.encodeToJsonElement(fieldValue, config)
 
-            if (!json.configuration.explicitNulls && fieldValue == null) {
+            if (!config.explicitNulls && fieldValue == null) {
                 null
             } else {
                 field.name to encodedValue
@@ -84,9 +93,11 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, json: Json): JsonElem
     )
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Union<A>.encodeUnion(value: Any?, json: Json): JsonElement {
-    val case = unsafeCases().find { it.deconstruct(value as A) != null } ?: error("No case found for ${value as A}")
+private fun <A> Schema.Union<A>.encodeUnion(value: Any?, config: JsonEncodingConfig): JsonElement {
+    val (case, caseValue) = unsafeCases()
+        .firstNotNullOfOrNull { case -> case.deconstruct(value as A)?.let { case to it } }
+        ?: error("No case found for ${value as A}")
     val discriminator = mapOf(this.key to JsonPrimitive(case.name))
-    val obj = (case.schema as Schema<Any?>).encodeToJsonElement(case.deconstruct(value as A)!!, json).jsonObject
+    val obj = (case.schema as Schema<Any?>).encodeToJsonElement(caseValue, config).jsonObject
     return JsonObject(discriminator.plus(obj))
 }
