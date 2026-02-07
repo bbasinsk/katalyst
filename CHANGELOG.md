@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.2...katalyst-v0.2.3) (2026-02-07)
+
+
+### Bug Fixes
+
+* handle nested unions and special floating point ([#69](https://github.com/bbasinsk/katalyst/issues/69)) ([3769802](https://github.com/bbasinsk/katalyst/commit/37698021f5c8652d634f6e97ec5d2cba6f4d792c))
+
 ## [0.2.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.1...katalyst-v0.2.2) (2026-02-07)
 
 
