@@ -193,9 +193,9 @@ private suspend fun <A> RoutingCall.receiveAvro(schema: Schema<A>): Validation<S
 private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
     when (schema) {
         is Schema.Optional<*> -> receiveJson(schema.schema).orElse { Validation.valid(null) } as Validation<InvalidJson, A>
-        is Schema.Transform<A, *> -> receiveJson((schema as Schema.Transform<A, Any?>)).andThen {
-            Validation.fromResult(schema.decode(it)) { _ ->
-                InvalidJson.FieldError(expected = schema.metadata.name, found = it.toString(), path = emptyList())
+        is Schema.Transform<A, *> -> receiveJson(schema.schema).andThen { b ->
+            Validation.fromResult(schema.unsafeDecode(b)) { e ->
+                InvalidJson.FieldError(expected = schema.metadata.name, found = b.toString(), path = emptyList())
             }
         }
 
@@ -214,11 +214,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Empty -> Validation.valid(null as A)
         is Schema.Lazy -> receiveJson(with(schema) { schema() })
         is Schema.Metadata -> receiveJson(schema.schema)
-        is Schema.Primitive -> receiveText().let { raw ->
-            Validation.fromResult(schema.decodePrimitiveString(raw)) {
-                InvalidJson.FieldError(expected = schema.name, found = raw, path = emptyList())
-            }
-        }
+        is Schema.Primitive -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
 
         is Schema.Record -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
         is Schema.Union -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }

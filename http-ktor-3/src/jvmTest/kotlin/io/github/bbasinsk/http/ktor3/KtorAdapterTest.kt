@@ -5,6 +5,7 @@ import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.query
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.java.instant
+import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -317,4 +318,84 @@ class KtorAdapterTest {
         assertEquals(200, response.status.value)
         assertEquals("item:active", response.bodyAsText())
     }
+
+    @Test
+    fun jsonInputWithTransformSchema() = testApplication {
+        val wrappedStringSchema = Schema.string().transform(::WrappedString) { it.value }
+
+        val api = Http.post { Root / "some" / "path" }
+            .input { json { wrappedStringSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
+            json(json)
+        }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("wrapped:${request.input.value}")
+                }
+            }
+        }
+
+        val client = createClient {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        val response = client.post("/some/path") {
+            contentType(ContentType.Application.Json)
+            setBody(""""my-value"""")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("wrapped:my-value", response.bodyAsText())
+    }
+
+    @Test
+    fun jsonInputWithTransformRecordSchema() = testApplication {
+        val wrappedStringSchema = Schema.string().transform(::WrappedString) { it.value }
+
+        data class Input(val id: WrappedString)
+
+        val inputSchema = Schema.record(
+            Schema.field(wrappedStringSchema, "id") { id },
+            ::Input
+        )
+
+        val api = Http.post { Root / "some" / "path" }
+            .input { json { inputSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        install(io.ktor.server.plugins.contentnegotiation.ContentNegotiation) {
+            json(json)
+        }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("wrapped:${request.input.id.value}")
+                }
+            }
+        }
+
+        val client = createClient {
+            install(io.ktor.client.plugins.contentnegotiation.ContentNegotiation) {
+                json(json)
+            }
+        }
+
+        val response = client.post("/some/path") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"id":"my-value"}""")
+        }
+
+        assertEquals(200, response.status.value)
+        assertEquals("wrapped:my-value", response.bodyAsText())
+    }
 }
+
+@JvmInline
+value class WrappedString(val value: String)
