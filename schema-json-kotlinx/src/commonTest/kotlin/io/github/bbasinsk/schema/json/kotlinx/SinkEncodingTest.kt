@@ -7,6 +7,7 @@ import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class SinkEncodingTest {
 
@@ -295,6 +296,20 @@ class SinkEncodingTest {
     fun `float Infinity with allowSpecialFloatingPointValues`() {
         val json = Json { allowSpecialFloatingPointValues = true }
         assertEncodingsMatch(Schema.float(), Float.POSITIVE_INFINITY, json)
+    }
+
+    @Test
+    fun `double NaN fails without allowSpecialFloatingPointValues`() {
+        assertFailsWith<IllegalArgumentException> {
+            Schema.double().encodeToJsonString(Double.NaN)
+        }
+    }
+
+    @Test
+    fun `float NaN fails without allowSpecialFloatingPointValues`() {
+        assertFailsWith<IllegalArgumentException> {
+            Schema.float().encodeToJsonString(Float.NaN)
+        }
     }
 
     // encodeToJsonBytes round-trip

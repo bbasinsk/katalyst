@@ -33,7 +33,7 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig): Jso
     when (this) {
         is Schema.Empty -> JsonNull
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
-        is Schema.Primitive -> encodePrimitive(value)
+        is Schema.Primitive -> encodePrimitive(value, config)
         is Schema.Lazy -> schema().encodeToJsonElement(value, config)
         is Schema.Metadata -> schema.encodeToJsonElement(value, config)
         is Schema.Optional<*> -> encodeOptional(value, config)
@@ -47,11 +47,23 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig): Jso
     }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Primitive<A>.encodePrimitive(value: A): JsonPrimitive =
+private fun <A> Schema.Primitive<A>.encodePrimitive(value: A, config: JsonEncodingConfig): JsonPrimitive =
     when (this) {
         is Schema.Primitive.Boolean -> JsonPrimitive(value as Boolean)
-        is Schema.Primitive.Double -> JsonPrimitive(value as Double)
-        is Schema.Primitive.Float -> JsonPrimitive(value as Float)
+        is Schema.Primitive.Double -> {
+            val d = value as Double
+            if (d.isNaN() || d.isInfinite()) {
+                require(config.allowSpecialFloatingPointValues) { "Non-finite double value: $d" }
+            }
+            JsonPrimitive(d)
+        }
+        is Schema.Primitive.Float -> {
+            val f = value as Float
+            if (f.isNaN() || f.isInfinite()) {
+                require(config.allowSpecialFloatingPointValues) { "Non-finite float value: $f" }
+            }
+            JsonPrimitive(f)
+        }
         is Schema.Primitive.Int -> JsonPrimitive(value as Int)
         is Schema.Primitive.Long -> JsonPrimitive(value as Long)
         is Schema.Primitive.String -> JsonPrimitive(value as String)
