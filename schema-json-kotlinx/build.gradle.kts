@@ -14,6 +14,7 @@ kotlin {
             dependencies {
                 api(project(":validation"))
                 api(project(":schema-json"))
+                api(libs.kotlinx.io)
                 api(libs.kotlinx.serialization.json)
             }
         }

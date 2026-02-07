@@ -3,7 +3,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
-import kotlinx.serialization.encodeToString
+import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -14,8 +14,11 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+fun <A> Schema<A>.encodeToJsonBytes(value: A, json: Json = Json.Default): ByteArray =
+    kotlinx.io.Buffer().also { encodeToSink(value, it, json.configuration.explicitNulls) }.readByteArray()
+
 fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): String =
-    json.encodeToString(encodeToJsonElement(value, json))
+    encodeToJsonBytes(value, json).decodeToString()
 
 fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): JsonElement =
     when (this) {

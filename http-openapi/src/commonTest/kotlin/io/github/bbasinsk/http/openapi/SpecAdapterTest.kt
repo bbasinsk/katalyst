@@ -1320,8 +1320,7 @@ class SpecAdapterTest {
             .output { status(Ok) { plain { string() } } }
 
         val result = listOf(jwtEndpoint, opaqueEndpoint, apiKeyEndpoint, customApiKeyEndpoint).toOpenApiSpec(info)
-
-        val securitySchemes = result.components?.securitySchemes ?: emptyMap()
+        val securitySchemes = result.components.securitySchemes
 
         assertEquals(4, securitySchemes.size)
         assertEquals(setOf("jwtAuth", "opaqueAuth", "apiKeyAuth", "customApiKeyAuth"), securitySchemes.keys)

@@ -22,7 +22,7 @@ import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
-import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
+import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonString
 import io.github.bbasinsk.validation.*
 import io.ktor.http.*
@@ -344,7 +344,7 @@ private fun ContentType.toKtorContentType(): io.ktor.http.ContentType =
     io.ktor.http.ContentType(this.contentType, this.contentSubtype)
 
 private suspend fun <A> RoutingCall.respondJson(status: HttpStatusCode, schema: Schema<A>, value: A) {
-    respond(status, schema.encodeToJsonElement(value))
+    respondBytes(schema.encodeToJsonBytes(value), io.ktor.http.ContentType.Application.Json, status)
 }
 
 private suspend fun <A> RoutingCall.respondAvro(status: HttpStatusCode, schema: Schema<A>, value: A) =
