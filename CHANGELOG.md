@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.4...katalyst-v0.2.5) (2026-02-13)
+
+
+### Bug Fixes
+
+* implement http definition to use client methods ([#71](https://github.com/bbasinsk/katalyst/issues/71)) ([f732325](https://github.com/bbasinsk/katalyst/commit/f73232516facf8efd9ff6aa284bf56fa38fa7cb0))
+* publish multiplatform client ([811d3cf](https://github.com/bbasinsk/katalyst/commit/811d3cffa338ae1f88d1dba95862a4108ce47d05))
+* set up android build w/ gradle 9 ([#73](https://github.com/bbasinsk/katalyst/issues/73)) ([b9dc7be](https://github.com/bbasinsk/katalyst/commit/b9dc7be57f9f9ed4ad429128e4b3c4bf282af997))
+
 ## [0.2.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.3...katalyst-v0.2.4) (2026-02-13)
 
 
