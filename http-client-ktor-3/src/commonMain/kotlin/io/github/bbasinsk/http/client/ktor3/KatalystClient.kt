@@ -116,10 +116,10 @@ class KatalystClient(
                         comment = line.removePrefix(": ").takeIf { it.isNotBlank() }
                             ?: line.removePrefix(":").takeIf { it.isNotBlank() }
                     }
-                    line.startsWith("event:") -> eventType = line.removePrefix("event:").trim()
-                    line.startsWith("data:") -> dataLines.add(line.removePrefix("data:").trim())
-                    line.startsWith("id:") -> eventId = line.removePrefix("id:").trim()
-                    line.startsWith("retry:") -> retry = line.removePrefix("retry:").trim().toLongOrNull()
+                    line.startsWith("event:") -> eventType = line.removePrefix("event:").removePrefix(" ")
+                    line.startsWith("data:") -> dataLines.add(line.removePrefix("data:").removePrefix(" "))
+                    line.startsWith("id:") -> eventId = line.removePrefix("id:").removePrefix(" ")
+                    line.startsWith("retry:") -> retry = line.removePrefix("retry:").removePrefix(" ").toLongOrNull()
                 }
             }
         }
@@ -192,14 +192,14 @@ private suspend fun <P, I, E, O, A> decodeResponse(
 
     val matchedOutput = outputByStatus.entries.firstOrNull { it.key.code == statusCode }
     if (matchedOutput != null) {
-        val decoded = decodeBody(matchedOutput.value as BodySchema<O>, body)
-        return HttpResult.Success(decoded)
+        return runCatching { decodeBody(matchedOutput.value as BodySchema<O>, body) }
+            .fold(onSuccess = { HttpResult.Success(it) }, onFailure = { HttpResult.NetworkError(it) })
     }
 
     val matchedError = errorByStatus.entries.firstOrNull { it.key.code == statusCode }
     if (matchedError != null) {
-        val decoded = decodeBody(matchedError.value as BodySchema<E>, body)
-        return HttpResult.Failure(statusCode, decoded)
+        return runCatching { decodeBody(matchedError.value as BodySchema<E>, body) }
+            .fold(onSuccess = { HttpResult.Failure(statusCode, it) }, onFailure = { HttpResult.NetworkError(it) })
     }
 
     return HttpResult.NetworkError(

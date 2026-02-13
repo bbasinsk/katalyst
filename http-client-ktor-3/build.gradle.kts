@@ -23,6 +23,7 @@ kotlin {
                 implementation(libs.ktor3.server.cio)
                 implementation(libs.ktor3.server.content.negotiation)
                 implementation(libs.ktor3.serialization.kotlinx.json)
+                implementation(libs.ktor3.client.mock)
                 implementation(project(":http-server-ktor-3"))
             }
         }

@@ -189,9 +189,23 @@ data class RenderedParams(
             append("?")
             append(
                 queryParams.flatMap { (name, values) ->
-                    values.map { "$name=$it" }
+                    values.map { "${encodeURIComponent(name)}=${encodeURIComponent(it)}" }
                 }.joinToString("&")
             )
+        }
+    }
+}
+
+private fun encodeURIComponent(value: String): String = buildString {
+    for (char in value) {
+        when {
+            char.isLetterOrDigit() || char in "-_.~" -> append(char)
+            else -> {
+                for (byte in char.toString().encodeToByteArray()) {
+                    append('%')
+                    append(byte.toUByte().toString(16).uppercase().padStart(2, '0'))
+                }
+            }
         }
     }
 }

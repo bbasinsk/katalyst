@@ -11,12 +11,20 @@ import io.github.bbasinsk.http.ktor3.endpoints
 import io.github.bbasinsk.http.query
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.tuple.tupleValues
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.test.runTest
+import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -149,6 +157,41 @@ class KatalystClientTest {
 
         assertIs<HttpResult.Success<String>>(result)
         assertEquals("auth=my-token", result.value)
+    }
+
+    @Test
+    fun `connection failure returns NetworkError`() = runTest {
+        val mockEngine = MockEngine { throw IOException("Connection refused") }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.get { Root / "users" }
+            .output { status(Ok) { json { userSchema } } }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api, Unit, null)
+
+        assertIs<HttpResult.NetworkError>(result)
+        assertIs<IOException>(result.cause)
+    }
+
+    @Test
+    fun `malformed response body returns NetworkError`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "not valid json",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.get { Root / "users" }
+            .output { status(Ok) { json { userSchema } } }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api, Unit, null)
+
+        assertIs<HttpResult.NetworkError>(result)
     }
 
     @Test
