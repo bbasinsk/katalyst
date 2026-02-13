@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.3...katalyst-v0.2.4) (2026-02-13)
+
+
+### Bug Fixes
+
+* add ios multiplatform support ([3c4371f](https://github.com/bbasinsk/katalyst/commit/3c4371f9cb7306103e9ab4d2fcf95abb217d2ec1))
+
 ## [0.2.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.2...katalyst-v0.2.3) (2026-02-07)
 
 
