@@ -1,2 +1,3 @@
 [tools]
 java = "graalvm-22.3.1+java17"
+android-sdk = "20.0"
