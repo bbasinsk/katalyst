@@ -3,7 +3,12 @@ package io.github.bbasinsk.http
 sealed interface AuthResult<out A> {
     data class Success<A>(val principal: A) : AuthResult<A>
     data object Unauthorized : AuthResult<Nothing>
-    data class Redirect(val location: String) : AuthResult<Nothing>
+    data class Redirect(val location: String) : AuthResult<Nothing> {
+        companion object {
+            operator fun <P> invoke(endpoint: Http<P, *, *, *, *>, params: P): Redirect =
+                Redirect(endpoint.params.render(params).toUrlPath())
+        }
+    }
 }
 
 fun interface AuthHandler<A> {
@@ -24,6 +29,9 @@ fun interface AuthHandler<A> {
 
         fun <A> withRedirect(location: String, validate: suspend (String) -> A?): AuthHandler<A> =
             AuthHandler { token -> validateToken(token, validate, AuthResult.Redirect(location)) }
+
+        fun <A, P> withRedirect(endpoint: Http<P, *, *, *, *>, params: P, validate: suspend (String) -> A?): AuthHandler<A> =
+            AuthHandler { token -> validateToken(token, validate, AuthResult.Redirect(endpoint, params)) }
 
         /**
          * Creates an AuthHandler that always succeeds with the given principal, ignoring any provided token.

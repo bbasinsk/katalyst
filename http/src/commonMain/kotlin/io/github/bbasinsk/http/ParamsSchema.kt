@@ -2,6 +2,7 @@ package io.github.bbasinsk.http
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
+import io.github.bbasinsk.schema.encodePrimitiveString
 import kotlin.jvm.JvmName
 
 // Marker interfaces for pattern matching
@@ -175,3 +176,111 @@ fun <A> ParamsSchema<A>.parse(
         }
     }
 }
+
+data class RenderedParams(
+    val pathSegments: List<String>,
+    val queryParams: Map<String, List<String>>,
+    val headers: Map<String, List<String>>
+) {
+    fun toUrlPath(): String = buildString {
+        append("/")
+        append(pathSegments.joinToString("/"))
+        if (queryParams.isNotEmpty()) {
+            append("?")
+            append(
+                queryParams.flatMap { (name, values) ->
+                    values.map { "${encodeURIComponent(name)}=${encodeURIComponent(it)}" }
+                }.joinToString("&")
+            )
+        }
+    }
+}
+
+private fun encodeURIComponent(value: String): String = buildString {
+    for (char in value) {
+        when {
+            char.isLetterOrDigit() || char in "-_.~" -> append(char)
+            else -> {
+                for (byte in char.toString().encodeToByteArray()) {
+                    append('%')
+                    append(byte.toUByte().toString(16).uppercase().padStart(2, '0'))
+                }
+            }
+        }
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+fun <A> ParamSchema<A>.render(value: A): Pair<String, List<String>> =
+    when (this) {
+        is ParamSchema.WithMetadata -> schema.render(value)
+        is ParamSchema.Single -> {
+            val itemSchema = schema.collectionItemSchema()
+            when {
+                itemSchema != null && value is List<*> ->
+                    name to value.map { (itemSchema as Schema<Any?>).encodePrimitiveString(it).getOrThrow() }
+                else ->
+                    name to listOf(schema.encodePrimitiveString(value).getOrThrow())
+            }
+        }
+    }
+
+@Suppress("UNCHECKED_CAST")
+fun <A> ParamsSchema<A>.render(value: A): RenderedParams =
+    when (this) {
+        is EmptyPathSchema.Root -> RenderedParams(emptyList(), emptyMap(), emptyMap())
+
+        is EmptyPathSchema.Segment -> {
+            val prefixRendered = prefix.render(Unit)
+            prefixRendered.copy(pathSegments = prefixRendered.pathSegments + name)
+        }
+
+        is NonEmptyPathSchema.First<*> -> {
+            val prefixRendered = prefix.render(Unit)
+            val encoded = (param as ParamSchema<Any?>).render(value).second.first()
+            prefixRendered.copy(pathSegments = prefixRendered.pathSegments + encoded)
+        }
+
+        is NonEmptyPathSchema.Segment<*> -> {
+            val prefixRendered = (prefix as ParamsSchema<A>).render(value)
+            prefixRendered.copy(pathSegments = prefixRendered.pathSegments + name)
+        }
+
+        is NonEmptyPathSchema.Next<*, *> -> {
+            val pair = value as Pair<Any?, Any?>
+            val prefixRendered = (prefix as ParamsSchema<Any?>).render(pair.first)
+            val encoded = (param as ParamSchema<Any?>).render(pair.second).second.first()
+            prefixRendered.copy(pathSegments = prefixRendered.pathSegments + encoded)
+        }
+
+        is ParamsSchema.QuerySchema -> {
+            val (name, values) = param.render(value)
+            RenderedParams(emptyList(), mapOf(name to values), emptyMap())
+        }
+
+        is ParamsSchema.HeaderSchema -> {
+            val (name, values) = param.render(value)
+            RenderedParams(emptyList(), emptyMap(), mapOf(name to values))
+        }
+
+        is ParamsSchema.Combine<*, *> -> {
+            val pair = value as Pair<Any?, Any?>
+            val leftRendered = (left as ParamsSchema<Any?>).render(pair.first)
+            val rightRendered = (right as ParamsSchema<Any?>).render(pair.second)
+            RenderedParams(
+                pathSegments = leftRendered.pathSegments + rightRendered.pathSegments,
+                queryParams = leftRendered.queryParams + rightRendered.queryParams,
+                headers = leftRendered.headers + rightRendered.headers
+            )
+        }
+
+        is ParamsSchema.CombineEmpty<*> -> {
+            val pathRendered = path.render(Unit)
+            val otherRendered = (other as ParamsSchema<A>).render(value)
+            RenderedParams(
+                pathSegments = pathRendered.pathSegments + otherRendered.pathSegments,
+                queryParams = pathRendered.queryParams + otherRendered.queryParams,
+                headers = pathRendered.headers + otherRendered.headers
+            )
+        }
+    }
