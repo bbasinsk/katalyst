@@ -1,14 +1,19 @@
-import com.vanniktech.maven.publish.SonatypeHost
-
 plugins {
     id("katalyst.library")
+    id("katalyst.android-library")
 }
 
 kotlin {
     jvm()
+    androidLibrary {
+        namespace = "io.github.bbasinsk.schema"
+        compileSdk = 36
+        minSdk = 21
+    }
     macosArm64()
     iosArm64()
     iosSimulatorArm64()
+    iosX64()
     linuxX64()
 
     sourceSets {
@@ -25,7 +30,7 @@ kotlin {
 }
 
 mavenPublishing {
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
 
     signAllPublications()
 
