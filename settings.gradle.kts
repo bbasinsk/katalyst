@@ -25,8 +25,9 @@ include(":schema-json-schema")
 include(":schema-kotlinx-datetime")
 
 include(":http")
-include(":http-ktor-2")
-include(":http-ktor-3")
+include(":http-server-ktor-2")
+include(":http-server-ktor-3")
+include(":http-client-ktor-3")
 include(":http-openapi")
 include(":http-openapi-gradle-plugin")
 

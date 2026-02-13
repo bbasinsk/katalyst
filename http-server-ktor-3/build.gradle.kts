@@ -6,27 +6,39 @@ plugins {
 
 kotlin {
     jvm()
-    macosArm64()
-    linuxX64()
+//    macosArm64()
+//    linuxX64()
 
     sourceSets {
         val commonMain by getting {
             dependencies {
-                api(libs.ktor2.server.core)
+                api(libs.ktor3.server.core)
+                api(libs.ktor3.server.sse)
 
                 api(project(":http"))
                 api(project(":http-openapi"))
                 api(project(":schema-json-kotlinx"))
+                api(project(":schema-avro"))
                 api(project(":tuple"))
 
                 implementation(project(":validation"))
-
-                implementation(libs.ktor2.server.cio) // For example / main
             }
         }
-        val commonTest by getting {
+        val jvmMain by getting {
+            dependencies {
+                implementation("ch.qos.logback:logback-classic:1.5.12")
+                implementation(libs.ktor3.server.cio) // For example / main
+                implementation(libs.ktor3.server.netty) // For example / main
+                implementation(libs.ktor3.server.call.logging) // For example / main
+                implementation(libs.ktor3.client.content.negotiation) // For example / main
+                implementation(libs.ktor3.server.content.negotiation) // For example / main
+                implementation(libs.ktor3.serialization.kotlinx.json) // For example / main
+            }
+        }
+        val jvmTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
+                implementation(libs.ktor3.server.test.host)
             }
         }
     }
@@ -37,7 +49,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), "http-ktor-2", version.toString())
+    coordinates(group.toString(), "http-server-ktor-3", version.toString())
 
     pom {
         name = "Katalyst"
