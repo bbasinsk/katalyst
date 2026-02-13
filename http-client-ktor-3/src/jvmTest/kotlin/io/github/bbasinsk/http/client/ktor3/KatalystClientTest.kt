@@ -54,7 +54,7 @@ class KatalystClientTest {
         }
 
         val katalystClient = KatalystClient(client)
-        val result = katalystClient.call(api, 42, null)
+        val result = katalystClient.call(api, 42)
 
         assertIs<HttpResult.Success<User>>(result)
         assertEquals(User("User-42", 42), result.value)
@@ -78,7 +78,7 @@ class KatalystClientTest {
 
         val katalystClient = KatalystClient(client)
         val input = User("Alice", 30)
-        val result = katalystClient.call(api, Unit, input)
+        val result = katalystClient.call(api, input)
 
         assertIs<HttpResult.Success<User>>(result)
         assertEquals(input, result.value)
@@ -106,7 +106,7 @@ class KatalystClientTest {
         }
 
         val katalystClient = KatalystClient(client)
-        val result = katalystClient.call(api, Unit, null)
+        val result = katalystClient.call(api)
 
         assertIs<HttpResult.Failure<ErrorMessage>>(result)
         assertEquals(404, result.status)
@@ -129,7 +129,7 @@ class KatalystClientTest {
         }
 
         val katalystClient = KatalystClient(client)
-        val result = katalystClient.call(api, "hello", null)
+        val result = katalystClient.call(api, "hello")
 
         assertIs<HttpResult.Success<String>>(result)
         assertEquals("Found: hello", result.value)
@@ -151,7 +151,7 @@ class KatalystClientTest {
 
         val katalystClient = KatalystClient(client)
         val result = katalystClient.call(
-            api, Unit, null,
+            api,
             auth = AuthCredential.BearerToken("my-token")
         )
 
@@ -168,7 +168,7 @@ class KatalystClientTest {
             .output { status(Ok) { json { userSchema } } }
 
         val katalystClient = KatalystClient(client)
-        val result = katalystClient.call(api, Unit, null)
+        val result = katalystClient.call(api)
 
         assertIs<HttpResult.NetworkError>(result)
         assertIs<IOException>(result.cause)
@@ -189,7 +189,7 @@ class KatalystClientTest {
             .output { status(Ok) { json { userSchema } } }
 
         val katalystClient = KatalystClient(client)
-        val result = katalystClient.call(api, Unit, null)
+        val result = katalystClient.call(api)
 
         assertIs<HttpResult.NetworkError>(result)
     }
@@ -214,7 +214,7 @@ class KatalystClientTest {
         }
 
         val katalystClient = KatalystClient(client)
-        val events = katalystClient.stream(api, Unit).toList()
+        val events = katalystClient.stream(api).toList()
 
         assertEquals(3, events.size)
         assertEquals("event-1", events[0].data)

@@ -59,6 +59,26 @@ class KatalystClient(
             HttpResult.NetworkError(e)
         }
 
+    @JvmName("callNoParamsNoInput")
+    suspend fun <E, O, A> call(
+        endpoint: Http<Unit, Nothing?, E, O, A>,
+        auth: AuthCredential? = null
+    ): HttpResult<E, O> = call(endpoint, Unit, null, auth)
+
+    @JvmName("callNoInput")
+    suspend fun <P, E, O, A> call(
+        endpoint: Http<P, Nothing?, E, O, A>,
+        params: P,
+        auth: AuthCredential? = null
+    ): HttpResult<E, O> = call(endpoint, params, null, auth)
+
+    @JvmName("callNoParams")
+    suspend fun <I, E, O, A> call(
+        endpoint: Http<Unit, I, E, O, A>,
+        input: I,
+        auth: AuthCredential? = null
+    ): HttpResult<E, O> = call(endpoint, Unit, input, auth)
+
     fun <P, I, E, O, A> stream(
         endpoint: Http<P, I, E, O, A>,
         params: P,
@@ -124,6 +144,12 @@ class KatalystClient(
             }
         }
     }
+
+    @JvmName("streamNoParams")
+    fun <I, E, O, A> stream(
+        endpoint: Http<Unit, I, E, O, A>,
+        auth: AuthCredential? = null
+    ): Flow<SSEEvent<O>> = stream(endpoint, Unit, auth)
 }
 
 private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =

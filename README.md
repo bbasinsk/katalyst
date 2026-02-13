@@ -30,8 +30,9 @@ Katalyst focuses on:
 ### HTTP Modules
 
 - **http**: Core HTTP abstractions
-- **http-ktor-2**: Ktor 2.x integration
-- **http-ktor-3**: Ktor 3.x integration
+- **http-server-ktor-2**: Ktor 2.x server integration
+- **http-server-ktor-3**: Ktor 3.x server integration
+- **http-client-ktor-3**: Type-safe HTTP client for Ktor 3.x
 - **http-openapi**: OpenAPI specification generation
 
 ## Getting Started
@@ -49,7 +50,7 @@ implementation("io.github.bbasinsk:validation:{{version}}")
 
 // For HTTP services with Ktor 3
 implementation("io.github.bbasinsk:http:{{version}}")
-implementation("io.github.bbasinsk:http-ktor-3:{{version}}")
+implementation("io.github.bbasinsk:http-server-ktor-3:{{version}}")
 ```
 
 ### Build Requirements
@@ -95,6 +96,23 @@ fun main() {
     }.start(wait = true)
 }
 ```
+
+### Using the HTTP Client
+
+The same endpoint definition works on the client side — no duplicate types or manual URL construction:
+
+```kotlin
+val client = KatalystClient(HttpClient(CIO))
+
+val result = client.call(getPerson, 42)
+when (result) {
+    is HttpResult.Success -> println("Got: ${result.value}")
+    is HttpResult.Failure -> println("Error ${result.status}: ${result.error}")
+    is HttpResult.NetworkError -> println("Network error: ${result.cause.message}")
+}
+```
+
+See [http-client-ktor-3/readme.md](http-client-ktor-3/readme.md) for SSE streaming, authentication, and more.
 
 ### Streaming with Server-Sent Events (SSE)
 
@@ -199,7 +217,7 @@ val generationConfig = GeminiGenerationConfig(
 ## Examples
 
 Check out the full examples in the codebase:
-- [HTTP Example](http-ktor-3/src/jvmMain/kotlin/io/github/bbasinsk/http/ktor3/Example.kt)
+- [HTTP Example](http-server-ktor-3/src/jvmMain/kotlin/io/github/bbasinsk/http/ktor3/Example.kt)
 - [Gemini Example](http-openapi/src/commonTest/kotlin/io/github/bbasinsk/http/openapi/GoogleSchemaTest.kt)
 
 ## TODO
