@@ -10,6 +10,7 @@ import io.github.bbasinsk.http.auth
 import io.github.bbasinsk.http.ktor3.endpoints
 import io.github.bbasinsk.http.query
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import java.io.IOException
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
@@ -220,5 +222,183 @@ class KatalystClientTest {
         assertEquals("event-1", events[0].data)
         assertEquals("event-2", events[1].data)
         assertEquals("event-3", events[2].data)
+    }
+
+    data class MultipartInput(val name: String, val age: Int, val nickname: String?)
+
+    val multipartSchema: Schema<MultipartInput> = Schema.record(
+        Schema.field(Schema.string(), "name") { name },
+        Schema.field(Schema.int(), "age") { age },
+        Schema.field(Schema.string().optional(), "nickname") { nickname },
+        ::MultipartInput
+    )
+
+    @Test
+    fun `POST with multipart form data round-trips through server`() = testApplication {
+        val api = Http.post { Root / "multipart" }
+            .input { multipart { multipartSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (name, age, nickname) = request.input
+                    Response.success("name=$name,age=$age,nickname=$nickname")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api, MultipartInput("Alice", 30, "Ali"))
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("name=Alice,age=30,nickname=Ali", result.value)
+    }
+
+    @Test
+    fun `POST with multipart form data omits null optional fields`() = testApplication {
+        val api = Http.post { Root / "multipart" }
+            .input { multipart { multipartSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (name, age, nickname) = request.input
+                    Response.success("name=$name,age=$age,nickname=$nickname")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api, MultipartInput("Bob", 25, null))
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("name=Bob,age=25,nickname=null", result.value)
+    }
+
+    data class MultipartWithBytes(val file: ByteArray, val description: String)
+
+    val multipartBytesSchema: Schema<MultipartWithBytes> = Schema.record(
+        Schema.field(Schema.byteArray(), "file") { file },
+        Schema.field(Schema.string(), "description") { description },
+        ::MultipartWithBytes
+    )
+
+    @Test
+    fun `POST with multipart bytes round-trips through server`() = testApplication {
+        val api = Http.post { Root / "upload" }
+            .input { multipart { multipartBytesSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (file, description) = request.input
+                    Response.success("desc=$description,size=${file.size}")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val fileContent = "hello world".toByteArray()
+        val result = katalystClient.call(api, MultipartWithBytes(fileContent, "test file"))
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("desc=test file,size=11", result.value)
+    }
+
+    data class FormInput(val username: String, val score: Int)
+
+    val formSchema: Schema<FormInput> = Schema.record(
+        Schema.field(Schema.string(), "username") { username },
+        Schema.field(Schema.int(), "score") { score },
+        ::FormInput
+    )
+
+    @Test
+    fun `POST with form-url-encoded round-trips through server`() = testApplication {
+        val api = Http.post { Root / "form" }
+            .input { formUrlEncoded { formSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (username, score) = request.input
+                    Response.success("username=$username,score=$score")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api, FormInput("alice", 100))
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("username=alice,score=100", result.value)
+    }
+
+    @JvmInline
+    value class Tag(val value: String)
+
+    data class MultipartWithTransform(val name: String, val tag: Tag)
+
+    val multipartTransformSchema: Schema<MultipartWithTransform> = Schema.record(
+        Schema.field(Schema.string(), "name") { name },
+        Schema.field(Schema.string().transform(::Tag) { it.value }, "tag") { tag },
+        ::MultipartWithTransform
+    )
+
+    @Test
+    fun `POST with multipart transform field round-trips through server`() = testApplication {
+        val api = Http.post { Root / "multipart-transform" }
+            .input { multipart { multipartTransformSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val (name, tag) = request.input
+                    Response.success("name=$name,tag=${tag.value}")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api, MultipartWithTransform("item", Tag("important")))
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("name=item,tag=important", result.value)
+    }
+
+    data class MultipartWithList(val images: List<ByteArray>)
+
+    val multipartListSchema: Schema<MultipartWithList> = Schema.record(
+        Schema.field(Schema.list(Schema.byteArray()), "images") { images },
+        ::MultipartWithList
+    )
+
+    @Test
+    fun `POST with multipart collection field round-trips through server`() = testApplication {
+        val api = Http.post { Root / "upload-multiple" }
+            .input { multipart { multipartListSchema } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    val files = request.input.images
+                    Response.success("count=${files.size},sizes=${files.map { it.size }}")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val img1 = byteArrayOf(1, 2, 3)
+        val img2 = byteArrayOf(4, 5, 6, 7)
+        val result = katalystClient.call(api, MultipartWithList(listOf(img1, img2)))
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("count=2,sizes=[3, 4]", result.value)
     }
 }

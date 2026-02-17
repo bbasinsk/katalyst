@@ -9,13 +9,21 @@ import io.github.bbasinsk.http.HttpMethod
 import io.github.bbasinsk.http.HttpResult
 import io.github.bbasinsk.http.SSEEvent
 import io.github.bbasinsk.http.render
+import io.github.bbasinsk.schema.Field
+import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonBytes
+import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonString
 import io.github.bbasinsk.validation.fold
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.forms.FormBuilder
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.content.PartData
 import io.ktor.client.request.header
 import io.ktor.client.request.prepareRequest
 import io.ktor.client.request.request
@@ -23,6 +31,10 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
+import io.ktor.http.Parameters
+import io.ktor.http.ParametersBuilder
 import io.ktor.http.appendPathSegments
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readLine
@@ -201,8 +213,83 @@ private fun <I> HttpRequestBuilder.applyBody(bodySchema: BodySchema<I>, value: I
                 header("Content-Type", bodySchema.contentType.mimeType)
                 setBody(bodySchema.schema.encodePrimitiveString(value).getOrThrow())
             }
-            else -> {}
+            ContentType.MultipartFormData -> {
+                val record = bodySchema.schema as? Schema.Record<I>
+                    ?: error("MultipartFormData requires a Record schema")
+                setBody(MultiPartFormDataContent(encodeMultipart(record, value)))
+            }
+            ContentType.FormUrlEncoded -> {
+                val record = bodySchema.schema as? Schema.Record<I>
+                    ?: error("FormUrlEncoded requires a Record schema")
+                setBody(FormDataContent(encodeFormUrlEncoded(record, value)))
+            }
+            ContentType.Avro,
+            ContentType.EventStream,
+            is ContentType.Image ->
+                error("Unsupported content type for request body: ${bodySchema.contentType.mimeType}")
         }
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun <I> encodeMultipart(record: Schema.Record<I>, value: I): List<PartData> =
+    formData {
+        for (field in record.unsafeFields()) {
+            val fieldValue = (field as Field<I, Any?>).extract(value)
+            encodeMultipartField(field.name, field.schema, fieldValue)
+        }
+    }
+
+@Suppress("UNCHECKED_CAST")
+private fun FormBuilder.encodeMultipartField(name: String, schema: Schema<Any?>, value: Any?) {
+    when (schema) {
+        is Schema.Optional<*> -> if (value != null) encodeMultipartField(name, schema.schema as Schema<Any?>, value)
+        is Schema.Default -> encodeMultipartField(name, schema.schema, value)
+        is Schema.Metadata -> encodeMultipartField(name, schema.schema, value)
+        is Schema.Lazy -> encodeMultipartField(name, schema.schema(), value)
+        is Schema.Transform<Any?, *> -> encodeMultipartField(name, schema.schema as Schema<Any?>, schema.encode(value))
+        is Schema.OrElse<Any?, *> -> encodeMultipartField(name, schema.preferred, value)
+        is Schema.Bytes -> append(name, value as ByteArray, Headers.build {
+            append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
+        })
+        is Schema.Primitive -> append(name, schema.encodePrimitiveString(value).getOrThrow())
+        is Schema.Empty -> {}
+        is Schema.Collection<*> -> {
+            val items = value as? List<*> ?: return
+            for (item in items) encodeMultipartField(name, schema.itemSchema as Schema<Any?>, item)
+        }
+        is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
+            append(name, schema.encodeToJsonString(value))
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun <I> encodeFormUrlEncoded(record: Schema.Record<I>, value: I): Parameters =
+    Parameters.build {
+        for (field in record.unsafeFields()) {
+            val fieldValue = (field as Field<I, Any?>).extract(value)
+            encodeFormField(field.name, field.schema, fieldValue)
+        }
+    }
+
+@Suppress("UNCHECKED_CAST")
+private fun ParametersBuilder.encodeFormField(name: String, schema: Schema<Any?>, value: Any?) {
+    when (schema) {
+        is Schema.Optional<*> -> if (value != null) encodeFormField(name, schema.schema as Schema<Any?>, value)
+        is Schema.Default -> encodeFormField(name, schema.schema, value)
+        is Schema.Metadata -> encodeFormField(name, schema.schema, value)
+        is Schema.Lazy -> encodeFormField(name, schema.schema(), value)
+        is Schema.Transform<Any?, *> -> encodeFormField(name, schema.schema as Schema<Any?>, schema.encode(value))
+        is Schema.OrElse<Any?, *> -> encodeFormField(name, schema.preferred, value)
+        is Schema.Bytes -> error("Cannot encode Bytes as form-url-encoded field")
+        is Schema.Primitive -> append(name, schema.encodePrimitiveString(value).getOrThrow())
+        is Schema.Empty -> {}
+        is Schema.Collection<*> -> {
+            val items = value as? List<*> ?: return
+            for (item in items) encodeFormField(name, schema.itemSchema as Schema<Any?>, item)
+        }
+        is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
+            append(name, schema.encodeToJsonString(value))
     }
 }
 
