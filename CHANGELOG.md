@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.5...katalyst-v0.2.6) (2026-02-17)
+
+
+### Bug Fixes
+
+* **json-schema:** simplify type json-schema descriptions ([185e28f](https://github.com/bbasinsk/katalyst/commit/185e28f30fb3e51a9b136eb850ce953bb107acac))
+
 ## [0.2.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.4...katalyst-v0.2.5) (2026-02-13)
 
 
