@@ -153,8 +153,8 @@ class JsonSchemaTest {
                 {
                   "type": "object",
                   "properties": {
-                    "a": {"anyOf": [{"type": "integer"}, {"type": "null"}]},
-                    "b": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+                    "a": {"type": ["integer", "null"]},
+                    "b": {"type": ["string", "null"]}
                   },
                   "required": ["a", "b"],
                   "additionalProperties": false
@@ -208,7 +208,7 @@ class JsonSchemaTest {
                   "properties": {
                     "type": {"enum": ["Customer"]},
                     "id": {"type": "integer"},
-                    "email": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+                    "email": {"type": ["string", "null"]}
                   },
                   "additionalProperties": false,
                   "required": ["type","id","email"],
@@ -244,19 +244,19 @@ class JsonSchemaTest {
         )
 
         val expected = Json.parseToJsonElement(
-            """
+            $$"""
             {
               "type": "object",
               "properties": {
                 "record": {
-                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.RecordSmall"
+                  "$ref": "#/$defs/io.github.bbasinsk.schema.jsonschema.RecordSmall"
                 }
               },
               "required": ["record"],
               "additionalProperties": false,
-              "${'$'}defs": {
+              "$defs": {
                 "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
-                  "anyOf": [{"type": "object"}, {"type": "null"}],
+                  "type": ["object", "null"],
                   "properties": {
                     "a": {"type": "integer"},
                     "b": {"type": "string"}
@@ -303,7 +303,7 @@ class JsonSchemaTest {
                       "properties": {
                         "type": {"enum": ["Customer"]},
                         "id": {"type": "integer"},
-                        "email": {"anyOf": [{"type": "string"}, {"type": "null"}]}
+                        "email": {"type": ["string", "null"]}
                       },
                       "additionalProperties": false,
                       "required": ["type","id","email"]

@@ -1,7 +1,6 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.DefinitionNameResolver
-import io.github.bbasinsk.schema.ObjectMetadata
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Primitive
 import kotlinx.serialization.SerialName
@@ -37,8 +36,8 @@ data class JsonSchema(
     val oneOf: List<JsonSchema>? = null,
     val required: List<String>? = null,
     val const: String? = null,
-    @SerialName("${'$'}ref") val ref: String? = null,
-    @SerialName("${'$'}defs") val defs: Map<String, JsonSchema>? = null
+    @SerialName($$"$ref") val ref: String? = null,
+    @SerialName($$"$defs") val defs: Map<String, JsonSchema>? = null
 )
 
 data class JsonOptions(
@@ -54,20 +53,23 @@ fun Schema<*>.toJsonSchema(): JsonSchema {
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
-private fun String.typeOrNull(metadata: JsonOptions): List<String> =
-    listOfNotNull(this, "null".takeIf { metadata.optional })
+private fun JsonSchema.orNull(metadata: JsonOptions): JsonSchema = orNullType(metadata)
 
-private fun JsonSchema.orNull(metadata: JsonOptions): JsonSchema =
-    if (metadata.optional) {
-        copy(
+// Was previously used for maybe OpenAI to support nullable objects
+private fun JsonSchema.orNullAnyOf(metadata: JsonOptions): JsonSchema =
+    when {
+        metadata.optional -> copy(
             type = null,
-            anyOf = listOf(
-                JsonSchema(type = this.type),
-                JsonSchema(type = listOf("null")),
-            )
+            anyOf = listOf(JsonSchema(type = type), JsonSchema(type = listOf("null")))
         )
-    } else {
-        this
+
+        else -> this
+    }
+
+private fun JsonSchema.orNullType(metadata: JsonOptions): JsonSchema =
+    when {
+        metadata.optional -> copy(type = type?.plus("null"))
+        else -> this
     }
 
 private fun <A> Schema<A>.toJsonSchemaImpl(
