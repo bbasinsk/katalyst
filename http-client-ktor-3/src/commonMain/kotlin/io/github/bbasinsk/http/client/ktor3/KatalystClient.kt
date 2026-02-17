@@ -131,13 +131,15 @@ class KatalystClient(
                                 decodeBody(eventStream.bodySchema, raw)
                             } else null
 
-                            send(SSEEvent(
-                                data = data,
-                                event = eventType,
-                                id = eventId,
-                                retry = retry,
-                                comment = comment
-                            ))
+                            send(
+                                SSEEvent(
+                                    data = data,
+                                    event = eventType,
+                                    id = eventId,
+                                    retry = retry,
+                                    comment = comment
+                                )
+                            )
                         }
                         eventType = null
                         dataLines = mutableListOf()
@@ -145,10 +147,12 @@ class KatalystClient(
                         retry = null
                         comment = null
                     }
+
                     line.startsWith(":") -> {
                         comment = line.removePrefix(": ").takeIf { it.isNotBlank() }
                             ?: line.removePrefix(":").takeIf { it.isNotBlank() }
                     }
+
                     line.startsWith("event:") -> eventType = line.removePrefix("event:").removePrefix(" ")
                     line.startsWith("data:") -> dataLines.add(line.removePrefix("data:").removePrefix(" "))
                     line.startsWith("id:") -> eventId = line.removePrefix("id:").removePrefix(" ")
@@ -184,18 +188,22 @@ private fun HttpRequestBuilder.applyAuth(schema: AuthSchema<*>, credential: Auth
             is AuthCredential.BearerToken -> header("Authorization", "Bearer ${credential.token}")
             else -> error("Expected BearerToken credential for Bearer auth")
         }
+
         is AuthSchema.Basic<*> -> when (credential) {
             is AuthCredential.BasicCredentials -> header("Authorization", "Basic ${credential.encoded}")
             else -> error("Expected BasicCredentials credential for Basic auth")
         }
+
         is AuthSchema.ApiKeyHeader<*> -> when (credential) {
             is AuthCredential.ApiKey -> header(schema.headerName, credential.key)
             else -> error("Expected ApiKey credential for ApiKeyHeader auth")
         }
+
         is AuthSchema.Cookie<*> -> when (credential) {
             is AuthCredential.CookieValue -> header("Cookie", "${schema.cookieName}=${credential.value}")
             else -> error("Expected CookieValue credential for Cookie auth")
         }
+
         is AuthSchema.Optional<*> -> applyAuth(schema.inner, credential)
     }
 }
@@ -209,24 +217,35 @@ private fun <I> HttpRequestBuilder.applyBody(bodySchema: BodySchema<I>, value: I
                 header("Content-Type", "application/json")
                 setBody(bodySchema.schema.encodeToJsonBytes(value))
             }
+
             ContentType.Plain, ContentType.Html -> {
                 header("Content-Type", bodySchema.contentType.mimeType)
                 setBody(bodySchema.schema.encodePrimitiveString(value).getOrThrow())
             }
+
             ContentType.MultipartFormData -> {
-                val record = bodySchema.schema as? Schema.Record<I>
-                    ?: error("MultipartFormData requires a Record schema")
+                val record = bodySchema.schema as? Schema.Record<I> ?: error("MultipartFormData requires a Record schema")
                 setBody(MultiPartFormDataContent(encodeMultipart(record, value)))
             }
+
             ContentType.FormUrlEncoded -> {
-                val record = bodySchema.schema as? Schema.Record<I>
-                    ?: error("FormUrlEncoded requires a Record schema")
+                val record = bodySchema.schema as? Schema.Record<I> ?: error("FormUrlEncoded requires a Record schema")
                 setBody(FormDataContent(encodeFormUrlEncoded(record, value)))
             }
-            ContentType.Avro,
-            ContentType.EventStream,
-            is ContentType.Image ->
-                error("Unsupported content type for request body: ${bodySchema.contentType.mimeType}")
+
+            is ContentType.Image -> {
+                header("Content-Type", bodySchema.contentType.mimeType)
+                setBody(value as ByteArray)
+            }
+
+            ContentType.Avro -> {
+                header("Content-Type", bodySchema.contentType.mimeType)
+                setBody(value as ByteArray)
+            }
+
+            ContentType.EventStream -> {
+                error("EventStream is not supported as a request body content type")
+            }
         }
     }
 }
@@ -252,12 +271,14 @@ private fun FormBuilder.encodeMultipartField(name: String, schema: Schema<Any?>,
         is Schema.Bytes -> append(name, value as ByteArray, Headers.build {
             append(HttpHeaders.ContentDisposition, "filename=\"$name\"")
         })
+
         is Schema.Primitive -> append(name, schema.encodePrimitiveString(value).getOrThrow())
         is Schema.Empty -> {}
         is Schema.Collection<*> -> {
             val items = value as? List<*> ?: return
             for (item in items) encodeMultipartField(name, schema.itemSchema as Schema<Any?>, item)
         }
+
         is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
             append(name, schema.encodeToJsonString(value))
     }
@@ -288,6 +309,7 @@ private fun ParametersBuilder.encodeFormField(name: String, schema: Schema<Any?>
             val items = value as? List<*> ?: return
             for (item in items) encodeFormField(name, schema.itemSchema as Schema<Any?>, item)
         }
+
         is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
             append(name, schema.encodeToJsonString(value))
     }
@@ -330,8 +352,10 @@ private fun <A> decodeBody(bodySchema: BodySchema<A>, body: String): A =
                 onValid = { it },
                 onInvalid = { errors -> error("Failed to decode JSON response: ${errors.joinToString { it.reason() }}") }
             )
+
             ContentType.Plain, ContentType.Html ->
                 bodySchema.schema.decodePrimitiveString(body).getOrThrow()
+
             else ->
                 bodySchema.schema.decodePrimitiveString(body).getOrThrow()
         }

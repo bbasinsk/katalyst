@@ -401,4 +401,26 @@ class KatalystClientTest {
         assertIs<HttpResult.Success<String>>(result)
         assertEquals("count=2,sizes=[3, 4]", result.value)
     }
+
+    @Test
+    fun `POST with image body sends raw bytes`() = testApplication {
+        val api = Http.post { Root / "upload-image" }
+            .input { bytes(io.github.bbasinsk.http.ContentType.Image.Png) }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request ->
+                    Response.success("size=${request.input.size}")
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val pngBytes = byteArrayOf(0x89.toByte(), 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+        val result = katalystClient.call(api, pngBytes)
+
+        assertIs<HttpResult.Success<String>>(result)
+        assertEquals("size=8", result.value)
+    }
 }
