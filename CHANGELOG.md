@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.6...katalyst-v0.2.7) (2026-02-17)
+
+
+### Bug Fixes
+
+* **http-client-ktor-3:** client multipart, image, avro request support ([#76](https://github.com/bbasinsk/katalyst/issues/76)) ([14e23b5](https://github.com/bbasinsk/katalyst/commit/14e23b54b11dfed9adf57f3ee1220a2f0afe133f))
+
 ## [0.2.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.5...katalyst-v0.2.6) (2026-02-17)
 
 
