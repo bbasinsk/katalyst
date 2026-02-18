@@ -10,6 +10,7 @@ import org.apache.avro.Schema.Type as AvroType
 fun Schema<*>.toAvroSchema(): AvroSchema =
     when (this) {
         is Schema.Empty -> AvroSchema.create(AvroType.NULL)
+        // Schema definition error: Dynamic has no Avro representation, so fail at schema creation time
         is Schema.Dynamic -> error("Schema.Dynamic is not supported in Avro")
         is Schema.Bytes -> AvroSchema.create(AvroType.BYTES)
         is Schema.Lazy -> schema().toAvroSchema()

@@ -73,7 +73,7 @@ object ConfigParser {
             is Schema.Dynamic -> invalid(
                 ConfigParseError.FormatError(
                     value = "Schema.Dynamic",
-                    format = "HOCON-compatible schema type",
+                    format = "Schema.Dynamic is not supported for HOCON config parsing",
                     path = conf.path
                 )
             )

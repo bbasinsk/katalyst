@@ -26,6 +26,12 @@ class JsonSchemaTest {
     }
 
     @Test
+    fun `nullable dynamic schema`() {
+        // Dynamic already accepts any value (including null), so optional doesn't change the output
+        assertEquals("""{}""", Schema.dynamic().optional().toJsonSchema().encodeToJsonString())
+    }
+
+    @Test
     fun `base64 schema`() {
         assertEquals(
             Json.parseToJsonElement("""{"type":"string","contentEncoding":"base64"}"""),

@@ -35,6 +35,7 @@ object BinarySerialization {
     private fun <A> Schema<A>.encode(value: A): Any? =
         when (this) {
             is Schema.Empty -> null
+            // Unreachable via serialize(): toAvroSchema() throws first. Kept for exhaustive `when`.
             is Schema.Dynamic -> error("Schema.Dynamic is not supported in Avro")
             is Schema.Bytes -> ByteBuffer.wrap(value as ByteArray)
             is Schema.Primitive -> when (this) {

@@ -89,6 +89,7 @@ object BinaryDeserialization {
             is Schema.Empty ->
                 valid(null as A)
 
+            // Runtime data error: returns Validation.invalid (unlike schema/serialize which throw at definition time)
             is Schema.Dynamic ->
                 invalid(DeserializationError.InvalidField("Schema.Dynamic is not supported in Avro"))
 

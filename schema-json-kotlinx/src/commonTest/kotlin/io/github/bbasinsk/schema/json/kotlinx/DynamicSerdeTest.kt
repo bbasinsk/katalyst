@@ -180,6 +180,29 @@ class DynamicSerdeTest {
         assertEquals(Validation.valid(null), decoded)
     }
 
+    @Test
+    fun `optional dynamic field omitted when null with explicitNulls false`() {
+        data class OptWrapper(val name: String, val data: SchemaValue?)
+
+        val optWrapperSchema = with(Schema) {
+            record(
+                field(string(), "name") { name },
+                field(dynamic().optional(), "data") { data },
+                ::OptWrapper
+            )
+        }
+        val config = JsonEncodingConfig(explicitNulls = false)
+
+        assertEquals(
+            """{"name":"test"}""",
+            optWrapperSchema.encodeToJsonString(OptWrapper("test", null), config)
+        )
+        assertEquals(
+            """{"name":"test","data":null}""",
+            optWrapperSchema.encodeToJsonString(OptWrapper("test", SchemaValue.Null), config)
+        )
+    }
+
     // Sink encoding matches element encoding
 
     @Test
@@ -259,6 +282,19 @@ class DynamicSerdeTest {
     @Test
     fun `pretty - empty object`() = assertPrettyPrint(SchemaValue.Obj(emptyMap()), "{}")
 
+    @Test
+    fun `pretty - nested object round-trips`() {
+        val value = SchemaValue.Obj(
+            mapOf(
+                "items" to SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
+                "meta" to SchemaValue.Obj(mapOf("key" to SchemaValue.Str("val")))
+            )
+        )
+        val prettyJson = schema.encodeToJsonString(value, pretty)
+        val decoded = schema.decodeFromJsonString(prettyJson)
+        assertEquals(Validation.valid(value), decoded)
+    }
+
     // Edge cases
 
     @Test
@@ -305,14 +341,35 @@ class DynamicSerdeTest {
     }
 
     @Test
-    fun `NaN decimal encoding throws`() {
+    fun `NaN decimal encoding throws by default`() {
         val result = runCatching { schema.encodeToJsonString(SchemaValue.Decimal(Double.NaN)) }
         assertTrue(result.isFailure, "Expected encoding NaN to throw")
     }
 
     @Test
-    fun `Infinity decimal encoding throws`() {
+    fun `Positive Infinity decimal encoding throws by default`() {
         val result = runCatching { schema.encodeToJsonString(SchemaValue.Decimal(Double.POSITIVE_INFINITY)) }
-        assertTrue(result.isFailure, "Expected encoding Infinity to throw")
+        assertTrue(result.isFailure, "Expected encoding +Infinity to throw")
     }
+
+    @Test
+    fun `Negative Infinity decimal encoding throws by default`() {
+        val result = runCatching { schema.encodeToJsonString(SchemaValue.Decimal(Double.NEGATIVE_INFINITY)) }
+        assertTrue(result.isFailure, "Expected encoding -Infinity to throw")
+    }
+
+    @Test
+    fun `NaN decimal encoding succeeds with allowSpecialFloatingPointValues`() {
+        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
+        val result = schema.encodeToJsonString(SchemaValue.Decimal(Double.NaN), config)
+        assertEquals("NaN", result)
+    }
+
+    @Test
+    fun `Infinity decimal encoding succeeds with allowSpecialFloatingPointValues`() {
+        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
+        assertEquals("Infinity", schema.encodeToJsonString(SchemaValue.Decimal(Double.POSITIVE_INFINITY), config))
+        assertEquals("-Infinity", schema.encodeToJsonString(SchemaValue.Decimal(Double.NEGATIVE_INFINITY), config))
+    }
+
 }

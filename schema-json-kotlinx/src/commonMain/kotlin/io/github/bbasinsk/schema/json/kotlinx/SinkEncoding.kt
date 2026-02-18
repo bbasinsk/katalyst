@@ -185,8 +185,8 @@ private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEnco
         is SchemaValue.Bool -> sink.writeString(value.value.toString())
         is SchemaValue.Integer -> sink.writeString(value.value.toString())
         is SchemaValue.Decimal -> {
-            require(!value.value.isNaN() && !value.value.isInfinite()) {
-                "Non-finite double value in SchemaValue.Decimal: ${value.value}"
+            if (value.value.isNaN() || value.value.isInfinite()) {
+                require(config.allowSpecialFloatingPointValues) { "Non-finite double value in SchemaValue.Decimal: ${value.value}" }
             }
             sink.writeString(value.value.toString())
         }

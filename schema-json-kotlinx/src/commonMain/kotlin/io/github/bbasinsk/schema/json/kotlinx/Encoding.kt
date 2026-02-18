@@ -36,7 +36,7 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json): JsonElement =
 fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
-        is Schema.Dynamic -> encodeDynamic(value as SchemaValue)
+        is Schema.Dynamic -> encodeDynamic(value as SchemaValue, config)
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value, config)
         is Schema.Lazy -> schema().encodeToJsonElement(value, config)
@@ -119,18 +119,18 @@ private fun <A> Schema.Union<A>.encodeUnion(value: Any?, config: JsonEncodingCon
     return JsonObject(discriminator.plus(obj))
 }
 
-private fun encodeDynamic(value: SchemaValue): JsonElement =
+private fun encodeDynamic(value: SchemaValue, config: JsonEncodingConfig): JsonElement =
     when (value) {
         is SchemaValue.Null -> JsonNull
         is SchemaValue.Bool -> JsonPrimitive(value.value)
         is SchemaValue.Integer -> JsonPrimitive(value.value)
         is SchemaValue.Decimal -> {
-            require(!value.value.isNaN() && !value.value.isInfinite()) {
-                "Non-finite double value in SchemaValue.Decimal: ${value.value}"
+            if (value.value.isNaN() || value.value.isInfinite()) {
+                require(config.allowSpecialFloatingPointValues) { "Non-finite double value in SchemaValue.Decimal: ${value.value}" }
             }
             JsonPrimitive(value.value)
         }
         is SchemaValue.Str -> JsonPrimitive(value.value)
-        is SchemaValue.Arr -> JsonArray(value.values.map { encodeDynamic(it) })
-        is SchemaValue.Obj -> JsonObject(value.entries.mapValues { encodeDynamic(it.value) })
+        is SchemaValue.Arr -> JsonArray(value.values.map { encodeDynamic(it, config) })
+        is SchemaValue.Obj -> JsonObject(value.entries.mapValues { encodeDynamic(it.value, config) })
     }
