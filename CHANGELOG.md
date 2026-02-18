@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.9](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.8...katalyst-v0.2.9) (2026-02-18)
+
+
+### Bug Fixes
+
+* implement json pretty print ([679d045](https://github.com/bbasinsk/katalyst/commit/679d045458407f85bf58b1ba47e718818845fdf3))
+* use non kotlin.serialization config for encoding ([3158742](https://github.com/bbasinsk/katalyst/commit/3158742c669c806374330c165ec2c69810025755))
+
 ## [0.2.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.7...katalyst-v0.2.8) (2026-02-18)
 
 
