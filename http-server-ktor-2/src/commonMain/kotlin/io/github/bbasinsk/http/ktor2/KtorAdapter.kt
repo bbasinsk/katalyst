@@ -199,6 +199,7 @@ private suspend fun <A> ApplicationCall.receiveJson(schema: Schema<A>): Validati
             }
         }
 
+        is Schema.Dynamic -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
         is Schema.Collection<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
         is Schema.StringMap<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
         is Schema.Record<*> -> (schema as Schema<A>).decodeFromJsonElement(receive<JsonElement>())
@@ -212,6 +213,7 @@ private suspend fun <A> ApplicationCall.respondSchema(status: HttpStatusCode, sc
         is Schema.Optional<*> -> TODO()
         is Schema.Transform<*, *> -> TODO()
         is Schema.OrElse<A, *> -> respond(status, schema.encodeToJsonElement(value))
+        is Schema.Dynamic -> respond(status, schema.encodeToJsonElement(value))
         is Schema.Collection<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.StringMap<*> -> respond(status, (schema as Schema<Any?>).encodeToJsonElement(value))
         is Schema.Record -> respond(status, schema.encodeToJsonElement(value))

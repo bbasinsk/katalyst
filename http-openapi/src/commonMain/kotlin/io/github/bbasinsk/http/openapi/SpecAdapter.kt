@@ -176,6 +176,13 @@ private fun <A> Schema<A>.toContentTypeObject(
     resolver: DefinitionNameResolver
 ): Map<String, MediaTypeObject> {
     return when (this) {
+        is Schema.Dynamic -> mapOf(
+            contentType to MediaTypeObject(
+                schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
+                examples = examples.ifEmpty { null }
+            )
+        )
+
         is Schema.Bytes -> mapOf(
             contentType to MediaTypeObject(
                 schema = toSchemaObjectImpl(FieldOptions(ref = true), OutputOptions(), resolver),
@@ -273,6 +280,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
 ): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
+        is Schema.Dynamic -> SchemaObject(nullable = field.nullable, description = field.description)
         is Schema.Lazy<A> -> schema().toSchemaObjectImpl(field, outputOptions, resolver)
 
         is Schema.Metadata -> schema.toSchemaObjectImpl(
@@ -448,6 +456,7 @@ private fun Schema<*>.byRefName(
 ): Map<String, SchemaObject> =
     when (this) {
         is Schema.Empty -> emptyMap()
+        is Schema.Dynamic -> emptyMap()
         is Schema.Lazy<*> -> schema().byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
         is Schema.Metadata -> schema.byRefName(nullable = nullable, outputOptions = outputOptions, resolver = resolver)
         is Schema.Bytes -> emptyMap()

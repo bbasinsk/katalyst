@@ -3,6 +3,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.SchemaValue
 import kotlinx.io.Sink
 import kotlinx.io.writeString
 import kotlin.io.encoding.Base64
@@ -20,6 +21,7 @@ private fun Sink.writeIndent(print: JsonEncodingConfig.PrintConfig, depth: Int) 
 private fun <A> Schema<A>.encodeToSink(value: A, sink: Sink, config: JsonEncodingConfig, depth: Int) {
     when (this) {
         is Schema.Empty -> sink.writeString("null")
+        is Schema.Dynamic -> encodeDynamicToSink(value as SchemaValue, sink, config, depth)
         is Schema.Bytes -> sink.writeJsonString(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value, sink, config)
         is Schema.Lazy -> schema().encodeToSink(value, sink, config, depth)
@@ -166,12 +168,57 @@ private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Si
         is Schema.OrElse<*, *> -> encodeRecordFieldsInline(schema.preferred as Schema<Any?>, value, sink, config, depth)
         is Schema.Optional<*> -> encodeRecordFieldsInline(schema.schema as Schema<Any?>, value, sink, config, depth)
         is Schema.Empty,
+        is Schema.Dynamic,
         is Schema.Bytes,
         is Schema.Primitive,
         is Schema.Collection<*>,
         is Schema.StringMap<*>,
         is Schema.Union<*> ->
             error("Union case schema must resolve to a Record, found ${schema::class.simpleName}")
+    }
+}
+
+private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    val print = config.printConfig
+    when (value) {
+        is SchemaValue.Null -> sink.writeString("null")
+        is SchemaValue.Bool -> sink.writeString(value.value.toString())
+        is SchemaValue.Integer -> sink.writeString(value.value.toString())
+        is SchemaValue.Decimal -> {
+            if (value.value.isNaN() || value.value.isInfinite()) {
+                require(config.allowSpecialFloatingPointValues) { "Non-finite double value in SchemaValue.Decimal: ${value.value}" }
+            }
+            sink.writeString(value.value.toString())
+        }
+        is SchemaValue.Str -> sink.writeJsonString(value.value)
+        is SchemaValue.Arr -> {
+            sink.writeString("[")
+            if (value.values.isNotEmpty()) {
+                value.values.forEachIndexed { i, item ->
+                    if (i > 0) sink.writeString(",")
+                    sink.writeIndent(print, depth + 1)
+                    encodeDynamicToSink(item, sink, config, depth + 1)
+                }
+                sink.writeIndent(print, depth)
+            }
+            sink.writeString("]")
+        }
+        is SchemaValue.Obj -> {
+            sink.writeString("{")
+            if (value.entries.isNotEmpty()) {
+                var first = true
+                for ((k, v) in value.entries) {
+                    if (!first) sink.writeString(",")
+                    first = false
+                    sink.writeIndent(print, depth + 1)
+                    sink.writeJsonString(k)
+                    sink.writeString(print.colon)
+                    encodeDynamicToSink(v, sink, config, depth + 1)
+                }
+                sink.writeIndent(print, depth)
+            }
+            sink.writeString("}")
+        }
     }
 }
 

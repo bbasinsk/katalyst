@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.Segment
@@ -12,8 +13,10 @@ import io.github.bbasinsk.validation.mapInvalid
 import io.github.bbasinsk.validation.mapValid
 import io.github.bbasinsk.validation.orElse
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -37,6 +40,7 @@ private fun <A> Validation.Companion.decode(
 ): Validation<InvalidJson, A> =
     when (schema) {
         is Schema.Empty -> valid(null as A)
+        is Schema.Dynamic -> valid(decodeDynamic(json) as A)
         is Schema.Bytes -> decodeBytes(json, path) as Validation<InvalidJson, A>
         is Schema.Lazy<A> -> decode(schema.schema(), json, path)
         is Schema.Metadata -> decode(schema.schema, json, path)
@@ -189,3 +193,23 @@ private fun <A> Validation.Companion.decodeUnion(
 
 private fun <A> List<A>.joinToListString(): String =
     joinToString(", ", "[", "]")
+
+private fun decodeDynamic(json: JsonElement): SchemaValue =
+    when (json) {
+        is JsonNull -> SchemaValue.Null
+        is JsonArray -> SchemaValue.Arr(json.map { decodeDynamic(it) })
+        is JsonObject -> SchemaValue.Obj(json.mapValues { decodeDynamic(it.value) })
+        is JsonPrimitive -> when {
+            json.isString -> SchemaValue.Str(json.content)
+            json.content == "true" || json.content == "false" -> SchemaValue.Bool(json.content.toBooleanStrict())
+            // Attempt numeric parsing: decimal-like (contains '.' or 'e') -> Double, otherwise Long -> Double.
+            // Falls back to Str for values kotlinx.serialization's parser would never produce from valid JSON,
+            // but could appear via programmatic JsonPrimitive construction.
+            json.content.contains('.') || json.content.contains('e', ignoreCase = true) ->
+                json.content.toDoubleOrNull()?.let { SchemaValue.Decimal(it) }
+                    ?: SchemaValue.Str(json.content)
+            else -> json.content.toLongOrNull()?.let { SchemaValue.Integer(it) }
+                ?: json.content.toDoubleOrNull()?.let { SchemaValue.Decimal(it) }
+                ?: SchemaValue.Str(json.content)
+        }
+    }

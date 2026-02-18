@@ -17,6 +17,7 @@ sealed interface Schema<A> {
 
     data object Empty : Schema<Nothing?>
     data object Bytes : Schema<ByteArray>
+    data object Dynamic : Schema<SchemaValue>
     data class Lazy<A>(val schema: () -> Schema<A>) : Schema<A>
     data class Optional<A>(val schema: Schema<A>) : Schema<A?>
     data class Metadata<A>(val schema: Schema<A>, val metadata: FieldMetadata) : Schema<A>
@@ -62,6 +63,7 @@ sealed interface Schema<A> {
 
     fun isPrimitive(): Boolean = when (this) {
         is Bytes -> true
+        is Dynamic -> false
         is Primitive -> true
         is Union -> false
         is Record -> false
@@ -78,6 +80,7 @@ sealed interface Schema<A> {
 
     fun isRequired(): Boolean = when (this) {
         is Bytes -> true
+        is Dynamic -> true
         is Default -> false
         is Empty -> false
         is Union -> true
@@ -104,6 +107,7 @@ sealed interface Schema<A> {
         is Union -> null
         is Primitive -> null
         is Bytes -> null
+        is Dynamic -> null
         is Empty -> null
         is StringMap<*> -> null
     }
@@ -112,6 +116,7 @@ sealed interface Schema<A> {
         fun <A> lazy(schema: () -> Schema<A>): Schema<A> = Lazy(schema)
         fun empty(): Schema<Nothing?> = Empty
         fun byteArray(): Schema<ByteArray> = Bytes
+        fun dynamic(): Schema<SchemaValue> = Dynamic
         fun boolean(): Primitive<Boolean> = Primitive.Boolean
         fun string(): Primitive<String> = Primitive.String
         fun int(): Primitive<Int> = Primitive.Int

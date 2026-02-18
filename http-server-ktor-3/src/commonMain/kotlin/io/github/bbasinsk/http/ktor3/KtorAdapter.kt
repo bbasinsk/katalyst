@@ -216,6 +216,7 @@ private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<I
         is Schema.Metadata -> receiveJson(schema.schema)
         is Schema.Primitive -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
 
+        is Schema.Dynamic -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
         is Schema.Record -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
         is Schema.Union -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
         is Schema.Collection<*> -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
@@ -289,7 +290,7 @@ private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> 
             else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
         }
 
-        is Schema.Union, is Schema.Record, is Schema.StringMap<*> -> when (this) {
+        is Schema.Dynamic, is Schema.Union, is Schema.Record, is Schema.StringMap<*> -> when (this) {
             is PartData.FormItem -> schema.decodeFromJsonString(value).mapInvalid { it.reason() }
             null -> Validation.invalid("Missing required part for schema")
             else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
