@@ -323,4 +323,100 @@ class SinkEncodingTest {
             schema.encodeToJsonBytes(value).decodeToString()
         )
     }
+
+    // Pretty print
+
+    private val pretty = JsonEncodingConfig(printConfig = JsonEncodingConfig.PrintConfig.pretty())
+
+    private fun <A> assertPrettyPrint(schema: Schema<A>, value: A, expected: String) {
+        assertEquals(expected, schema.encodeToJsonString(value, pretty))
+    }
+
+    @Test
+    fun `pretty - primitives unchanged`() {
+        assertEquals("42", Schema.int().encodeToJsonString(42, pretty))
+        assertEquals("\"hello\"", Schema.string().encodeToJsonString("hello", pretty))
+        assertEquals("true", Schema.boolean().encodeToJsonString(true, pretty))
+    }
+
+    @Test
+    fun `pretty - empty list`() = assertPrettyPrint(Schema.list(Schema.int()), emptyList(), "[]")
+
+    @Test
+    fun `pretty - simple list`() = assertPrettyPrint(
+        Schema.list(Schema.int()),
+        listOf(1, 2),
+        "[\n  1,\n  2\n]"
+    )
+
+    @Test
+    fun `pretty - empty map`() = assertPrettyPrint(Schema.stringMap(Schema.int()), emptyMap(), "{}")
+
+    @Test
+    fun `pretty - simple map`() = assertPrettyPrint(
+        Schema.stringMap(Schema.int()),
+        mapOf("a" to 1, "b" to 2),
+        "{\n  \"a\": 1,\n  \"b\": 2\n}"
+    )
+
+    @Test
+    fun `pretty - simple record`() = assertPrettyPrint(
+        Schema.point(),
+        Point(1, 2),
+        "{\n  \"x\": 1,\n  \"y\": 2\n}"
+    )
+
+    @Test
+    fun `pretty - nested record`() = assertPrettyPrint(
+        Schema.line(),
+        Line(Point(0, 0), Point(3, 4)),
+        "{\n  \"start\": {\n    \"x\": 0,\n    \"y\": 0\n  },\n  \"end\": {\n    \"x\": 3,\n    \"y\": 4\n  }\n}"
+    )
+
+    @Test
+    fun `pretty - union`() = assertPrettyPrint(
+        Schema.shape(),
+        Shape.Circle(5),
+        "{\n  \"type\": \"Circle\",\n  \"radius\": 5\n}"
+    )
+
+    @Test
+    fun `pretty - union second case`() = assertPrettyPrint(
+        Schema.shape(),
+        Shape.Rect(3, 4),
+        "{\n  \"type\": \"Rect\",\n  \"w\": 3,\n  \"h\": 4\n}"
+    )
+
+    @Test
+    fun `pretty - record with null-filtered fields`() {
+        val config = JsonEncodingConfig(explicitNulls = false, printConfig = JsonEncodingConfig.PrintConfig.pretty())
+        assertEquals(
+            "{\n  \"name\": \"Alice\"\n}",
+            Schema.named().encodeToJsonString(Named("Alice", null), config)
+        )
+    }
+
+    @Test
+    fun `pretty - record with all nulls filtered`() {
+        val allOptional: Schema<Int?> = Schema.record(
+            Schema.field(Schema.int().optional(), "a") { this },
+            { it }
+        )
+        val config = JsonEncodingConfig(explicitNulls = false, printConfig = JsonEncodingConfig.PrintConfig.pretty())
+        assertEquals("{}", allOptional.encodeToJsonString(null, config))
+    }
+
+    @Test
+    fun `pretty - nested list`() = assertPrettyPrint(
+        Schema.list(Schema.list(Schema.int())),
+        listOf(listOf(1, 2), listOf(3)),
+        "[\n  [\n    1,\n    2\n  ],\n  [\n    3\n  ]\n]"
+    )
+
+    @Test
+    fun `pretty - recursive tree`() = assertPrettyPrint(
+        Schema.tree(),
+        Tree.Branch(Tree.Leaf(1), Tree.Leaf(2)),
+        "{\n  \"type\": \"Branch\",\n  \"left\": {\n    \"type\": \"Leaf\",\n    \"value\": 1\n  },\n  \"right\": {\n    \"type\": \"Leaf\",\n    \"value\": 2\n  }\n}"
+    )
 }

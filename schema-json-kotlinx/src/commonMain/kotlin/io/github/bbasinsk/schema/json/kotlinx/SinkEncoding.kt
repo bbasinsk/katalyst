@@ -9,20 +9,29 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun <A> Schema<A>.encodeToSink(value: A, sink: Sink, config: JsonEncodingConfig) {
+    encodeToSink(value, sink, config, depth = 0)
+}
+
+private fun Sink.writeIndent(print: JsonEncodingConfig.PrintConfig, depth: Int) {
+    writeString(print.newLine)
+    writeString(print.indent.repeat(depth))
+}
+
+private fun <A> Schema<A>.encodeToSink(value: A, sink: Sink, config: JsonEncodingConfig, depth: Int) {
     when (this) {
         is Schema.Empty -> sink.writeString("null")
         is Schema.Bytes -> sink.writeJsonString(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value, sink, config)
-        is Schema.Lazy -> schema().encodeToSink(value, sink, config)
-        is Schema.Metadata -> schema.encodeToSink(value, sink, config)
-        is Schema.Optional<*> -> encodeOptional(value, sink, config)
-        is Schema.Default -> schema.encodeToSink(value, sink, config)
-        is Schema.OrElse<A, *> -> preferred.encodeToSink(value, sink, config)
-        is Schema.Transform<A, *> -> encodeTransform(value, sink, config)
-        is Schema.Collection<*> -> encodeList(value as List<*>, sink, config)
-        is Schema.StringMap<*> -> encodeStringMap(value as Map<*, *>, sink, config)
-        is Schema.Union<*> -> encodeUnion(value, sink, config)
-        is Schema.Record<*> -> encodeRecord(value, sink, config)
+        is Schema.Lazy -> schema().encodeToSink(value, sink, config, depth)
+        is Schema.Metadata -> schema.encodeToSink(value, sink, config, depth)
+        is Schema.Optional<*> -> encodeOptional(value, sink, config, depth)
+        is Schema.Default -> schema.encodeToSink(value, sink, config, depth)
+        is Schema.OrElse<A, *> -> preferred.encodeToSink(value, sink, config, depth)
+        is Schema.Transform<A, *> -> encodeTransform(value, sink, config, depth)
+        is Schema.Collection<*> -> encodeList(value as List<*>, sink, config, depth)
+        is Schema.StringMap<*> -> encodeStringMap(value as Map<*, *>, sink, config, depth)
+        is Schema.Union<*> -> encodeUnion(value, sink, config, depth)
+        is Schema.Record<*> -> encodeRecord(value, sink, config, depth)
     }
 }
 
@@ -52,40 +61,51 @@ private fun <A> Schema.Primitive<A>.encodePrimitive(value: A, sink: Sink, config
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Optional<A>.encodeOptional(value: Any?, sink: Sink, config: JsonEncodingConfig) {
-    if (value == null) sink.writeString("null") else schema.encodeToSink(value as A, sink, config)
+private fun <A> Schema.Optional<A>.encodeOptional(value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    if (value == null) sink.writeString("null") else schema.encodeToSink(value as A, sink, config, depth)
 }
 
-private fun <A, B> Schema.Transform<A, B>.encodeTransform(value: A, sink: Sink, config: JsonEncodingConfig) {
-    schema.encodeToSink(encode(value), sink, config)
+private fun <A, B> Schema.Transform<A, B>.encodeTransform(value: A, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    schema.encodeToSink(encode(value), sink, config, depth)
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Collection<A>.encodeList(value: List<Any?>, sink: Sink, config: JsonEncodingConfig) {
+private fun <A> Schema.Collection<A>.encodeList(value: List<Any?>, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    val print = config.printConfig
     sink.writeString("[")
-    value.forEachIndexed { i, item ->
-        if (i > 0) sink.writeString(",")
-        itemSchema.encodeToSink(item as A, sink, config)
+    if (value.isNotEmpty()) {
+        value.forEachIndexed { i, item ->
+            if (i > 0) sink.writeString(",")
+            sink.writeIndent(print, depth + 1)
+            itemSchema.encodeToSink(item as A, sink, config, depth + 1)
+        }
+        sink.writeIndent(print, depth)
     }
     sink.writeString("]")
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <V> Schema.StringMap<V>.encodeStringMap(value: Map<*, *>, sink: Sink, config: JsonEncodingConfig) {
+private fun <V> Schema.StringMap<V>.encodeStringMap(value: Map<*, *>, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    val print = config.printConfig
     sink.writeString("{")
-    var first = true
-    for ((k, v) in value) {
-        if (!first) sink.writeString(",")
-        first = false
-        sink.writeJsonString(k as String)
-        sink.writeString(":")
-        valueSchema.encodeToSink(v as V, sink, config)
+    if (value.isNotEmpty()) {
+        var first = true
+        for ((k, v) in value) {
+            if (!first) sink.writeString(",")
+            first = false
+            sink.writeIndent(print, depth + 1)
+            sink.writeJsonString(k as String)
+            sink.writeString(print.colon)
+            valueSchema.encodeToSink(v as V, sink, config, depth + 1)
+        }
+        sink.writeIndent(print, depth)
     }
     sink.writeString("}")
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: JsonEncodingConfig) {
+private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    val print = config.printConfig
     sink.writeString("{")
     var first = true
     for (field in unsafeFields()) {
@@ -94,27 +114,33 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: J
         if (!config.explicitNulls && fieldValue == null) continue
         if (!first) sink.writeString(",")
         first = false
+        sink.writeIndent(print, depth + 1)
         sink.writeJsonString(field.name)
-        sink.writeString(":")
-        schema.encodeToSink(fieldValue, sink, config)
+        sink.writeString(print.colon)
+        schema.encodeToSink(fieldValue, sink, config, depth + 1)
     }
+    if (!first) sink.writeIndent(print, depth)
     sink.writeString("}")
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> Schema.Union<A>.encodeUnion(value: Any?, sink: Sink, config: JsonEncodingConfig) {
+private fun <A> Schema.Union<A>.encodeUnion(value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    val print = config.printConfig
     val (case, caseValue) = unsafeCases()
         .firstNotNullOfOrNull { case -> case.deconstruct(value as A)?.let { case to it } }
         ?: error("No case found for ${value as A}")
     sink.writeString("{")
+    sink.writeIndent(print, depth + 1)
     sink.writeJsonString(key)
-    sink.writeString(":")
+    sink.writeString(print.colon)
     sink.writeJsonString(case.name)
-    encodeRecordFieldsInline(case.schema as Schema<Any?>, caseValue, sink, config)
+    encodeRecordFieldsInline(case.schema as Schema<Any?>, caseValue, sink, config, depth + 1)
+    sink.writeIndent(print, depth)
     sink.writeString("}")
 }
 
-private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Sink, config: JsonEncodingConfig) {
+private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+    val print = config.printConfig
     @Suppress("UNCHECKED_CAST")
     when (schema) {
         is Schema.Record<*> -> {
@@ -124,20 +150,21 @@ private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Si
                 val fieldValue = field.extract(value)
                 if (!config.explicitNulls && fieldValue == null) continue
                 sink.writeString(",")
+                sink.writeIndent(print, depth)
                 sink.writeJsonString(field.name)
-                sink.writeString(":")
-                fieldSchema.encodeToSink(fieldValue, sink, config)
+                sink.writeString(print.colon)
+                fieldSchema.encodeToSink(fieldValue, sink, config, depth)
             }
         }
         is Schema.Transform<*, *> -> {
             val transform = schema as Schema.Transform<Any?, Any?>
-            encodeRecordFieldsInline(transform.schema, transform.encode(value), sink, config)
+            encodeRecordFieldsInline(transform.schema, transform.encode(value), sink, config, depth)
         }
-        is Schema.Metadata -> encodeRecordFieldsInline(schema.schema, value, sink, config)
-        is Schema.Lazy -> encodeRecordFieldsInline(schema.schema(), value, sink, config)
-        is Schema.Default -> encodeRecordFieldsInline(schema.schema, value, sink, config)
-        is Schema.OrElse<*, *> -> encodeRecordFieldsInline(schema.preferred as Schema<Any?>, value, sink, config)
-        is Schema.Optional<*> -> encodeRecordFieldsInline(schema.schema as Schema<Any?>, value, sink, config)
+        is Schema.Metadata -> encodeRecordFieldsInline(schema.schema, value, sink, config, depth)
+        is Schema.Lazy -> encodeRecordFieldsInline(schema.schema(), value, sink, config, depth)
+        is Schema.Default -> encodeRecordFieldsInline(schema.schema, value, sink, config, depth)
+        is Schema.OrElse<*, *> -> encodeRecordFieldsInline(schema.preferred as Schema<Any?>, value, sink, config, depth)
+        is Schema.Optional<*> -> encodeRecordFieldsInline(schema.schema as Schema<Any?>, value, sink, config, depth)
         is Schema.Empty,
         is Schema.Bytes,
         is Schema.Primitive,

@@ -14,12 +14,14 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
+@Deprecated("Use encodeToJsonBytes instead", ReplaceWith("encodeToJsonBytes(value, TODO())"))
 fun <A> Schema<A>.encodeToJsonBytes(value: A, json: Json = Json.Default): ByteArray =
     encodeToJsonBytes(value, json.toEncodingConfig())
 
 fun <A> Schema<A>.encodeToJsonBytes(value: A, config: JsonEncodingConfig): ByteArray =
     kotlinx.io.Buffer().also { encodeToSink(value, it, config) }.readByteArray()
 
+@Deprecated("Use encodeToJsonString instead", ReplaceWith("encodeToJsonString(value, TODO())"))
 fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): String =
     encodeToJsonString(value, json.toEncodingConfig())
 
