@@ -11,7 +11,7 @@ import kotlin.test.assertFailsWith
 
 class SinkEncodingTest {
 
-    private fun <A> assertEncodingsMatch(schema: Schema<A>, value: A, json: Json = Json.Default) {
+    private fun <A> assertEncodingsMatch(schema: Schema<A>, value: A, json: JsonEncodingConfig = JsonEncodingConfig()) {
         val fromElement = schema.encodeToJsonElement(value, json).toString()
         val fromSink = schema.encodeToJsonString(value, json)
         assertEquals(fromElement, fromSink)
@@ -142,7 +142,7 @@ class SinkEncodingTest {
 
     @Test
     fun `record with null optional field - explicitNulls false`() {
-        val json = Json { explicitNulls = false }
+        val json = JsonEncodingConfig(explicitNulls = false)
         assertEncodingsMatch(Schema.named(), Named("Alice", null), json)
     }
 
@@ -270,31 +270,31 @@ class SinkEncodingTest {
 
     @Test
     fun `double NaN with allowSpecialFloatingPointValues`() {
-        val json = Json { allowSpecialFloatingPointValues = true }
+        val json = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
         assertEncodingsMatch(Schema.double(), Double.NaN, json)
     }
 
     @Test
     fun `double Infinity with allowSpecialFloatingPointValues`() {
-        val json = Json { allowSpecialFloatingPointValues = true }
+        val json = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
         assertEncodingsMatch(Schema.double(), Double.POSITIVE_INFINITY, json)
     }
 
     @Test
     fun `double negative Infinity with allowSpecialFloatingPointValues`() {
-        val json = Json { allowSpecialFloatingPointValues = true }
+        val json = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
         assertEncodingsMatch(Schema.double(), Double.NEGATIVE_INFINITY, json)
     }
 
     @Test
     fun `float NaN with allowSpecialFloatingPointValues`() {
-        val json = Json { allowSpecialFloatingPointValues = true }
+        val json = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
         assertEncodingsMatch(Schema.float(), Float.NaN, json)
     }
 
     @Test
     fun `float Infinity with allowSpecialFloatingPointValues`() {
-        val json = Json { allowSpecialFloatingPointValues = true }
+        val json = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
         assertEncodingsMatch(Schema.float(), Float.POSITIVE_INFINITY, json)
     }
 

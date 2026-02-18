@@ -15,23 +15,24 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 @Deprecated("Use encodeToJsonBytes instead", ReplaceWith("encodeToJsonBytes(value, TODO())"))
-fun <A> Schema<A>.encodeToJsonBytes(value: A, json: Json = Json.Default): ByteArray =
+fun <A> Schema<A>.encodeToJsonBytes(value: A, json: Json): ByteArray =
     encodeToJsonBytes(value, json.toEncodingConfig())
 
-fun <A> Schema<A>.encodeToJsonBytes(value: A, config: JsonEncodingConfig): ByteArray =
+fun <A> Schema<A>.encodeToJsonBytes(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): ByteArray =
     kotlinx.io.Buffer().also { encodeToSink(value, it, config) }.readByteArray()
 
 @Deprecated("Use encodeToJsonString instead", ReplaceWith("encodeToJsonString(value, TODO())"))
-fun <A> Schema<A>.encodeToJsonString(value: A, json: Json = Json.Default): String =
+fun <A> Schema<A>.encodeToJsonString(value: A, json: Json): String =
     encodeToJsonString(value, json.toEncodingConfig())
 
-fun <A> Schema<A>.encodeToJsonString(value: A, config: JsonEncodingConfig): String =
+fun <A> Schema<A>.encodeToJsonString(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): String =
     encodeToJsonBytes(value, config).decodeToString()
 
-fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json = Json.Default): JsonElement =
+@Deprecated("Use encodeToJsonElement instead", ReplaceWith("encodeToJsonElement(value, TODO())"))
+fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json): JsonElement =
     encodeToJsonElement(value, json.toEncodingConfig())
 
-fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig): JsonElement =
+fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
