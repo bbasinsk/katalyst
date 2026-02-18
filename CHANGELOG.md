@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.7...katalyst-v0.2.8) (2026-02-18)
+
+
+### Bug Fixes
+
+* handle heartbeat deserialization in SSE apis ([bc817e3](https://github.com/bbasinsk/katalyst/commit/bc817e3fcc40de149ac2fce1139eee97dfa7d71a))
+
 ## [0.2.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.6...katalyst-v0.2.7) (2026-02-17)
 
 
