@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.9...katalyst-v0.3.0) (2026-02-18)
+
+
+### Features
+
+* support dynamic schema values ([#80](https://github.com/bbasinsk/katalyst/issues/80)) ([553f2f1](https://github.com/bbasinsk/katalyst/commit/553f2f19b1dbf093c806be2ba1f7b39b37dc3968))
+
 ## [0.2.9](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.8...katalyst-v0.2.9) (2026-02-18)
 
 
