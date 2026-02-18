@@ -224,6 +224,35 @@ class KatalystClientTest {
         assertEquals("event-3", events[2].data)
     }
 
+    @Test
+    fun `SSE stream with keepalive heartbeats skips null data`() = testApplication {
+        val api = Http.get { Root / "heartbeat" }
+            .output { sse { json { userSchema } } }
+
+        application {
+            endpoints {
+                handle(api) {
+                    Response.streamingSuccess(flow {
+                        emit(SSEEvent.data(User("Alice", 30)))
+                        delay(10)
+                        emit(SSEEvent.keepalive("heartbeat"))
+                        delay(10)
+                        emit(SSEEvent.data(User("Bob", 25)))
+                    })
+                }
+            }
+        }
+
+        val katalystClient = KatalystClient(client)
+        val events = katalystClient.stream(api).toList()
+
+        assertEquals(3, events.size)
+        assertEquals(User("Alice", 30), events[0].data)
+        assertEquals(null, events[1].data)
+        assertEquals("heartbeat", events[1].comment)
+        assertEquals(User("Bob", 25), events[2].data)
+    }
+
     data class MultipartInput(val name: String, val age: Int, val nickname: String?)
 
     val multipartSchema: Schema<MultipartInput> = Schema.record(

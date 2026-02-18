@@ -128,7 +128,7 @@ class KatalystClient(
                         if (dataLines.isNotEmpty() || comment != null) {
                             val data = if (dataLines.isNotEmpty()) {
                                 val raw = dataLines.joinToString("\n")
-                                decodeBody(eventStream.bodySchema, raw)
+                                if (raw.isBlank() || raw == "null") null else decodeBody(eventStream.bodySchema, raw)
                             } else null
 
                             send(
