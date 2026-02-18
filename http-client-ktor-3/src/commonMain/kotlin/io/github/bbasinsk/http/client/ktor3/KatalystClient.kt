@@ -279,7 +279,7 @@ private fun FormBuilder.encodeMultipartField(name: String, schema: Schema<Any?>,
             for (item in items) encodeMultipartField(name, schema.itemSchema as Schema<Any?>, item)
         }
 
-        is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
+        is Schema.Dynamic, is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
             append(name, schema.encodeToJsonString(value))
     }
 }
@@ -310,7 +310,7 @@ private fun ParametersBuilder.encodeFormField(name: String, schema: Schema<Any?>
             for (item in items) encodeFormField(name, schema.itemSchema as Schema<Any?>, item)
         }
 
-        is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
+        is Schema.Dynamic, is Schema.Record, is Schema.Union, is Schema.StringMap<*> ->
             append(name, schema.encodeToJsonString(value))
     }
 }

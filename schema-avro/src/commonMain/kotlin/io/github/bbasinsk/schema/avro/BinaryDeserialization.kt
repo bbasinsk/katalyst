@@ -89,6 +89,9 @@ object BinaryDeserialization {
             is Schema.Empty ->
                 valid(null as A)
 
+            is Schema.Dynamic ->
+                invalid(DeserializationError.InvalidField("Schema.Dynamic is not supported in Avro"))
+
             is Schema.Bytes ->
                 read(input) { it as? ByteBuffer? }.mapValid { it.array() as A }
 

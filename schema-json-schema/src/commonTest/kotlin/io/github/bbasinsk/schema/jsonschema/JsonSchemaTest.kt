@@ -21,6 +21,11 @@ class JsonSchemaTest {
     }
 
     @Test
+    fun `dynamic schema`() {
+        assertEquals("""{}""", Schema.dynamic().toJsonSchema().encodeToJsonString())
+    }
+
+    @Test
     fun `base64 schema`() {
         assertEquals(
             Json.parseToJsonElement("""{"type":"string","contentEncoding":"base64"}"""),

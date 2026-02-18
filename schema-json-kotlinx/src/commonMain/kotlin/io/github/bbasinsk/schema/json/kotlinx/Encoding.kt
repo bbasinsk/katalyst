@@ -3,6 +3,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.SchemaValue
 import kotlinx.io.readByteArray
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -35,6 +36,7 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json): JsonElement =
 fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
+        is Schema.Dynamic -> encodeDynamic(value as SchemaValue)
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value, config)
         is Schema.Lazy -> schema().encodeToJsonElement(value, config)
@@ -116,3 +118,19 @@ private fun <A> Schema.Union<A>.encodeUnion(value: Any?, config: JsonEncodingCon
     val obj = (case.schema as Schema<Any?>).encodeToJsonElement(caseValue, config).jsonObject
     return JsonObject(discriminator.plus(obj))
 }
+
+private fun encodeDynamic(value: SchemaValue): JsonElement =
+    when (value) {
+        is SchemaValue.Null -> JsonNull
+        is SchemaValue.Bool -> JsonPrimitive(value.value)
+        is SchemaValue.Integer -> JsonPrimitive(value.value)
+        is SchemaValue.Decimal -> {
+            require(!value.value.isNaN() && !value.value.isInfinite()) {
+                "Non-finite double value in SchemaValue.Decimal: ${value.value}"
+            }
+            JsonPrimitive(value.value)
+        }
+        is SchemaValue.Str -> JsonPrimitive(value.value)
+        is SchemaValue.Arr -> JsonArray(value.values.map { encodeDynamic(it) })
+        is SchemaValue.Obj -> JsonObject(value.entries.mapValues { encodeDynamic(it.value) })
+    }

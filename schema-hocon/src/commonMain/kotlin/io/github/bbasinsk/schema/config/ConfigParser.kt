@@ -70,6 +70,13 @@ object ConfigParser {
     ): Validation<ConfigParseError, A> =
         when (parser) {
             is Schema.Empty -> valid(null) as Validation<ConfigParseError, A>
+            is Schema.Dynamic -> invalid(
+                ConfigParseError.FormatError(
+                    value = "Schema.Dynamic",
+                    format = "HOCON-compatible schema type",
+                    path = conf.path
+                )
+            )
             is Record -> parseRecord(parser, conf)
             is Union -> parseUnion(parser, conf)
             is Schema.Collection<*> -> parseList(parser, conf) as Validation<ConfigParseError, A>

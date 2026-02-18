@@ -80,6 +80,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 ): JsonSchema {
     return when (this) {
         is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
+        is Schema.Dynamic -> JsonSchema(description = options.description)
         is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description).orNull(options)
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver)

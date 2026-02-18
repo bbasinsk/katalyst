@@ -24,6 +24,7 @@ fun <A> Schema<A>.decodePrimitiveString(str: String?): Result<A> =
         is Schema.Record -> Result.failure(IllegalStateException("Cannot decode Record from String"))
         is Schema.Union -> Result.failure(IllegalStateException("Cannot decode Union from String"))
         is Schema.Bytes -> Result.failure(IllegalStateException("Cannot decode Bytes from String"))
+        is Schema.Dynamic -> Result.failure(IllegalStateException("Cannot decode Dynamic from String"))
         is Schema.Collection<*> -> Result.failure(IllegalStateException("Cannot decode Collection from String"))
     }
 
@@ -42,5 +43,6 @@ fun <A> Schema<A>.encodePrimitiveString(value: A): Result<String> =
         is Schema.Record -> Result.failure(IllegalStateException("Cannot encode Record to String"))
         is Schema.Union -> Result.failure(IllegalStateException("Cannot encode Union to String"))
         is Schema.Bytes -> Result.failure(IllegalStateException("Cannot encode Bytes to String"))
+        is Schema.Dynamic -> Result.failure(IllegalStateException("Cannot encode Dynamic to String"))
         is Schema.Collection<*> -> Result.failure(IllegalStateException("Cannot encode Collection to String"))
     }
