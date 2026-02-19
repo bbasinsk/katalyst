@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.0...katalyst-v0.3.1) (2026-02-19)
+
+
+### Bug Fixes
+
+* schema value encodings ([#82](https://github.com/bbasinsk/katalyst/issues/82)) ([613a164](https://github.com/bbasinsk/katalyst/commit/613a1648653258988b71454676dae0b819053bcc))
+
 ## [0.3.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.2.9...katalyst-v0.3.0) (2026-02-18)
 
 
