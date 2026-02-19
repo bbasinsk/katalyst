@@ -4,7 +4,9 @@ package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.SchemaValue
-import kotlinx.io.readByteArray
+import io.github.bbasinsk.schema.json.JsonEncodingConfig
+import io.github.bbasinsk.schema.json.encodeToJsonBytes
+import io.github.bbasinsk.schema.json.encodeToJsonString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -15,27 +17,15 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-@Deprecated("Use encodeToJsonBytes instead", ReplaceWith("encodeToJsonBytes(value, TODO())"))
+@Deprecated("Use encodeToJsonBytes instead", ReplaceWith("encodeToJsonBytes(value, json.toEncodingConfig())"))
 fun <A> Schema<A>.encodeToJsonBytes(value: A, json: Json): ByteArray =
     encodeToJsonBytes(value, json.toEncodingConfig())
 
-fun <A> Schema<A>.encodeToJsonBytes(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): ByteArray =
-    kotlinx.io.Buffer().also { encodeToSink(value, it, config) }.readByteArray()
-
-@Deprecated("Use encodeToJsonString instead", ReplaceWith("encodeToJsonString(value, TODO())"))
+@Deprecated("Use encodeToJsonString instead", ReplaceWith("encodeToJsonString(value, json.toEncodingConfig())"))
 fun <A> Schema<A>.encodeToJsonString(value: A, json: Json): String =
     encodeToJsonString(value, json.toEncodingConfig())
 
-fun <A> Schema<A>.encodeToJsonString(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): String =
-    encodeToJsonBytes(value, config).decodeToString()
-
-fun SchemaValue.encodeToJsonBytes(config: JsonEncodingConfig = JsonEncodingConfig()): ByteArray =
-    kotlinx.io.Buffer().also { encodeToSink(it, config) }.readByteArray()
-
-fun SchemaValue.encodeToJsonString(config: JsonEncodingConfig = JsonEncodingConfig()): String =
-    encodeToJsonBytes(config).decodeToString()
-
-@Deprecated("Use encodeToJsonElement instead", ReplaceWith("encodeToJsonElement(value, TODO())"))
+@Deprecated("Use encodeToJsonElement instead", ReplaceWith("encodeToJsonElement(value, json.toEncodingConfig())"))
 fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json): JsonElement =
     encodeToJsonElement(value, json.toEncodingConfig())
 
@@ -117,11 +107,15 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, config: JsonEncodingC
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Union<A>.encodeUnion(value: Any?, config: JsonEncodingConfig): JsonElement {
-    val (case, caseValue) = unsafeCases()
+    val cases = unsafeCases()
+    val (case, caseValue) = cases
         .firstNotNullOfOrNull { case -> case.deconstruct(value as A)?.let { case to it } }
         ?: error("No case found for ${value as A}")
     val discriminator = mapOf(this.key to JsonPrimitive(case.name))
     val obj = (case.schema as Schema<Any?>).encodeToJsonElement(caseValue, config).jsonObject
+    require(this.key !in obj) {
+        "Union case '${case.name}' has field '${this.key}' that conflicts with discriminator key"
+    }
     return JsonObject(discriminator.plus(obj))
 }
 

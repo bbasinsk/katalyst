@@ -2,6 +2,8 @@ package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.SchemaValue
+import io.github.bbasinsk.schema.json.JsonEncodingConfig
+import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test
 import kotlin.test.assertEquals

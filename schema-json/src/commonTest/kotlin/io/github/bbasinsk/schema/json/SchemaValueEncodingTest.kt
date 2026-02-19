@@ -1,11 +1,16 @@
 @file:OptIn(ExperimentalEncodingApi::class)
 
-package io.github.bbasinsk.schema
+package io.github.bbasinsk.schema.json
 
+import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.SchemaValue
+import io.github.bbasinsk.schema.orElse
+import io.github.bbasinsk.schema.transform
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class SchemaValueEncodingTest {
 
@@ -318,5 +323,77 @@ class SchemaValueEncodingTest {
             SchemaValue.Obj(emptyMap()),
             Schema.stringMap(Schema.int()).encodeToSchemaValue(emptyMap())
         )
+    }
+
+    @Test
+    fun `empty byte array encodes to empty base64 string`() {
+        assertEquals(
+            SchemaValue.Str(""),
+            Schema.byteArray().encodeToSchemaValue(byteArrayOf())
+        )
+    }
+
+    sealed interface Wrapper {
+        data class Text(val value: String) : Wrapper
+    }
+
+    @Test
+    fun `union case with non-record schema throws`() {
+        val schema = Schema.union(
+            Schema.case<Wrapper, Wrapper.Text>(
+                Schema.string().transform(Wrapper::Text) { it.value },
+                "Text"
+            )
+        )
+
+        assertFailsWith<IllegalStateException> {
+            schema.encodeToSchemaValue(Wrapper.Text("hello"))
+        }
+    }
+
+    data class Collider(val type: String)
+
+    sealed interface Collide {
+        data class A(val bad: Collider) : Collide
+    }
+
+    @Test
+    fun `discriminator collision throws`() {
+        val schema = Schema.union(
+            Schema.case<Collide, Collide.A>(
+                Schema.record(
+                    Schema.field(Schema.string(), "type") { bad.type },
+                    { Collide.A(Collider(it)) }
+                ),
+                "A"
+            )
+        )
+
+        assertFailsWith<IllegalArgumentException> {
+            schema.encodeToSchemaValue(Collide.A(Collider("oops")))
+        }
+    }
+
+    @Test
+    fun `explicitNulls false excludes null optional fields`() {
+        data class Named(val name: String, val alias: String?)
+
+        val schema = Schema.record(
+            Schema.field(Schema.string(), "name") { name },
+            Schema.field(Schema.string().optional(), "alias") { alias },
+            ::Named
+        )
+        val config = JsonEncodingConfig(explicitNulls = false)
+
+        assertEquals(
+            SchemaValue.Obj(mapOf("name" to SchemaValue.Str("Alice"))),
+            schema.encodeToSchemaValue(Named("Alice", null), config)
+        )
+    }
+
+    @Test
+    fun `orElse fallback encodes via preferred schema`() {
+        val schema = Schema.int().orElse(Schema.string()) { it.toInt() }
+        assertEquals(SchemaValue.Integer(42L), schema.encodeToSchemaValue(42))
     }
 }

@@ -1,6 +1,6 @@
 @file:OptIn(ExperimentalEncodingApi::class)
 
-package io.github.bbasinsk.schema.json.kotlinx
+package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.SchemaValue
@@ -132,7 +132,8 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: J
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Union<A>.encodeUnion(value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
     val print = config.printConfig
-    val (case, caseValue) = unsafeCases()
+    val cases = unsafeCases()
+    val (case, caseValue) = cases
         .firstNotNullOfOrNull { case -> case.deconstruct(value as A)?.let { case to it } }
         ?: error("No case found for ${value as A}")
     sink.writeString("{")
@@ -140,18 +141,21 @@ private fun <A> Schema.Union<A>.encodeUnion(value: Any?, sink: Sink, config: Jso
     sink.writeJsonString(key)
     sink.writeString(print.colon)
     sink.writeJsonString(case.name)
-    encodeRecordFieldsInline(case.schema as Schema<Any?>, caseValue, sink, config, depth + 1)
+    encodeRecordFieldsInline(case.schema as Schema<Any?>, caseValue, sink, config, depth + 1, key)
     sink.writeIndent(print, depth)
     sink.writeString("}")
 }
 
-private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int, discriminatorKey: String) {
     val print = config.printConfig
     @Suppress("UNCHECKED_CAST")
     when (schema) {
         is Schema.Record<*> -> {
             val record = schema as Schema.Record<Any?>
             for (field in record.unsafeFields()) {
+                require(field.name != discriminatorKey) {
+                    "Union case field '${field.name}' conflicts with discriminator key '$discriminatorKey'"
+                }
                 val fieldSchema = field.schema as Schema<Any?>
                 val fieldValue = field.extract(value)
                 if (!config.explicitNulls && fieldValue == null) continue
@@ -164,13 +168,13 @@ private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Si
         }
         is Schema.Transform<*, *> -> {
             val transform = schema as Schema.Transform<Any?, Any?>
-            encodeRecordFieldsInline(transform.schema, transform.encode(value), sink, config, depth)
+            encodeRecordFieldsInline(transform.schema, transform.encode(value), sink, config, depth, discriminatorKey)
         }
-        is Schema.Metadata -> encodeRecordFieldsInline(schema.schema, value, sink, config, depth)
-        is Schema.Lazy -> encodeRecordFieldsInline(schema.schema(), value, sink, config, depth)
-        is Schema.Default -> encodeRecordFieldsInline(schema.schema, value, sink, config, depth)
-        is Schema.OrElse<*, *> -> encodeRecordFieldsInline(schema.preferred as Schema<Any?>, value, sink, config, depth)
-        is Schema.Optional<*> -> encodeRecordFieldsInline(schema.schema as Schema<Any?>, value, sink, config, depth)
+        is Schema.Metadata -> encodeRecordFieldsInline(schema.schema, value, sink, config, depth, discriminatorKey)
+        is Schema.Lazy -> encodeRecordFieldsInline(schema.schema(), value, sink, config, depth, discriminatorKey)
+        is Schema.Default -> encodeRecordFieldsInline(schema.schema, value, sink, config, depth, discriminatorKey)
+        is Schema.OrElse<*, *> -> encodeRecordFieldsInline(schema.preferred as Schema<Any?>, value, sink, config, depth, discriminatorKey)
+        is Schema.Optional<*> -> encodeRecordFieldsInline(schema.schema as Schema<Any?>, value, sink, config, depth, discriminatorKey)
         is Schema.Empty,
         is Schema.Dynamic,
         is Schema.Bytes,

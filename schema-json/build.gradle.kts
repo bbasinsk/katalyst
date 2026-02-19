@@ -20,11 +20,13 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":schema"))
+                api(libs.kotlinx.io)
             }
         }
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
+                implementation(project(":schema-json-kotlinx"))
             }
         }
     }

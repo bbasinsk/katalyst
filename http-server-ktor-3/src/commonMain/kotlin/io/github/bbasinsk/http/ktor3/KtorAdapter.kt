@@ -22,8 +22,8 @@ import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
-import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonBytes
-import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonString
+import io.github.bbasinsk.schema.json.encodeToJsonBytes
+import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.*
 import io.ktor.http.*
 import io.ktor.http.HttpStatusCode.Companion.UnprocessableEntity

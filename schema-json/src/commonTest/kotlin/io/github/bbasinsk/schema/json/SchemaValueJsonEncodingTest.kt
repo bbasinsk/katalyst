@@ -1,4 +1,4 @@
-package io.github.bbasinsk.schema.json.kotlinx
+package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.SchemaValue
 import kotlin.test.Test
