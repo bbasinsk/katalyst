@@ -1,10 +1,10 @@
-package io.github.bbasinsk.schema.json.kotlinx
+package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Companion.case
+import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
-import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith

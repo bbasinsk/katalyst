@@ -14,8 +14,8 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
-import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonBytes
-import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonString
+import io.github.bbasinsk.schema.json.encodeToJsonBytes
+import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.fold
 import io.ktor.client.HttpClient
 import io.ktor.client.request.HttpRequestBuilder

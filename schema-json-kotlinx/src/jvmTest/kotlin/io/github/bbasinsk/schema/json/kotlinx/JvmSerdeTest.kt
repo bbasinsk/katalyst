@@ -2,6 +2,7 @@ package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.java.instant
+import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.schema.java.localDate
 import io.github.bbasinsk.schema.java.uuid
 import io.github.bbasinsk.validation.Validation
