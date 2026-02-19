@@ -13,6 +13,10 @@ fun <A> Schema<A>.encodeToSink(value: A, sink: Sink, config: JsonEncodingConfig)
     encodeToSink(value, sink, config, depth = 0)
 }
 
+fun SchemaValue.encodeToSink(sink: Sink, config: JsonEncodingConfig) {
+    encodeDynamicToSink(this, sink, config, depth = 0)
+}
+
 private fun Sink.writeIndent(print: JsonEncodingConfig.PrintConfig, depth: Int) {
     writeString(print.newLine)
     writeString(print.indent.repeat(depth))

@@ -29,6 +29,12 @@ fun <A> Schema<A>.encodeToJsonString(value: A, json: Json): String =
 fun <A> Schema<A>.encodeToJsonString(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): String =
     encodeToJsonBytes(value, config).decodeToString()
 
+fun SchemaValue.encodeToJsonBytes(config: JsonEncodingConfig = JsonEncodingConfig()): ByteArray =
+    kotlinx.io.Buffer().also { encodeToSink(it, config) }.readByteArray()
+
+fun SchemaValue.encodeToJsonString(config: JsonEncodingConfig = JsonEncodingConfig()): String =
+    encodeToJsonBytes(config).decodeToString()
+
 @Deprecated("Use encodeToJsonElement instead", ReplaceWith("encodeToJsonElement(value, TODO())"))
 fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json): JsonElement =
     encodeToJsonElement(value, json.toEncodingConfig())
