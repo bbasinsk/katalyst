@@ -182,6 +182,47 @@ class GenericJsonSchemaTest {
     }
 
     @Test
+    fun `unrolled variant with depth 2`() {
+        val jsonSchema = Wrapper.schema.toJsonSchema(maxRecursionDepth = 2).encodeToJsonElement().jsonObject
+        val defs = jsonSchema["\$defs"]!!.jsonObject
+
+        val variantPrefix = "io.github.bbasinsk.schema.jsonschema.Variant.of.io.github.bbasinsk.schema.jsonschema.Something"
+
+        // Verify top-level ref points to Variant_2
+        val variantRef = jsonSchema["properties"]!!.jsonObject["variant"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${variantPrefix}_2", variantRef)
+
+        // Variant_0: only terminal case (Value)
+        val variant0 = defs["${variantPrefix}_0"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(1, variant0.size)
+        assertEquals("Value", variant0[0].jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content)
+
+        // Variant_1: all 3 cases, recursive refs → Variant_0
+        val variant1 = defs["${variantPrefix}_1"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(3, variant1.size)
+        val optionalRef1 = variant1[1].jsonObject["properties"]!!.jsonObject["variant"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${variantPrefix}_0", optionalRef1)
+        val choiceItemsRef1 = variant1[2].jsonObject["properties"]!!.jsonObject["options"]!!.jsonObject["items"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${variantPrefix}_0", choiceItemsRef1)
+
+        // Variant_2: all 3 cases, recursive refs → Variant_1
+        val variant2 = defs["${variantPrefix}_2"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(3, variant2.size)
+        val optionalRef2 = variant2[1].jsonObject["properties"]!!.jsonObject["variant"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${variantPrefix}_1", optionalRef2)
+        val choiceItemsRef2 = variant2[2].jsonObject["properties"]!!.jsonObject["options"]!!.jsonObject["items"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${variantPrefix}_1", choiceItemsRef2)
+    }
+
+    @Test
+    fun `non-recursive union unchanged with maxRecursionDepth`() {
+        // Shape is a non-recursive union (Circle | Square) — should produce same output with or without maxRecursionDepth
+        val withoutUnroll = ShapeWrapper.schema.toJsonSchema().encodeToJsonElement()
+        val withUnroll = ShapeWrapper.schema.toJsonSchema(maxRecursionDepth = 2).encodeToJsonElement()
+        assertEquals(withoutUnroll, withUnroll)
+    }
+
+    @Test
     fun `box of pair emits specialized definition`() {
         val jsonSchema = BoxPairWrapper.schema.toJsonSchema().encodeToJsonElement().jsonObject
         val defs = jsonSchema["\$defs"]!!.jsonObject
@@ -290,6 +331,38 @@ private data class BoxPairWrapper(val value: Box<Pair<String, Int>>) {
         val schema: Schema<BoxPairWrapper> = record(
             field(Schema.box(Schema.pair(Schema.string(), Schema.int())), "value") { value },
             ::BoxPairWrapper
+        )
+    }
+}
+
+// Non-recursive union for testing that unrolling doesn't affect it
+sealed interface Shape {
+    data class Circle(val radius: Double) : Shape
+    data class Square(val side: Double) : Shape
+}
+
+val Schema.Companion.shape: Schema<Shape>
+    get() {
+        val circle: Schema<Shape.Circle> = record(
+            field(double(), "radius") { radius },
+            Shape::Circle
+        )
+        val square: Schema<Shape.Square> = record(
+            field(double(), "side") { side },
+            Shape::Square
+        )
+        return union(
+            case(circle, "Circle"),
+            case(square, "Square"),
+            key = "type"
+        )
+    }
+
+private data class ShapeWrapper(val shape: Shape) {
+    companion object {
+        val schema: Schema<ShapeWrapper> = record(
+            field(Schema.shape, "shape") { shape },
+            ::ShapeWrapper
         )
     }
 }

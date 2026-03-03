@@ -46,10 +46,11 @@ data class JsonOptions(
     val unionKey: Pair<String, JsonSchema>? = null
 )
 
-fun Schema<*>.toJsonSchema(): JsonSchema {
+fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
     val definitions = mutableMapOf<String, JsonSchema>()
     val resolver = DefinitionNameResolver()
-    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true, resolver)
+    val unrollState = maxRecursionDepth?.let { UnrollState(maxDepth = it) }
+    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true, resolver, unrollState)
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
@@ -72,22 +73,64 @@ private fun JsonSchema.orNullType(metadata: JsonOptions): JsonSchema =
         else -> this
     }
 
+// Identity-based collections using === (needed because Schema types are data classes)
+private class IdentitySet<T> {
+    private val items = mutableListOf<T>()
+    fun contains(item: T): Boolean = items.any { it === item }
+    fun add(item: T): Boolean = if (contains(item)) false else { items.add(item); true }
+    fun remove(item: T) { items.removeAll { it === item } }
+}
+
+private class IdentityMap<K, V> {
+    private val entries = mutableListOf<kotlin.Pair<K, V>>()
+    operator fun get(key: K): V? = entries.firstOrNull { it.first === key }?.second
+    operator fun set(key: K, value: V) {
+        entries.removeAll { it.first === key }
+        entries.add(key to value)
+    }
+    fun remove(key: K) { entries.removeAll { it.first === key } }
+}
+
+private fun containsReference(schema: Schema<*>, target: Schema.Union<*>, visited: IdentitySet<Schema<*>> = IdentitySet()): Boolean {
+    if (!visited.add(schema)) return false
+    return when (schema) {
+        is Schema.Lazy -> containsReference(schema.schema(), target, visited)
+        is Schema.Union<*> -> schema === target || schema.unsafeCases().any { containsReference(it.schema, target, visited) }
+        is Schema.Record<*> -> schema.unsafeFields().any { containsReference(it.schema, target, visited) }
+        is Schema.Collection<*> -> containsReference(schema.itemSchema, target, visited)
+        is Schema.Optional<*> -> containsReference(schema.schema, target, visited)
+        is Schema.Metadata<*> -> containsReference(schema.schema, target, visited)
+        is Schema.Default<*> -> containsReference(schema.schema, target, visited)
+        is Schema.Transform<*, *> -> containsReference(schema.schema, target, visited)
+        is Schema.OrElse<*, *> -> containsReference(schema.preferred, target, visited)
+        is Schema.StringMap<*> -> containsReference(schema.valueSchema, target, visited)
+        is Schema.Empty, is Schema.Bytes, is Schema.Dynamic, is Schema.Primitive -> false
+    }
+}
+
+private class UnrollState(
+    val maxDepth: Int,
+    val refTargets: IdentityMap<Schema.Union<*>, String> = IdentityMap(),
+    val completedUnions: IdentitySet<Schema.Union<*>> = IdentitySet(),
+)
+
 private fun <A> Schema<A>.toJsonSchemaImpl(
     options: JsonOptions,
     definitions: MutableMap<String, JsonSchema>,
     inlineRefs: Boolean,
     resolver: DefinitionNameResolver,
+    unrollState: UnrollState? = null,
 ): JsonSchema {
     return when (this) {
         is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
         is Schema.Dynamic -> JsonSchema(description = options.description)
         is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description).orNull(options)
 
-        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
-        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs, resolver)
+        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs, resolver, unrollState)
 
-        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
-        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
+        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
 
         is Primitive ->
             when (this) {
@@ -104,60 +147,57 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 ).orNull(options)
             }
 
-//        is Schema.Transform<*, *> -> when {
-//            metadata.name.lowercase() == "uuid" && outputOptions.supportsStringFormat("uuid") ->
-//                SchemaObject(type = "string", format = "uuid", nullable = field.nullable)
-//
-//            metadata.name.lowercase() == "localdate" && outputOptions.supportsStringFormat("date") ->
-//                SchemaObject(type = "string", format = "date", nullable = field.nullable)
-//
-//            metadata.name.lowercase() == "instant" && outputOptions.supportsStringFormat("date-time") ->
-//                SchemaObject(type = "string", format = "date-time", nullable = field.nullable)
-//
-//            else -> schema.toSchemaObjectImpl(field, outputOptions)
-//        }
-
         is Schema.Transform<*, *> -> when {
-//            metadata.name.lowercase() == "duration" ->
-//                JsonSchema(type = "string".typeOrNull(options), format = "duration", description = options.description)
-//
-//            metadata.name.lowercase() == "uuid" ->
-//                JsonSchema(type = "string".typeOrNull(options), format = "uuid", description = options.description)
-//
-//            metadata.name.lowercase() == "localdate" ->
-//                JsonSchema(type = "string".typeOrNull(options), format = "date", description = options.description)
-//
-//            metadata.name.lowercase() == "instant" ->
-//                JsonSchema(type = "string".typeOrNull(options), format = "date-time", description = options.description)
-
-            else -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
+            else -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
         }
 
         is Schema.Optional<*> ->
-            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs, resolver)
+            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs, resolver, unrollState)
 
         is Schema.Collection<*> -> JsonSchema(
             type = listOf("array"),
-            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver)
+            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
         ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
             type = listOf("object"),
-//            additionalProperties = valueSchema.toJsonSchemaImpl(metadata, definitions)
         ).orNull(options)
 
         is Schema.Union<*> -> {
             val typeName = resolver.resolve(this, this.metadata)
+
+            if (unrollState != null) {
+                // Back-reference: during level generation, recursive refs point one level down
+                val refTarget = unrollState.refTargets[this]
+                if (refTarget != null) {
+                    return JsonSchema(ref = "#/${'$'}defs/$refTarget")
+                }
+
+                // Already fully unrolled in a previous encounter
+                if (unrollState.completedUnions.contains(this)) {
+                    return JsonSchema(ref = "#/${'$'}defs/${typeName}_${unrollState.maxDepth}")
+                }
+
+                // Check if this union is actually recursive
+                val isRecursive = unsafeCases().any { case -> containsReference(case.schema, this) }
+                if (isRecursive) {
+                    generateUnrolledLevels(this, typeName, definitions, resolver, unrollState)
+                    unrollState.completedUnions.add(this)
+                    return JsonSchema(ref = "#/${'$'}defs/${typeName}_${unrollState.maxDepth}")
+                }
+            }
+
+            // Non-recursive or no unrolling: existing behavior
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive record
+                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options)
                 val computedUnionSchema = JsonSchema(
-//                    type = "object",
                     anyOf = unsafeCases().map { case ->
                         case.schema.toJsonSchemaImpl(
                             JsonOptions(unionKey = this.key to JsonSchema(enum = listOf(case.name))),
                             definitions,
                             inlineRefs = true,
                             resolver = resolver,
+                            unrollState = unrollState,
                         )
                     }.plus(listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional }))
                 )
@@ -174,14 +214,13 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
                 val properties = unionKeyProperty + unsafeFields().associate { field ->
-                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver)
+                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver, unrollState = unrollState)
                 }
 
                 val computedRecordSchema = JsonSchema(
                     type = listOf("object"),
                     properties = properties,
                     required = properties
-//                        .filter { it.schema.isRequired() }
                         .map { it.key },
                     additionalProperties = false,
                     description = options.description
@@ -192,4 +231,41 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             return if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
         }
     }
+}
+
+private fun generateUnrolledLevels(
+    union: Schema.Union<*>,
+    typeName: String,
+    definitions: MutableMap<String, JsonSchema>,
+    resolver: DefinitionNameResolver,
+    unrollState: UnrollState,
+) {
+    val cases = union.unsafeCases()
+    val terminalCases = cases.filter { !containsReference(it.schema, union) }
+    val allCases = cases
+
+    for (depth in 0..unrollState.maxDepth) {
+        val levelName = "${typeName}_$depth"
+        val casesToUse = if (depth == 0) terminalCases else allCases
+
+        if (depth > 0) {
+            unrollState.refTargets[union] = "${typeName}_${depth - 1}"
+        }
+
+        definitions[levelName] = JsonSchema(type = listOf("object")) // placeholder
+        val levelSchema = JsonSchema(
+            anyOf = casesToUse.map { case ->
+                case.schema.toJsonSchemaImpl(
+                    JsonOptions(unionKey = union.key to JsonSchema(enum = listOf(case.name))),
+                    definitions,
+                    inlineRefs = true,
+                    resolver = resolver,
+                    unrollState = unrollState,
+                )
+            }
+        )
+        definitions[levelName] = levelSchema
+    }
+
+    unrollState.refTargets.remove(union)
 }
