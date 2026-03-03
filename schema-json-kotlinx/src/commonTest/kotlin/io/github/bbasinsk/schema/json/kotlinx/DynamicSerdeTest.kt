@@ -5,6 +5,7 @@ import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.json.JsonEncodingConfig
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.Validation
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -15,7 +16,7 @@ class DynamicSerdeTest {
 
     private fun roundTrip(value: SchemaValue) {
         val encoded = schema.encodeToJsonString(value)
-        val decoded = schema.decodeFromJsonString(encoded)
+        val decoded = schema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
@@ -99,19 +100,19 @@ class DynamicSerdeTest {
 
     @Test
     fun `integer 42 decodes as Integer not Decimal`() {
-        val decoded = schema.decodeFromJsonString("42")
+        val decoded = schema.decodeFromJsonString("42", Json.Default)
         assertEquals(Validation.valid(SchemaValue.Integer(42)), decoded)
     }
 
     @Test
     fun `decimal 3-14 decodes as Decimal`() {
-        val decoded = schema.decodeFromJsonString("3.14")
+        val decoded = schema.decodeFromJsonString("3.14", Json.Default)
         assertEquals(Validation.valid(SchemaValue.Decimal(3.14)), decoded)
     }
 
     @Test
     fun `scientific notation decodes as Decimal`() {
-        val decoded = schema.decodeFromJsonString("1e10")
+        val decoded = schema.decodeFromJsonString("1e10", Json.Default)
         assertEquals(Validation.valid(SchemaValue.Decimal(1e10)), decoded)
     }
 
@@ -148,7 +149,7 @@ class DynamicSerdeTest {
     fun `dynamic as record field round-trip`() {
         val value = Wrapper("test", SchemaValue.Obj(mapOf("key" to SchemaValue.Integer(42))))
         val encoded = wrapperSchema.encodeToJsonString(value)
-        val decoded = wrapperSchema.decodeFromJsonString(encoded)
+        val decoded = wrapperSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
@@ -159,7 +160,7 @@ class DynamicSerdeTest {
         val listSchema = Schema.list(Schema.dynamic())
         val value = listOf(SchemaValue.Integer(1), SchemaValue.Str("two"), SchemaValue.Null)
         val encoded = listSchema.encodeToJsonString(value)
-        val decoded = listSchema.decodeFromJsonString(encoded)
+        val decoded = listSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
@@ -170,7 +171,7 @@ class DynamicSerdeTest {
         val optSchema = Schema.dynamic().optional()
         val value = SchemaValue.Str("hello")
         val encoded = optSchema.encodeToJsonString(value)
-        val decoded = optSchema.decodeFromJsonString(encoded)
+        val decoded = optSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
@@ -178,7 +179,7 @@ class DynamicSerdeTest {
     fun `optional dynamic null round-trip`() {
         val optSchema = Schema.dynamic().optional()
         val encoded = optSchema.encodeToJsonString(null)
-        val decoded = optSchema.decodeFromJsonString(encoded)
+        val decoded = optSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(null), decoded)
     }
 
@@ -293,7 +294,7 @@ class DynamicSerdeTest {
             )
         )
         val prettyJson = schema.encodeToJsonString(value, pretty)
-        val decoded = schema.decodeFromJsonString(prettyJson)
+        val decoded = schema.decodeFromJsonString(prettyJson, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
@@ -307,13 +308,13 @@ class DynamicSerdeTest {
 
     @Test
     fun `zero as integer`() {
-        val decoded = schema.decodeFromJsonString("0")
+        val decoded = schema.decodeFromJsonString("0", Json.Default)
         assertEquals(Validation.valid(SchemaValue.Integer(0)), decoded)
     }
 
     @Test
     fun `zero as decimal`() {
-        val decoded = schema.decodeFromJsonString("0.0")
+        val decoded = schema.decodeFromJsonString("0.0", Json.Default)
         assertEquals(Validation.valid(SchemaValue.Decimal(0.0)), decoded)
     }
 
@@ -338,7 +339,7 @@ class DynamicSerdeTest {
     fun `null as record field value round-trip`() {
         val value = Wrapper("test", SchemaValue.Null)
         val encoded = wrapperSchema.encodeToJsonString(value)
-        val decoded = wrapperSchema.decodeFromJsonString(encoded)
+        val decoded = wrapperSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 

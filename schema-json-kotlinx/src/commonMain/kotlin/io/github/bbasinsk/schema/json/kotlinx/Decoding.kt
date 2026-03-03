@@ -24,7 +24,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-fun <A> Schema<A>.decodeFromJsonString(str: String, json: Json = Json.Default): Validation<InvalidJson, A> =
+fun <A> Schema<A>.decodeFromJsonString(str: String, json: Json): Validation<InvalidJson, A> =
     decodeFromJsonElement(
         str.takeIf { it.isNotBlank() }?.let { json.parseToJsonElement(it) } ?: JsonNull
     )

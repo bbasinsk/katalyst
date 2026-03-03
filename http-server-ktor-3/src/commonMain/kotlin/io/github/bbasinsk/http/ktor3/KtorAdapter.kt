@@ -37,6 +37,7 @@ import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.io.readByteArray
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.io.Writer
 
@@ -291,7 +292,7 @@ private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> 
         }
 
         is Schema.Dynamic, is Schema.Union, is Schema.Record, is Schema.StringMap<*> -> when (this) {
-            is PartData.FormItem -> schema.decodeFromJsonString(value).mapInvalid { it.reason() }
+            is PartData.FormItem -> schema.decodeFromJsonString(value, Json.Default).mapInvalid { it.reason() }
             null -> Validation.invalid("Missing required part for schema")
             else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
         }

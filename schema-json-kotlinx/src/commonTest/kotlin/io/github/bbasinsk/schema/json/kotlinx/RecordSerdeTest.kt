@@ -28,7 +28,7 @@ class RecordSerdeTest {
     fun `record deserializes with valid json`() {
         assertEquals(
             Validation.valid(MyRecord(42)),
-            Schema.myRecord().decodeFromJsonString("""{"value": 42}""")
+            Schema.myRecord().decodeFromJsonString("""{"value": 42}""", Json.Default)
         )
     }
 
@@ -42,7 +42,7 @@ class RecordSerdeTest {
                     path = listOf(Segment.Field("value"))
                 )
             ),
-            Schema.myRecord().decodeFromJsonString("""{"value": "not-an-int"}""")
+            Schema.myRecord().decodeFromJsonString("""{"value": "not-an-int"}""", Json.Default)
         )
     }
 
@@ -56,7 +56,7 @@ class RecordSerdeTest {
                     path = listOf(Segment.Field("value"))
                 )
             ),
-            Schema.myRecord().decodeFromJsonString("{}")
+            Schema.myRecord().decodeFromJsonString("{}", Json.Default)
         )
     }
 
@@ -69,7 +69,7 @@ class RecordSerdeTest {
 
         assertEquals(
             Validation.valid(MyRecord(42)),
-            myRecordWithDefault.decodeFromJsonString("{}")
+            myRecordWithDefault.decodeFromJsonString("{}", Json.Default)
         )
     }
 
@@ -84,7 +84,7 @@ class RecordSerdeTest {
 
         assertEquals(
             Validation.valid(MyOptionalRecord(null)),
-            schema.decodeFromJsonString("{}")
+            schema.decodeFromJsonString("{}", Json.Default)
         )
     }
 }

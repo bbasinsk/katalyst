@@ -5,6 +5,7 @@ import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.schema.json.Segment
 import io.github.bbasinsk.validation.Validation
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -21,7 +22,7 @@ class CollectionSerdeTest {
         val schema = Schema.list(Schema.int())
         assertEquals(
             Validation.valid(listOf(1, 2, 3)),
-            schema.decodeFromJsonString("[1, 2, 3]")
+            schema.decodeFromJsonString("[1, 2, 3]", Json.Default)
         )
     }
 
@@ -47,7 +48,7 @@ class CollectionSerdeTest {
                     path = listOf(Segment.Index(2))
                 )
             ),
-            schema.decodeFromJsonString("""["not-an-int", 42, null]""")
+            schema.decodeFromJsonString("""["not-an-int", 42, null]""", Json.Default)
         )
     }
 
@@ -62,7 +63,7 @@ class CollectionSerdeTest {
         val schema = Schema.stringMap(Schema.int())
         assertEquals(
             Validation.valid(mapOf("a" to 1, "b" to 2)),
-            schema.decodeFromJsonString("""{"a": 1, "b": 2}""")
+            schema.decodeFromJsonString("""{"a": 1, "b": 2}""", Json.Default)
         )
     }
 
@@ -82,7 +83,7 @@ class CollectionSerdeTest {
                     path = listOf(Segment.Field("b"))
                 )
             ),
-            schema.decodeFromJsonString("""{"a": "not-an-int", "b": null}""")
+            schema.decodeFromJsonString("""{"a": "not-an-int", "b": null}""", Json.Default)
         )
     }
 }
