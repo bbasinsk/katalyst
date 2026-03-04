@@ -7,6 +7,7 @@ import kotlinx.serialization.json.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class GenericJsonSchemaTest {
     // https://avro.apache.org/docs/current/specification/
@@ -274,7 +275,7 @@ class GenericJsonSchemaTest {
         val refEntry = anyOf.first { it.jsonObject.containsKey("\$ref") }
         val nullEntry = anyOf.first { it.jsonObject.containsKey("type") }
         assertEquals("null", nullEntry.jsonObject["type"]!!.jsonPrimitive.content)
-        assert(refEntry.jsonObject["\$ref"]!!.jsonPrimitive.content.endsWith("_1"))
+        assertTrue(refEntry.jsonObject["\$ref"]!!.jsonPrimitive.content.endsWith("_1"))
     }
 
     @Test
@@ -292,10 +293,10 @@ class GenericJsonSchemaTest {
         // Both unions should have numbered definitions
         val treeAPrefix = MutualWrapper.treeAName
         val treeBPrefix = MutualWrapper.treeBName
-        assert(defs.containsKey("${treeAPrefix}_0")) { "Missing ${treeAPrefix}_0" }
-        assert(defs.containsKey("${treeAPrefix}_1")) { "Missing ${treeAPrefix}_1" }
-        assert(defs.containsKey("${treeBPrefix}_0")) { "Missing ${treeBPrefix}_0" }
-        assert(defs.containsKey("${treeBPrefix}_1")) { "Missing ${treeBPrefix}_1" }
+        assertTrue(defs.containsKey("${treeAPrefix}_0"), "Missing ${treeAPrefix}_0")
+        assertTrue(defs.containsKey("${treeAPrefix}_1"), "Missing ${treeAPrefix}_1")
+        assertTrue(defs.containsKey("${treeBPrefix}_0"), "Missing ${treeBPrefix}_0")
+        assertTrue(defs.containsKey("${treeBPrefix}_1"), "Missing ${treeBPrefix}_1")
 
         // Level 0 should contain only terminal cases (Leaf)
         val treeA0 = defs["${treeAPrefix}_0"]!!.jsonObject["anyOf"]!!.jsonArray
@@ -313,7 +314,7 @@ class GenericJsonSchemaTest {
             it.jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content == "Node"
         }
         val childRefA1 = nodeA1.jsonObject["properties"]!!.jsonObject["child"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
-        assert(childRefA1.contains(treeBPrefix)) { "TreeA_1.Node.child should reference TreeB, got $childRefA1" }
+        assertTrue(childRefA1.contains(treeBPrefix), "TreeA_1.Node.child should reference TreeB, got $childRefA1")
     }
 }
 
