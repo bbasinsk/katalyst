@@ -20,6 +20,7 @@ import io.github.bbasinsk.schema.*
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.json.InvalidJson
+import io.github.bbasinsk.schema.json.decodeFromJsonBytes
 import io.github.bbasinsk.schema.json.decodeFromJsonString
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonString
@@ -190,7 +191,7 @@ private suspend fun <A> RoutingCall.receiveAvro(schema: Schema<A>): Validation<S
         .andThen { bytes -> schema.deserializeIgnoringSchemaId(bytes).mapInvalid { SchemaError(it.reason()) } }
 
 private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
-    schema.decodeFromJsonString(receiveText())
+    schema.decodeFromJsonBytes(receive<ByteArray>())
 
 private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): Validation<SchemaError, A> {
     val schemaFields = schema.unsafeFields

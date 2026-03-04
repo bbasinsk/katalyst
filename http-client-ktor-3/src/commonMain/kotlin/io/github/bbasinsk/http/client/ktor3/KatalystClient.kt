@@ -13,7 +13,7 @@ import io.github.bbasinsk.schema.Field
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
-import io.github.bbasinsk.schema.json.decodeFromJsonString
+import io.github.bbasinsk.schema.json.decodeFromJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.fold
@@ -31,6 +31,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Parameters
@@ -128,7 +129,7 @@ class KatalystClient(
                         if (dataLines.isNotEmpty() || comment != null) {
                             val data = if (dataLines.isNotEmpty()) {
                                 val raw = dataLines.joinToString("\n")
-                                if (raw.isBlank() || raw == "null") null else decodeBody(eventStream.bodySchema, raw)
+                                if (raw.isBlank() || raw == "null") null else decodeBody(eventStream.bodySchema, raw.encodeToByteArray())
                             } else null
 
                             send(
@@ -321,42 +322,38 @@ private suspend fun <P, I, E, O, A> decodeResponse(
     response: HttpResponse
 ): HttpResult<E, O> {
     val statusCode = response.status.value
-    val body = response.bodyAsText()
+    val bytes = response.readRawBytes()
 
     val outputByStatus = endpoint.output.schemaByStatus()
     val errorByStatus = endpoint.error.schemaByStatus()
 
     val matchedOutput = outputByStatus.entries.firstOrNull { it.key.code == statusCode }
     if (matchedOutput != null) {
-        return runCatching { decodeBody(matchedOutput.value as BodySchema<O>, body) }
+        return runCatching { decodeBody(matchedOutput.value as BodySchema<O>, bytes) }
             .fold(onSuccess = { HttpResult.Success(it) }, onFailure = { HttpResult.NetworkError(it) })
     }
 
     val matchedError = errorByStatus.entries.firstOrNull { it.key.code == statusCode }
     if (matchedError != null) {
-        return runCatching { decodeBody(matchedError.value as BodySchema<E>, body) }
+        return runCatching { decodeBody(matchedError.value as BodySchema<E>, bytes) }
             .fold(onSuccess = { HttpResult.Failure(statusCode, it) }, onFailure = { HttpResult.NetworkError(it) })
     }
 
     return HttpResult.NetworkError(
-        IllegalStateException("Unexpected status $statusCode: $body")
+        IllegalStateException("Unexpected status $statusCode: ${bytes.decodeToString()}")
     )
 }
 
 @Suppress("UNCHECKED_CAST")
-private fun <A> decodeBody(bodySchema: BodySchema<A>, body: String): A =
+private fun <A> decodeBody(bodySchema: BodySchema<A>, bytes: ByteArray): A =
     when (bodySchema) {
-        is BodySchema.WithMetadata -> decodeBody(bodySchema.schema, body)
+        is BodySchema.WithMetadata -> decodeBody(bodySchema.schema, bytes)
         is BodySchema.Single -> when (bodySchema.contentType) {
-            ContentType.Json -> bodySchema.schema.decodeFromJsonString(body).fold(
+            ContentType.Json -> bodySchema.schema.decodeFromJsonBytes(bytes).fold(
                 onValid = { it },
                 onInvalid = { errors -> error("Failed to decode JSON response: ${errors.joinToString { it.reason() }}") }
             )
 
-            ContentType.Plain, ContentType.Html ->
-                bodySchema.schema.decodePrimitiveString(body).getOrThrow()
-
-            else ->
-                bodySchema.schema.decodePrimitiveString(body).getOrThrow()
+            else -> bodySchema.schema.decodePrimitiveString(bytes.decodeToString()).getOrThrow()
         }
     }
