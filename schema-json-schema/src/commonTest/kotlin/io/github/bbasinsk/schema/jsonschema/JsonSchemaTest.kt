@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.orElse
 import kotlinx.serialization.json.Json
 import kotlin.test.Ignore
 import kotlin.test.Test
@@ -281,6 +282,79 @@ class JsonSchemaTest {
         )
 
         assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+    }
+
+    @Test
+    fun `orElse produces anyOf with both branches`() {
+        val schema = Schema.double().orElse(Schema.string()) { it.toDouble() }
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "anyOf": [
+                    {"type": "number"},
+                    {"type": "string"}
+                  ]
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `optional orElse adds null to anyOf`() {
+        val schema = Schema.double().orElse(Schema.string()) { it.toDouble() }.optional()
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "anyOf": [
+                    {"type": "number"},
+                    {"type": "string"},
+                    {"type": "null"}
+                  ]
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `orElse in record field`() {
+        data class WithOrElse(val value: Double)
+
+        val schema = Schema.record(
+            Schema.field(
+                Schema.double().orElse(Schema.string()) { it.toDouble() },
+                "value"
+            ) { value },
+            ::WithOrElse
+        )
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "anyOf": [
+                        {"type": "number"},
+                        {"type": "string"}
+                      ]
+                    }
+                  },
+                  "required": ["value"],
+                  "additionalProperties": false
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
     }
 
     @Test

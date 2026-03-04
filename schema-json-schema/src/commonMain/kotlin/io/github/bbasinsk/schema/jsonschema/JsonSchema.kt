@@ -103,7 +103,7 @@ private fun containsReference(schema: Schema<*>, target: Schema.Union<*>, visite
         is Schema.Metadata<*> -> containsReference(schema.schema, target, visited)
         is Schema.Default<*> -> containsReference(schema.schema, target, visited)
         is Schema.Transform<*, *> -> containsReference(schema.schema, target, visited)
-        is Schema.OrElse<*, *> -> containsReference(schema.preferred, target, visited)
+        is Schema.OrElse<*, *> -> containsReference(schema.preferred, target, visited) || containsReference(schema.fallback, target, visited)
         is Schema.StringMap<*> -> containsReference(schema.valueSchema, target, visited)
         is Schema.Empty, is Schema.Bytes, is Schema.Dynamic, is Schema.Primitive -> false
     }
@@ -131,7 +131,13 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs, resolver, unrollState)
 
         is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
-        is Schema.OrElse<A, *> -> this.preferred.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+        is Schema.OrElse<A, *> -> {
+            val branches = listOf(
+                this.preferred.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
+                this.fallback.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
+            ) + listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional })
+            JsonSchema(anyOf = branches, description = options.description)
+        }
 
         is Primitive ->
             when (this) {
