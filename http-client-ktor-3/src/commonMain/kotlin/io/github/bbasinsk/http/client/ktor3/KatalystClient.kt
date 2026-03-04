@@ -13,9 +13,8 @@ import io.github.bbasinsk.schema.Field
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
-import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
+import io.github.bbasinsk.schema.json.decodeFromJsonString
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
-import kotlinx.serialization.json.Json
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.fold
 import io.ktor.client.HttpClient
@@ -349,7 +348,7 @@ private fun <A> decodeBody(bodySchema: BodySchema<A>, body: String): A =
     when (bodySchema) {
         is BodySchema.WithMetadata -> decodeBody(bodySchema.schema, body)
         is BodySchema.Single -> when (bodySchema.contentType) {
-            ContentType.Json -> bodySchema.schema.decodeFromJsonString(body, Json.Default).fold(
+            ContentType.Json -> bodySchema.schema.decodeFromJsonString(body).fold(
                 onValid = { it },
                 onInvalid = { errors -> error("Failed to decode JSON response: ${errors.joinToString { it.reason() }}") }
             )

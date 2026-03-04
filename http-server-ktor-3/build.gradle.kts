@@ -15,7 +15,7 @@ kotlin {
 
                 api(project(":http"))
                 api(project(":http-openapi"))
-                api(project(":schema-json-kotlinx"))
+                api(project(":schema-json"))
                 api(project(":schema-avro"))
                 api(project(":tuple"))
 
