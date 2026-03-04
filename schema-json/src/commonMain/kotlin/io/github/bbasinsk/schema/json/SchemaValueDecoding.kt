@@ -16,13 +16,13 @@ import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 fun <A> Schema<A>.decodeFromSchemaValue(value: SchemaValue): Validation<InvalidJson, A> =
-    Validation.decode(schema = this, value = value, path = listOf())
+    Validation.decode(schema = this, value = value, path = ArrayList(8))
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Validation.Companion.decode(
     schema: Schema<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     when (schema) {
         is Schema.Empty -> valid(null as A)
@@ -36,7 +36,7 @@ private fun <A> Validation.Companion.decode(
         is Schema.OrElse<A, *> -> decode(schema.preferred, value, path).orElse { preferredErrors ->
             decode(schema.fallback, value, path).andThen { b ->
                 fromResult(schema.unsafeDecode(b)) { e ->
-                    InvalidJson.FieldError(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path)
+                    InvalidJson.FieldError(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path.toList())
                 }
             }.orElse { fallbackErrors ->
                 invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
@@ -52,9 +52,9 @@ private fun <A> Validation.Companion.decode(
 private fun <A> Validation.Companion.decodePrimitive(
     schema: Schema.Primitive<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A> {
-    val error = InvalidJson.FieldError(schema.name, value.toFoundString(), path)
+    val error = InvalidJson.FieldError(schema.name, value.toFoundString(), path.toList())
     @Suppress("UNCHECKED_CAST")
     return when (schema) {
         is Schema.Primitive.Boolean ->
@@ -86,9 +86,9 @@ private fun <A> Validation.Companion.decodePrimitive(
 
 private fun Validation.Companion.decodeBytes(
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, ByteArray> {
-    val error = InvalidJson.FieldError("base64 encoded", value.toFoundString(), path)
+    val error = InvalidJson.FieldError("base64 encoded", value.toFoundString(), path.toList())
     return if (value is SchemaValue.Str) {
         runCatching { Base64.decode(value.value) }.mapInvalid { error }
     } else {
@@ -99,93 +99,108 @@ private fun Validation.Companion.decodeBytes(
 private fun <A> Validation.Companion.decodeOptional(
     schema: Schema.Optional<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A?> =
     if (value is SchemaValue.Null) valid(null) else decode(schema.schema, value, path)
 
 private fun <A> Validation.Companion.decodeDefault(
     schema: Schema.Default<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     if (value is SchemaValue.Null) valid(schema.default) else decode(schema.schema, value, path)
 
 private fun <A, B> Validation.Companion.decodeTransform(
     schema: Schema.Transform<A, B>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     decode(schema.schema, value, path)
         .andThen { b ->
             schema.decode(b).fold(
                 { valid(it) },
-                { e -> invalid(InvalidJson.FieldError(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path)) }
+                { e -> invalid(InvalidJson.FieldError(schema.metadata.name, """"${e.message ?: "unknown error"}"""", path.toList())) }
             )
         }
 
 private fun <A> Validation.Companion.decodeList(
     schema: Schema.Collection<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, List<A>> =
     if (value is SchemaValue.Arr) {
         sequence(
-            value.values.mapIndexed { i, item -> decode(schema.itemSchema, item, path + Segment.Index(i)) }
+            value.values.mapIndexed { i, item ->
+                path.add(Segment.Index(i))
+                val result = decode(schema.itemSchema, item, path)
+                path.removeAt(path.lastIndex)
+                result
+            }
         )
     } else {
-        invalid(InvalidJson.FieldError("Array", value.toFoundString(), path))
+        invalid(InvalidJson.FieldError("Array", value.toFoundString(), path.toList()))
     }
 
 private fun <V> Validation.Companion.decodeStringMap(
     schema: Schema.StringMap<V>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, Map<String, V>> =
     if (value is SchemaValue.Obj) {
         sequence(
             value.entries.map { (key, v) ->
-                decode(schema.valueSchema, v, path + Segment.Field(key)).mapValid { key to it }
+                path.add(Segment.Field(key))
+                val result = decode(schema.valueSchema, v, path).mapValid { key to it }
+                path.removeAt(path.lastIndex)
+                result
             }
         ).mapValid { it.toMap() }
     } else {
-        invalid(InvalidJson.FieldError("Object", value.toFoundString(), path))
+        invalid(InvalidJson.FieldError("Object", value.toFoundString(), path.toList()))
     }
 
 private fun <A> Validation.Companion.decodeRecord(
     schema: Schema.Record<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     if (value is SchemaValue.Obj) {
         sequence(
-            schema.unsafeFields().map {
-                decode(it.schema, value.entries[it.name] ?: SchemaValue.Null, path + Segment.Field(it.name))
+            schema.unsafeFields.map {
+                path.add(Segment.Field(it.name))
+                val result = decode(it.schema, value.entries[it.name] ?: SchemaValue.Null, path)
+                path.removeAt(path.lastIndex)
+                result
             }
         ).mapValid { schema.unsafeConstruct(it) }
     } else {
-        invalid(InvalidJson.FieldError("Object", value.toFoundString(), path))
+        invalid(InvalidJson.FieldError("Object", value.toFoundString(), path.toList()))
     }
 
 private fun <A> Validation.Companion.decodeUnion(
     schema: Schema.Union<A>,
     value: SchemaValue,
-    path: List<Segment>
+    path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     @Suppress("UNCHECKED_CAST")
     if (value is SchemaValue.Obj) {
         val discriminatorValue = value.entries[schema.key] ?: SchemaValue.Null
-        decode(Schema.string(), discriminatorValue, path + Segment.Field(schema.key))
+        path.add(Segment.Field(schema.key))
+        val keyResult = decode(Schema.string(), discriminatorValue, path)
+        path.removeAt(path.lastIndex)
+        keyResult
             .andThen { identifier ->
-                requireNotNull(schema.unsafeCases().find { it.name == identifier }) {
+                val cases = schema.unsafeCases
+                requireNotNull(cases.find { it.name == identifier }) {
                     InvalidJson.FieldError(
-                        expected = schema.unsafeCases().map { it.name }.joinToString(", ", "[", "]"),
+                        expected = cases.map { it.name }.joinToString(", ", "[", "]"),
                         found = identifier,
-                        path = path + Segment.Field(schema.key)
+                        path = path.toList() + Segment.Field(schema.key)
                     )
                 }
             }.andThen { case -> decode(case.schema as Schema<A>, value, path) }
     } else {
-        invalid(InvalidJson.FieldError("Object", value.toFoundString(), path))
+        invalid(InvalidJson.FieldError("Object", value.toFoundString(), path.toList()))
     }
 
 private fun SchemaValue.toFoundString(): String = when (this) {

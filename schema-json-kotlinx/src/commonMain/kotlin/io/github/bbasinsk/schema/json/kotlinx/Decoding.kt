@@ -165,7 +165,7 @@ private fun <A> Validation.Companion.decodeRecord(
         .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }
         .andThen { jsonObject ->
             sequence(
-                schema.unsafeFields().map {
+                schema.unsafeFields.map {
                     decode(it.schema, jsonObject[it.name] ?: JsonNull, path + Segment.Field(it.name))
                 }
             )
@@ -182,9 +182,9 @@ private fun <A> Validation.Companion.decodeUnion(
         .mapInvalid { InvalidJson.FieldError("JsonObject", json::class.simpleName.toString(), path) }
         .andThen { decode(Schema.string(), it[schema.key] ?: JsonNull, path + Segment.Field(schema.key)) }
         .andThen { identifier ->
-            requireNotNull(schema.unsafeCases().find { it.name == identifier }) {
+            requireNotNull(schema.unsafeCases.find { it.name == identifier }) {
                 InvalidJson.FieldError(
-                    expected = schema.unsafeCases().map { it.name }.joinToListString(),
+                    expected = schema.unsafeCases.map { it.name }.joinToListString(),
                     found = identifier,
                     path = path + Segment.Field(schema.key)
                 )

@@ -229,7 +229,7 @@ private suspend fun RoutingCall.receiveJsonElement(): Validation<InvalidJson, Js
         .mapInvalid { InvalidJson.FieldError(expected = "JsonElement", found = it.toString(), path = emptyList()) }
 
 private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): Validation<SchemaError, A> {
-    val schemaFields = schema.unsafeFields()
+    val schemaFields = schema.unsafeFields
     val partValues = buildMap<Field<A, *>, Any?> {
         receiveMultipart().forEachPart { part ->
             val field = schemaFields.find { it.name == part.name } ?: return@forEachPart
@@ -249,7 +249,7 @@ private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): 
 @Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.receiveFormUrlEncoded(schema: Schema.Record<A>): Validation<SchemaError, A> {
     val params = receiveParameters()
-    val schemaFields = schema.unsafeFields()
+    val schemaFields = schema.unsafeFields
     val fieldValues = schemaFields.map { field ->
         val values = params.getAll(field.name)
         when (val fieldSchema = field.schema) {

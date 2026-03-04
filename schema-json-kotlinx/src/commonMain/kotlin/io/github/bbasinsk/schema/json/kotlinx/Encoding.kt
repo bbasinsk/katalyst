@@ -92,7 +92,7 @@ private fun <V> Schema.StringMap<V>.encodeStringMap(value: Map<*, *>, config: Js
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Record<A>.encodeRecord(value: Any?, config: JsonEncodingConfig): JsonElement =
     JsonObject(
-        this.unsafeFields().mapNotNull { field ->
+        this.unsafeFields.mapNotNull { field ->
             val schema = field.schema as Schema<Any?>
             val fieldValue = field.extract(value as A)
             val encodedValue = schema.encodeToJsonElement(fieldValue, config)
@@ -107,7 +107,7 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, config: JsonEncodingC
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Union<A>.encodeUnion(value: Any?, config: JsonEncodingConfig): JsonElement {
-    val cases = unsafeCases()
+    val cases = unsafeCases
     val (case, caseValue) = cases
         .firstNotNullOfOrNull { case -> case.deconstruct(value as A)?.let { case to it } }
         ?: error("No case found for ${value as A}")

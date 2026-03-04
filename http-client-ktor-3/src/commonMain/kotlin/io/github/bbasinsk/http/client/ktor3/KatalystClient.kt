@@ -254,7 +254,7 @@ private fun <I> HttpRequestBuilder.applyBody(bodySchema: BodySchema<I>, value: I
 @Suppress("UNCHECKED_CAST")
 private fun <I> encodeMultipart(record: Schema.Record<I>, value: I): List<PartData> =
     formData {
-        for (field in record.unsafeFields()) {
+        for (field in record.unsafeFields) {
             val fieldValue = (field as Field<I, Any?>).extract(value)
             encodeMultipartField(field.name, field.schema, fieldValue)
         }
@@ -288,7 +288,7 @@ private fun FormBuilder.encodeMultipartField(name: String, schema: Schema<Any?>,
 @Suppress("UNCHECKED_CAST")
 private fun <I> encodeFormUrlEncoded(record: Schema.Record<I>, value: I): Parameters =
     Parameters.build {
-        for (field in record.unsafeFields()) {
+        for (field in record.unsafeFields) {
             val fieldValue = (field as Field<I, Any?>).extract(value)
             encodeFormField(field.name, field.schema, fieldValue)
         }

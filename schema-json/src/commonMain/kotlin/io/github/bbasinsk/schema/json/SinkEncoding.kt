@@ -114,7 +114,7 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: J
     val print = config.printConfig
     sink.writeString("{")
     var first = true
-    for (field in unsafeFields()) {
+    for (field in unsafeFields) {
         val schema = field.schema as Schema<Any?>
         val fieldValue = field.extract(value as A)
         if (!config.explicitNulls && fieldValue == null) continue
@@ -132,7 +132,7 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: J
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Union<A>.encodeUnion(value: Any?, sink: Sink, config: JsonEncodingConfig, depth: Int) {
     val print = config.printConfig
-    val cases = unsafeCases()
+    val cases = unsafeCases
     val (case, caseValue) = cases
         .firstNotNullOfOrNull { case -> case.deconstruct(value as A)?.let { case to it } }
         ?: error("No case found for ${value as A}")
@@ -152,7 +152,7 @@ private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Si
     when (schema) {
         is Schema.Record<*> -> {
             val record = schema as Schema.Record<Any?>
-            for (field in record.unsafeFields()) {
+            for (field in record.unsafeFields) {
                 require(field.name != discriminatorKey) {
                     "Union case field '${field.name}' conflicts with discriminator key '$discriminatorKey'"
                 }

@@ -115,7 +115,7 @@ class GenericJsonSchemaTest {
 
     @Test
     fun `generic record produces specialized definition`() {
-        val boxSchema = (BoxWrapper.schema as Schema.Record<BoxWrapper>).unsafeFields().single().schema
+        val boxSchema = (BoxWrapper.schema as Schema.Record<BoxWrapper>).unsafeFields.single().schema
         val metadata = (boxSchema as Schema.Record<*>).metadata
         assertEquals(listOf("io.github.bbasinsk.schema.jsonschema.Something"), metadata.typeArguments)
 

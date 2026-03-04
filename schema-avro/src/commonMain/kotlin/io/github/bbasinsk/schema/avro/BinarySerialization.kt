@@ -54,7 +54,7 @@ object BinarySerialization {
             is Schema.Optional<*> -> if (value == null) null else (schema as Schema<Any>).encode(value)
             is Schema.Default -> if (value == null) default else schema.encode(value)
             is Schema.Transform<A, *> -> (schema as Schema<Any?>).encode(encode(value))
-            is Schema.Union -> unsafeCases().firstNotNullOf { case ->
+            is Schema.Union -> unsafeCases.firstNotNullOf { case ->
                 case.deconstruct(value)?.let { value ->
                     (case.schema as Schema<Any?>).encode(value)
                 }
@@ -62,7 +62,7 @@ object BinarySerialization {
 
             is Schema.Record -> {
                 GenericData.Record(toAvroSchema()).also { data ->
-                    unsafeFields().forEach { field ->
+                    unsafeFields.forEach { field ->
                         val fieldValue = field.extract(value)
                         data.put(field.name, (field.schema as Schema<Any?>).encode(fieldValue))
                     }

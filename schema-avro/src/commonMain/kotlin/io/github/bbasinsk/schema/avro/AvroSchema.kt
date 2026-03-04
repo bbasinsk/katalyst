@@ -40,7 +40,7 @@ fun Schema<*>.toAvroSchema(): AvroSchema =
             AvroSchema.createArray(itemSchema.toAvroSchema())
 
         is Schema.Union<*> ->
-            AvroSchema.createUnion(unsafeCases().map { it.schema.toAvroSchema() })
+            AvroSchema.createUnion(unsafeCases.map { it.schema.toAvroSchema() })
 
         is Schema.Record<*> ->
             AvroSchema.createRecord(
@@ -48,7 +48,7 @@ fun Schema<*>.toAvroSchema(): AvroSchema =
                 /* doc = */ null,
                 /* namespace = */ metadata.namespace,
                 /* isError = */ false,
-                /* fields = */ this.unsafeFields().map { it.toAvroField() }
+                /* fields = */ this.unsafeFields.map { it.toAvroField() }
             )
     }
 

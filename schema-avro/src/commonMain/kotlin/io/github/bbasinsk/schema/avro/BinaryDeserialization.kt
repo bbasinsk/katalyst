@@ -137,7 +137,7 @@ object BinaryDeserialization {
 
             is Schema.Union<*> ->
                 read(input) { input as? GenericRecord }.andThen { record: GenericRecord ->
-                    val cases = unsafeCases()
+                    val cases = unsafeCases
                     Validation.requireNotNull(cases.find { it.name == record.schema.name }) {
                         DeserializationError.InvalidField("Invalid case for ${record.schema.name}, expected one of ${cases.map { it.name }}")
                     }.andThen { case ->
@@ -148,7 +148,7 @@ object BinaryDeserialization {
             is Schema.Record<*> ->
                 read(input) { input as? GenericRecord }.andThen { record: GenericRecord ->
                     Validation.sequence(
-                        unsafeFields().map { field ->
+                        unsafeFields.map { field ->
                             Validation.requireNotNull(record.schema.getField(field.name)) {
                                 DeserializationError.InvalidField("Field ${field.name} not found in schema ${record.schema.name}")
                             }.mapValid { schemaField ->

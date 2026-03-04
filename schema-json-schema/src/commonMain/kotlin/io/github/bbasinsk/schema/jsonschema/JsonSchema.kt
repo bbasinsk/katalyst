@@ -96,8 +96,8 @@ private fun containsReference(schema: Schema<*>, target: Schema.Union<*>, visite
     if (!visited.add(schema)) return false
     return when (schema) {
         is Schema.Lazy -> containsReference(schema.schema(), target, visited)
-        is Schema.Union<*> -> schema === target || schema.unsafeCases().any { containsReference(it.schema, target, visited) }
-        is Schema.Record<*> -> schema.unsafeFields().any { containsReference(it.schema, target, visited) }
+        is Schema.Union<*> -> schema === target || schema.unsafeCases.any { containsReference(it.schema, target, visited) }
+        is Schema.Record<*> -> schema.unsafeFields.any { containsReference(it.schema, target, visited) }
         is Schema.Collection<*> -> containsReference(schema.itemSchema, target, visited)
         is Schema.Optional<*> -> containsReference(schema.schema, target, visited)
         is Schema.Metadata<*> -> containsReference(schema.schema, target, visited)
@@ -189,7 +189,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 }
 
                 // Partition cases into terminal vs recursive in a single pass
-                val cases = unsafeCases()
+                val cases = unsafeCases
                 val terminalCases = cases.filter { !containsReference(it.schema, this) }
                 if (terminalCases.size < cases.size) {
                     generateUnrolledLevels(this, typeName, cases, terminalCases, definitions, resolver, unrollState)
@@ -202,7 +202,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             if (!definitions.containsKey(typeName)) {
                 definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options)
                 val computedUnionSchema = JsonSchema(
-                    anyOf = unsafeCases().map { case ->
+                    anyOf = unsafeCases.map { case ->
                         case.schema.toJsonSchemaImpl(
                             JsonOptions(unionKey = this.key to JsonSchema(enum = listOf(case.name))),
                             definitions,
@@ -224,7 +224,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive records
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
-                val properties = unionKeyProperty + unsafeFields().associate { field ->
+                val properties = unionKeyProperty + unsafeFields.associate { field ->
                     field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver, unrollState = unrollState)
                 }
 

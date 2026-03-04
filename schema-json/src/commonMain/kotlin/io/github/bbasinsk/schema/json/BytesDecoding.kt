@@ -8,23 +8,17 @@ fun decodeSchemaValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = Js
 private class JsonParser(private val buffer: ByteArray, private val config: JsonDecodingConfig) {
     private var pos: Int = 0
 
-    companion object {
-        private const val QUOTE: Byte = '"'.code.toByte()
-        private const val BACKSLASH: Byte = '\\'.code.toByte()
-    }
-
     fun parseValue(): SchemaValue {
         skipWhitespaceAndComments()
         require(pos < buffer.size) { "Unexpected end of input" }
-        val ch = buffer[pos].toInt().toChar()
-        return when {
-            ch == '"' -> parseString()
-            ch == 't' || ch == 'f' -> parseBoolean()
-            ch == 'n' -> parseNull()
-            ch == '{' -> parseObject()
-            ch == '[' -> parseArray()
-            ch == '-' || ch in '0'..'9' -> parseNumber()
-            else -> throw IllegalArgumentException("Unexpected character '$ch'")
+        return when (buffer[pos]) {
+            QUOTE -> parseString()
+            B_t, B_f -> parseBoolean()
+            B_n -> parseNull()
+            LBRACE -> parseObject()
+            LBRACKET -> parseArray()
+            MINUS, B_0, B_1, B_2, B_3, B_4, B_5, B_6, B_7, B_8, B_9 -> parseNumber()
+            else -> throw IllegalArgumentException("Unexpected character '${buffer[pos].toInt().toChar()}'")
         }
     }
 
@@ -32,9 +26,8 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
         SchemaValue.Str(readJsonString())
 
     private fun readJsonString(): String {
-        expectChar('"')
+        pos++ // consume opening quote
         val start = pos
-        // Fast path: scan for closing quote with no escapes
         while (pos < buffer.size) {
             when (buffer[pos]) {
                 QUOTE -> return buffer.decodeToString(start, pos++)
@@ -46,13 +39,11 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
     }
 
     private fun readJsonStringSlow(start: Int): String {
-        // Copy the unescaped prefix we already scanned
         val sb = StringBuilder(pos - start + 16)
         sb.append(buffer.decodeToString(start, pos))
         while (true) {
             require(pos < buffer.size) { "Unterminated string" }
-            val b = buffer[pos++]
-            when (b) {
+            when (val b = buffer[pos++]) {
                 QUOTE -> return sb.toString()
                 BACKSLASH -> sb.append(readEscaped())
                 else -> sb.append(b.toInt().toChar())
@@ -62,72 +53,105 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
 
     private fun readEscaped(): Char {
         require(pos < buffer.size) { "Unterminated escape sequence" }
-        val ch = buffer[pos++].toInt().toChar()
-        return when (ch) {
-            '"' -> '"'
-            '\\' -> '\\'
-            '/' -> '/'
-            'b' -> '\b'
-            'f' -> '\u000C'
-            'n' -> '\n'
-            'r' -> '\r'
-            't' -> '\t'
-            'u' -> {
-                val hex = buildString(4) {
-                    repeat(4) {
-                        require(pos < buffer.size) { "Unterminated unicode escape" }
-                        append(buffer[pos++].toInt().toChar())
-                    }
-                }
+        return when (buffer[pos++]) {
+            QUOTE -> '"'
+            BACKSLASH -> '\\'
+            B_SLASH -> '/'
+            B_b -> '\b'
+            B_f -> '\u000C'
+            B_n -> '\n'
+            B_r -> '\r'
+            B_t -> '\t'
+            B_u -> {
+                require(pos + 4 <= buffer.size) { "Unterminated unicode escape" }
+                val hex = buffer.decodeToString(pos, pos + 4)
+                pos += 4
                 hex.toInt(16).toChar()
             }
-            else -> throw IllegalArgumentException("Invalid escape character '\\$ch'")
+            else -> throw IllegalArgumentException("Invalid escape character '\\${buffer[pos - 1].toInt().toChar()}'")
         }
     }
 
-    private fun parseBoolean(): SchemaValue.Bool {
-        val word = readLiteral()
-        return when (word) {
-            "true" -> SchemaValue.Bool(true)
-            "false" -> SchemaValue.Bool(false)
-            else -> throw IllegalArgumentException("Expected 'true' or 'false', got '$word'")
+    private fun parseBoolean(): SchemaValue.Bool =
+        if (buffer[pos] == B_t) {
+            require(pos + 4 <= buffer.size && buffer[pos + 1] == B_r && buffer[pos + 2] == B_u && buffer[pos + 3] == B_e) {
+                "Expected 'true', got '${readLiteralForError()}'"
+            }
+            pos += 4
+            SchemaValue.Bool(true)
+        } else {
+            require(pos + 5 <= buffer.size && buffer[pos + 1] == B_a && buffer[pos + 2] == B_l && buffer[pos + 3] == B_s && buffer[pos + 4] == B_e) {
+                "Expected 'false', got '${readLiteralForError()}'"
+            }
+            pos += 5
+            SchemaValue.Bool(false)
         }
-    }
 
     private fun parseNull(): SchemaValue.Null {
-        val word = readLiteral()
-        require(word == "null") { "Expected 'null', got '$word'" }
+        require(pos + 4 <= buffer.size && buffer[pos + 1] == B_u && buffer[pos + 2] == B_l && buffer[pos + 3] == B_l) {
+            "Expected 'null', got '${readLiteralForError()}'"
+        }
+        pos += 4
         return SchemaValue.Null
     }
 
+    private fun readLiteralForError(): String {
+        val start = pos
+        while (pos < buffer.size) {
+            val b = buffer[pos]
+            if (b in B_a..B_z || b in B_A..B_Z) pos++ else break
+        }
+        return buffer.decodeToString(start, pos)
+    }
+
     private fun parseNumber(): SchemaValue {
-        val token = readNumberToken()
-        val longValue = token.toLongOrNull()
-        if (longValue != null) return SchemaValue.Integer(longValue)
+        val start = pos
+        var isDecimal = false
+        if (pos < buffer.size && buffer[pos] == MINUS) pos++
+        while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
+        if (pos < buffer.size && buffer[pos] == DOT) {
+            isDecimal = true
+            pos++
+            while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
+        }
+        if (pos < buffer.size && (buffer[pos] == B_e || buffer[pos] == B_E)) {
+            isDecimal = true
+            pos++
+            if (pos < buffer.size && (buffer[pos] == PLUS || buffer[pos] == MINUS)) pos++
+            while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
+        }
+        require(pos > start) { "Expected number" }
+        if (!isDecimal) {
+            val longValue = parseLongDirect(start, pos)
+            if (longValue != null) return SchemaValue.Integer(longValue)
+        }
+        val token = buffer.decodeToString(start, pos)
         val doubleValue = token.toDoubleOrNull()
             ?: throw IllegalArgumentException("Invalid number: '$token'")
         return SchemaValue.Decimal(doubleValue)
     }
 
-    private fun readNumberToken(): String {
-        val start = pos
-        while (pos < buffer.size) {
-            val ch = buffer[pos].toInt().toChar()
-            if (ch in '0'..'9' || ch == '-' || ch == '+' || ch == '.' || ch == 'e' || ch == 'E') {
-                pos++
-            } else {
-                break
-            }
+    private fun parseLongDirect(start: Int, end: Int): Long? {
+        var i = start
+        val negative = buffer[i] == MINUS
+        if (negative) i++
+        if (i == end) return null
+        var result = 0L
+        while (i < end) {
+            val digit = buffer[i] - B_0
+            if (digit < 0 || digit > 9) return null
+            if (result < Long.MIN_VALUE / 10) return null
+            result = result * 10 - digit
+            i++
         }
-        require(pos > start) { "Expected number" }
-        return buffer.decodeToString(start, pos)
+        return if (negative) result else if (result == Long.MIN_VALUE) null else -result
     }
 
     private fun parseObject(): SchemaValue.Obj {
-        expectChar('{')
+        pos++ // consume '{'
         skipWhitespaceAndComments()
         val entries = linkedMapOf<String, SchemaValue>()
-        if (pos < buffer.size && buffer[pos].toInt().toChar() == '}') {
+        if (pos < buffer.size && buffer[pos] == RBRACE) {
             pos++
             return SchemaValue.Obj(entries)
         }
@@ -135,21 +159,20 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
             skipWhitespaceAndComments()
             val key = readJsonString()
             skipWhitespaceAndComments()
-            expectChar(':')
+            expect(COLON)
             val value = parseValue()
             entries[key] = value
             skipWhitespaceAndComments()
-            val next = if (pos < buffer.size) buffer[pos].toInt().toChar() else null
-            when (next) {
-                ',' -> {
+            when {
+                pos < buffer.size && buffer[pos] == COMMA -> {
                     pos++
                     skipWhitespaceAndComments()
-                    if (config.allowTrailingCommas && pos < buffer.size && buffer[pos].toInt().toChar() == '}') {
+                    if (config.allowTrailingCommas && pos < buffer.size && buffer[pos] == RBRACE) {
                         pos++
                         return SchemaValue.Obj(entries)
                     }
                 }
-                '}' -> {
+                pos < buffer.size && buffer[pos] == RBRACE -> {
                     pos++
                     return SchemaValue.Obj(entries)
                 }
@@ -159,27 +182,26 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
     }
 
     private fun parseArray(): SchemaValue.Arr {
-        expectChar('[')
+        pos++ // consume '['
         skipWhitespaceAndComments()
         val items = mutableListOf<SchemaValue>()
-        if (pos < buffer.size && buffer[pos].toInt().toChar() == ']') {
+        if (pos < buffer.size && buffer[pos] == RBRACKET) {
             pos++
             return SchemaValue.Arr(items)
         }
         while (true) {
             items.add(parseValue())
             skipWhitespaceAndComments()
-            val next = if (pos < buffer.size) buffer[pos].toInt().toChar() else null
-            when (next) {
-                ',' -> {
+            when {
+                pos < buffer.size && buffer[pos] == COMMA -> {
                     pos++
                     skipWhitespaceAndComments()
-                    if (config.allowTrailingCommas && pos < buffer.size && buffer[pos].toInt().toChar() == ']') {
+                    if (config.allowTrailingCommas && pos < buffer.size && buffer[pos] == RBRACKET) {
                         pos++
                         return SchemaValue.Arr(items)
                     }
                 }
-                ']' -> {
+                pos < buffer.size && buffer[pos] == RBRACKET -> {
                     pos++
                     return SchemaValue.Arr(items)
                 }
@@ -188,42 +210,65 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
         }
     }
 
-    private fun readLiteral(): String {
-        val start = pos
-        while (pos < buffer.size) {
-            val ch = buffer[pos].toInt().toChar()
-            if (ch in 'a'..'z' || ch in 'A'..'Z') {
-                pos++
-            } else {
-                break
-            }
-        }
-        return buffer.decodeToString(start, pos)
-    }
-
     private fun skipWhitespaceAndComments() {
         while (pos < buffer.size) {
-            val ch = buffer[pos].toInt().toChar()
-            when {
-                ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' -> pos++
-                config.allowComments && ch == '/' -> {
-                    if (pos + 1 < buffer.size && buffer[pos + 1].toInt().toChar() == '/') {
-                        pos += 2
-                        while (pos < buffer.size) {
-                            if (buffer[pos++].toInt().toChar() == '\n') break
-                        }
-                    } else {
-                        return
-                    }
-                }
+            when (buffer[pos]) {
+                SPACE, TAB, LF, CR -> pos++
+                B_SLASH -> if (config.allowComments && pos + 1 < buffer.size && buffer[pos + 1] == B_SLASH) {
+                    pos += 2
+                    while (pos < buffer.size) { if (buffer[pos++] == LF) break }
+                } else return
                 else -> return
             }
         }
     }
 
-    private fun expectChar(expected: Char) {
-        require(pos < buffer.size) { "Expected '$expected' but reached end of input" }
-        val ch = buffer[pos++].toInt().toChar()
-        require(ch == expected) { "Expected '$expected' but got '$ch'" }
+    private fun expect(expected: Byte) {
+        require(pos < buffer.size) { "Expected '${expected.toInt().toChar()}' but reached end of input" }
+        val b = buffer[pos++]
+        require(b == expected) { "Expected '${expected.toInt().toChar()}' but got '${b.toInt().toChar()}'" }
+    }
+
+    companion object {
+        private const val QUOTE: Byte = '"'.code.toByte()
+        private const val BACKSLASH: Byte = '\\'.code.toByte()
+        private const val B_SLASH: Byte = '/'.code.toByte()
+        private const val LBRACE: Byte = '{'.code.toByte()
+        private const val RBRACE: Byte = '}'.code.toByte()
+        private const val LBRACKET: Byte = '['.code.toByte()
+        private const val RBRACKET: Byte = ']'.code.toByte()
+        private const val COMMA: Byte = ','.code.toByte()
+        private const val COLON: Byte = ':'.code.toByte()
+        private const val MINUS: Byte = '-'.code.toByte()
+        private const val PLUS: Byte = '+'.code.toByte()
+        private const val DOT: Byte = '.'.code.toByte()
+        private const val SPACE: Byte = ' '.code.toByte()
+        private const val TAB: Byte = '\t'.code.toByte()
+        private const val LF: Byte = '\n'.code.toByte()
+        private const val CR: Byte = '\r'.code.toByte()
+        private const val B_0: Byte = '0'.code.toByte()
+        private const val B_1: Byte = '1'.code.toByte()
+        private const val B_2: Byte = '2'.code.toByte()
+        private const val B_3: Byte = '3'.code.toByte()
+        private const val B_4: Byte = '4'.code.toByte()
+        private const val B_5: Byte = '5'.code.toByte()
+        private const val B_6: Byte = '6'.code.toByte()
+        private const val B_7: Byte = '7'.code.toByte()
+        private const val B_8: Byte = '8'.code.toByte()
+        private const val B_9: Byte = '9'.code.toByte()
+        private const val B_a: Byte = 'a'.code.toByte()
+        private const val B_b: Byte = 'b'.code.toByte()
+        private const val B_e: Byte = 'e'.code.toByte()
+        private const val B_f: Byte = 'f'.code.toByte()
+        private const val B_l: Byte = 'l'.code.toByte()
+        private const val B_n: Byte = 'n'.code.toByte()
+        private const val B_r: Byte = 'r'.code.toByte()
+        private const val B_s: Byte = 's'.code.toByte()
+        private const val B_t: Byte = 't'.code.toByte()
+        private const val B_u: Byte = 'u'.code.toByte()
+        private const val B_z: Byte = 'z'.code.toByte()
+        private const val B_A: Byte = 'A'.code.toByte()
+        private const val B_E: Byte = 'E'.code.toByte()
+        private const val B_Z: Byte = 'Z'.code.toByte()
     }
 }

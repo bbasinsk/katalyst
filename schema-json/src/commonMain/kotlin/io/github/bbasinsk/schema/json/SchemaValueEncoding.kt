@@ -57,7 +57,7 @@ private fun <V> Schema.StringMap<V>.encodeStringMapToSchemaValue(value: Map<*, *
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Record<A>.encodeRecordToSchemaValue(value: Any?, config: JsonEncodingConfig): SchemaValue =
     SchemaValue.Obj(
-        unsafeFields().mapNotNull { field ->
+        unsafeFields.mapNotNull { field ->
             val schema = field.schema as Schema<Any?>
             val fieldValue = field.extract(value as A)
             if (!config.explicitNulls && fieldValue == null) {
@@ -71,7 +71,7 @@ private fun <A> Schema.Record<A>.encodeRecordToSchemaValue(value: Any?, config: 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Schema.Union<A>.encodeUnionToSchemaValue(value: Any?, config: JsonEncodingConfig): SchemaValue {
     val typedValue = value as A
-    val cases = unsafeCases()
+    val cases = unsafeCases
     val (case, caseValue) = cases
         .firstNotNullOfOrNull { case -> case.deconstruct(typedValue)?.let { case to it } }
         ?: error("No case found for value '$typedValue' in union '${metadata.name}' (available cases: ${cases.map { it.name }})")
