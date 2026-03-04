@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.3.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.3...katalyst-v0.3.4) (2026-03-04)
+
+
+### Bug Fixes
+
+* add maxRecursionDepth to toSchemaObject for recursive unions ([#90](https://github.com/bbasinsk/katalyst/issues/90)) ([e8518d1](https://github.com/bbasinsk/katalyst/commit/e8518d1d6ab4dfbe76d8e65f533490b1aed379a0))
+* replace respondTextWriter with WriteChannelContent for SSE ([bc03ea9](https://github.com/bbasinsk/katalyst/commit/bc03ea9f0a92eea3e9dc595a52937edab802c959))
+* use kotlinx-free serde for ktor 3 usage ([#88](https://github.com/bbasinsk/katalyst/issues/88)) ([4924165](https://github.com/bbasinsk/katalyst/commit/492416536b4a505bed29624b4d1884294b50bf63))
+* use performant byte decoding ([f8444f6](https://github.com/bbasinsk/katalyst/commit/f8444f6843141cb962816557a4969ccc42c70710))
+
 ## [0.3.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.2...katalyst-v0.3.3) (2026-03-04)
 
 
