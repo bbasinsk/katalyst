@@ -92,6 +92,18 @@ class BytesDecodingTest {
     @Test
     fun `unicode escape null char`() = assertEquals(SchemaValue.Str("\u0000"), parse(""""\\u0000"""".replace("\\\\u", "\\u")))
 
+    @Test
+    fun `non-ascii string`() = assertEquals(SchemaValue.Str("café"), parse("\"café\""))
+
+    @Test
+    fun `emoji string`() = assertEquals(SchemaValue.Str("\uD83C\uDF89"), parse("\"\uD83C\uDF89\""))
+
+    @Test
+    fun `non-ascii after escape sequence`() = assertEquals(SchemaValue.Str("caf\né"), parse("\"caf\\né\""))
+
+    @Test
+    fun `non-ascii mixed with escapes`() = assertEquals(SchemaValue.Str("héllo\twörld"), parse("\"héllo\\twörld\""))
+
     // Arrays
 
     @Test
@@ -266,6 +278,20 @@ class BytesDecodingTest {
     fun `invalid token`() {
         assertFailsWith<IllegalArgumentException> {
             parse("undefined")
+        }
+    }
+
+    @Test
+    fun `trailing content rejected`() {
+        assertFailsWith<IllegalArgumentException> {
+            parse("42 garbage")
+        }
+    }
+
+    @Test
+    fun `multiple values rejected`() {
+        assertFailsWith<IllegalArgumentException> {
+            parse("null null")
         }
     }
 

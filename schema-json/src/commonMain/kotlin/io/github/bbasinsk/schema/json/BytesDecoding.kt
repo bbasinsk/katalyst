@@ -2,11 +2,20 @@ package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.SchemaValue
 
-fun decodeSchemaValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = JsonDecodingConfig()): SchemaValue =
-    JsonParser(bytes, config).parseValue()
+fun decodeSchemaValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = JsonDecodingConfig()): SchemaValue {
+    val parser = JsonParser(bytes, config)
+    val value = parser.parseValue()
+    parser.expectEndOfInput()
+    return value
+}
 
 private class JsonParser(private val buffer: ByteArray, private val config: JsonDecodingConfig) {
     private var pos: Int = 0
+
+    fun expectEndOfInput() {
+        skipWhitespaceAndComments()
+        require(pos == buffer.size) { "Unexpected trailing content at position $pos" }
+    }
 
     fun parseValue(): SchemaValue {
         skipWhitespaceAndComments()
@@ -41,12 +50,22 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
     private fun readJsonStringSlow(start: Int): String {
         val sb = StringBuilder(pos - start + 16)
         sb.append(buffer.decodeToString(start, pos))
+        var segmentStart = pos
         while (true) {
             require(pos < buffer.size) { "Unterminated string" }
-            when (val b = buffer[pos++]) {
-                QUOTE -> return sb.toString()
-                BACKSLASH -> sb.append(readEscaped())
-                else -> sb.append(b.toInt().toChar())
+            when (buffer[pos]) {
+                QUOTE -> {
+                    if (segmentStart < pos) sb.append(buffer.decodeToString(segmentStart, pos))
+                    pos++
+                    return sb.toString()
+                }
+                BACKSLASH -> {
+                    if (segmentStart < pos) sb.append(buffer.decodeToString(segmentStart, pos))
+                    pos++
+                    sb.append(readEscaped())
+                    segmentStart = pos
+                }
+                else -> pos++
             }
         }
     }

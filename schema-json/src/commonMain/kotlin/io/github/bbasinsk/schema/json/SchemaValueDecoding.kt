@@ -60,7 +60,11 @@ private fun <A> Validation.Companion.decodePrimitive(
         is Schema.Primitive.Boolean ->
             if (value is SchemaValue.Bool) valid(value.value as A) else invalid(error)
         is Schema.Primitive.Int ->
-            if (value is SchemaValue.Integer) valid(value.value.toInt() as A) else invalid(error)
+            if (value is SchemaValue.Integer && value.value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
+                valid(value.value.toInt() as A)
+            } else {
+                invalid(error)
+            }
         is Schema.Primitive.Long ->
             if (value is SchemaValue.Integer) valid(value.value as A) else invalid(error)
         is Schema.Primitive.Double -> when (value) {
@@ -191,11 +195,16 @@ private fun <A> Validation.Companion.decodeUnion(
         keyResult
             .andThen { identifier ->
                 val cases = schema.unsafeCases
-                requireNotNull(cases.find { it.name == identifier }) {
-                    InvalidJson.FieldError(
-                        expected = cases.map { it.name }.joinToString(", ", "[", "]"),
-                        found = identifier,
-                        path = path.toList() + Segment.Field(schema.key)
+                val matchedCase = cases.find { it.name == identifier }
+                if (matchedCase != null) {
+                    valid(matchedCase)
+                } else {
+                    invalid(
+                        InvalidJson.FieldError(
+                            expected = cases.map { it.name }.joinToString(", ", "[", "]"),
+                            found = identifier,
+                            path = path.toList() + Segment.Field(schema.key)
+                        )
                     )
                 }
             }.andThen { case -> decode(case.schema as Schema<A>, value, path) }
