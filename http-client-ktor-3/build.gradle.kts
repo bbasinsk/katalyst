@@ -21,7 +21,7 @@ kotlin {
             dependencies {
                 api(libs.ktor3.client.core)
                 api(project(":http"))
-                api(project(":schema-json-kotlinx"))
+                api(project(":schema-json"))
             }
         }
         val jvmTest by getting {

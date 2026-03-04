@@ -20,8 +20,7 @@ import io.github.bbasinsk.schema.*
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
 import io.github.bbasinsk.schema.avro.BinarySerialization.serialize
 import io.github.bbasinsk.schema.json.InvalidJson
-import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
-import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
+import io.github.bbasinsk.schema.json.decodeFromJsonString
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.*
@@ -37,8 +36,6 @@ import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.io.readByteArray
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
 import java.io.Writer
 
 fun <Path, Input, Error, Output, Auth> RoutingNode.httpEndpointToRoute(
@@ -192,43 +189,8 @@ private suspend fun <A> RoutingCall.receiveAvro(schema: Schema<A>): Validation<S
         .mapInvalid { SchemaError(it.toString()) }
         .andThen { bytes -> schema.deserializeIgnoringSchemaId(bytes).mapInvalid { SchemaError(it.reason()) } }
 
-@Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.receiveJson(schema: Schema<A>): Validation<InvalidJson, A> =
-    when (schema) {
-        is Schema.Optional<*> -> receiveJson(schema.schema).orElse { Validation.valid(null) } as Validation<InvalidJson, A>
-        is Schema.Transform<A, *> -> receiveJson(schema.schema).andThen { b ->
-            Validation.fromResult(schema.unsafeDecode(b)) { e ->
-                InvalidJson.FieldError(expected = schema.metadata.name, found = b.toString(), path = emptyList())
-            }
-        }
-
-        is Schema.Default -> receiveJson(schema.schema).orElse { Validation.valid(schema.default) }
-        is Schema.OrElse<A, *> -> receiveJson(schema.preferred).orElse { preferredErrors ->
-            receiveJson(schema.fallback).andThen { b ->
-                Validation.fromResult(schema.unsafeDecode(b)) {
-                    InvalidJson.FieldError(expected = it.message ?: "unable to decode", found = b.toString(), path = emptyList())
-                }
-            }.orElse { fallbackErrors ->
-                Validation.invalid(InvalidJson.Or(preferredErrors, fallbackErrors))
-            }
-        }
-
-        is Schema.Bytes -> Validation.valid(receive<ByteArray>() as A)
-        is Schema.Empty -> Validation.valid(null as A)
-        is Schema.Lazy -> receiveJson(with(schema) { schema() })
-        is Schema.Metadata -> receiveJson(schema.schema)
-        is Schema.Primitive -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
-
-        is Schema.Dynamic -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
-        is Schema.Record -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
-        is Schema.Union -> receiveJsonElement().andThen { schema.decodeFromJsonElement(it) }
-        is Schema.Collection<*> -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
-        is Schema.StringMap<*> -> receiveJsonElement().andThen { (schema as Schema<A>).decodeFromJsonElement(it) }
-    }
-
-private suspend fun RoutingCall.receiveJsonElement(): Validation<InvalidJson, JsonElement> =
-    Validation.runCatching { receive<JsonElement>() }
-        .mapInvalid { InvalidJson.FieldError(expected = "JsonElement", found = it.toString(), path = emptyList()) }
+    schema.decodeFromJsonString(receiveText())
 
 private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): Validation<SchemaError, A> {
     val schemaFields = schema.unsafeFields
@@ -294,7 +256,7 @@ private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> 
         }
 
         is Schema.Dynamic, is Schema.Union, is Schema.Record, is Schema.StringMap<*> -> when (this) {
-            is PartData.FormItem -> schema.decodeFromJsonString(value, Json.Default).mapInvalid { it.reason() }
+            is PartData.FormItem -> schema.decodeFromJsonString(value).mapInvalid { it.reason() }
             null -> Validation.invalid("Missing required part for schema")
             else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
         }
