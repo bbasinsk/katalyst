@@ -307,14 +307,22 @@ class GenericJsonSchemaTest {
         assertEquals(1, treeB0.size)
         assertEquals("Leaf", treeB0[0].jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content)
 
-        // Level 1 should have both cases, with cross-references pointing to level 0 of the other union
+        // Level 1 should have both cases; TreeA_1 refs TreeB_1 (completed), TreeB_1 refs TreeA_0 (during generation)
         val treeA1 = defs["${treeAPrefix}_1"]!!.jsonObject["anyOf"]!!.jsonArray
         assertEquals(2, treeA1.size)
         val nodeA1 = treeA1.first {
             it.jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content == "Node"
         }
         val childRefA1 = nodeA1.jsonObject["properties"]!!.jsonObject["child"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
-        assertTrue(childRefA1.contains(treeBPrefix), "TreeA_1.Node.child should reference TreeB, got $childRefA1")
+        assertEquals("#/\$defs/${treeBPrefix}_1", childRefA1)
+
+        val treeB1 = defs["${treeBPrefix}_1"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(2, treeB1.size)
+        val nodeB1 = treeB1.first {
+            it.jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content == "Node"
+        }
+        val childRefB1 = nodeB1.jsonObject["properties"]!!.jsonObject["child"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${treeAPrefix}_0", childRefB1)
     }
 }
 
