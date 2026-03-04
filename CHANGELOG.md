@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.2...katalyst-v0.3.3) (2026-03-04)
+
+
+### Bug Fixes
+
+* json decoder ([#85](https://github.com/bbasinsk/katalyst/issues/85)) ([c0e3aab](https://github.com/bbasinsk/katalyst/commit/c0e3aaba1d5f65a3cdc80bb53cd6b158809b1d67))
+* skip body read for empty schema to unblock h2c ([8ba6448](https://github.com/bbasinsk/katalyst/commit/8ba6448913d83fe28ba74549806ca728d1a06579))
+
 ## [0.3.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.1...katalyst-v0.3.2) (2026-03-04)
 
 
