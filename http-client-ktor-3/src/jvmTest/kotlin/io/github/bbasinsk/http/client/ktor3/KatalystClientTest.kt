@@ -15,12 +15,14 @@ import io.github.bbasinsk.tuple.tupleValues
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.*
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
@@ -29,6 +31,7 @@ import java.io.IOException
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 
 class KatalystClientTest {
@@ -451,5 +454,42 @@ class KatalystClientTest {
 
         assertIs<HttpResult.Success<String>>(result)
         assertEquals("size=8", result.value)
+    }
+
+    @Test
+    fun `CancellationException is rethrown not swallowed`() = runTest {
+        val mockEngine = MockEngine { throw CancellationException("coroutine cancelled") }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.get { Root / "users" }
+            .output { status(Ok) { json { userSchema } } }
+
+        val katalystClient = KatalystClient(client)
+        assertFailsWith<CancellationException> {
+            katalystClient.call(api)
+        }
+    }
+
+    @Test
+    fun `request timeout returns NetworkError`() = runTest {
+        val mockEngine = MockEngine {
+            delay(500)
+            respond(
+                content = """{"name":"Alice","age":30}""",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = HttpClient(mockEngine) {
+            install(HttpTimeout) { requestTimeoutMillis = 50 }
+        }
+
+        val api = Http.get { Root / "users" }
+            .output { status(Ok) { json { userSchema } } }
+
+        val katalystClient = KatalystClient(client)
+        val result = katalystClient.call(api)
+
+        assertIs<HttpResult.NetworkError>(result)
     }
 }

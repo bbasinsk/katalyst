@@ -39,6 +39,7 @@ import io.ktor.http.ParametersBuilder
 import io.ktor.http.appendPathSegments
 import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readLine
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.jvm.JvmName
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -69,6 +70,8 @@ class KatalystClient(
             }
 
             decodeResponse(endpoint, response)
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             HttpResult.NetworkError(e)
         }
