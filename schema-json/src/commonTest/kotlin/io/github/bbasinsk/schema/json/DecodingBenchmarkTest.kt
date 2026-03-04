@@ -152,7 +152,7 @@ class DecodingBenchmarkTest {
             val p50 = times[times.size / 2] / 1000.0
             val min = times.first() / 1000.0
             val max = times.last() / 1000.0
-            println("$label  avg=%.2f  p50=%.2f  min=%.2f  max=%.2f  (us)".format(avg, p50, min, max))
+            println("$label  avg=${avg.toLong()}  p50=${p50.toLong()}  min=${min.toLong()}  max=${max.toLong()}  (us)")
         }
 
         println()
@@ -161,7 +161,7 @@ class DecodingBenchmarkTest {
         stats("Kotlinx", kotlinxTimes)
 
         val ratio = kotlinxTimes.average() / sourceTimes.average()
-        println("Ratio (kotlinx / source): %.2fx".format(ratio))
+        println("Ratio (source / kotlinx): ${(sourceTimes.average() / kotlinxTimes.average()).toLong()}x")
         println()
     }
 }
