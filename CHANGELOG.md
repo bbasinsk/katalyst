@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.4...katalyst-v0.3.5) (2026-03-04)
+
+
+### Bug Fixes
+
+* handle client cancellation ([e7023e3](https://github.com/bbasinsk/katalyst/commit/e7023e3fb576a4c56d93fc6f92a599989e646a66))
+
 ## [0.3.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.3...katalyst-v0.3.4) (2026-03-04)
 
 
