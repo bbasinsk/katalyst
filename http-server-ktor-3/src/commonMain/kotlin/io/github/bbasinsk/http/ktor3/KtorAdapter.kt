@@ -155,7 +155,9 @@ private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
 private suspend fun <A> RoutingCall.receiveRequest(request: BodySchema<A>): Validation<SchemaError, A> =
     when (request) {
         is BodySchema.WithMetadata -> receiveRequest(request.schema)
-        is BodySchema.Single -> when (request.contentType) {
+        is BodySchema.Single -> if (request.schema() is Schema.Empty) {
+            Validation.valid(null) as Validation<SchemaError, A>
+        } else when (request.contentType) {
             is ContentType.Image -> Validation.valid(receive<ByteArray>()) as Validation<SchemaError, A>
             ContentType.Avro -> receiveAvro(request.schema())
             ContentType.Json -> receiveJson(request.schema()).mapInvalid { SchemaError(it.reason()) }
