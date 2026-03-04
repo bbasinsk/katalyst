@@ -439,3 +439,25 @@ val Schema.Companion.tree: Schema<Tree>
         field(lazy { list(variant(tree)) }, "branches") { branches },
         ::Tree
     )
+
+sealed interface AllRecursive {
+    data class Left(val next: AllRecursive) : AllRecursive
+    data class Right(val next: AllRecursive) : AllRecursive
+}
+
+fun Schema.Companion.allRecursive(): Schema<AllRecursive> = fix { self, metadata ->
+    val left: Schema<AllRecursive.Left> = record(
+        field(lazy { self }, "next") { next },
+        AllRecursive::Left
+    )
+    val right: Schema<AllRecursive.Right> = record(
+        field(lazy { self }, "next") { next },
+        AllRecursive::Right
+    )
+    union(
+        case(left, "Left"),
+        case(right, "Right"),
+        metadata = metadata,
+        key = "type"
+    )
+}

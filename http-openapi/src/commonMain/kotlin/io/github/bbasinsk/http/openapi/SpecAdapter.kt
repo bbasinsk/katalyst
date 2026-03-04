@@ -286,11 +286,7 @@ private class InlineUnrollState(val maxDepth: Int) {
             terminalCaseCache[union] = it
         }
 
-    /**
-     * Expands a union with recursion depth tracking. On first entry, marks the union as expanding.
-     * On re-entry with depth remaining, decrements depth. On re-entry at depth 0, returns null
-     * to signal that only terminal cases should be used. Depth is restored via try/finally.
-     */
+    /** Returns null at terminal depth to signal only terminal cases should be used. */
     inline fun <T> withExpansion(union: Schema.Union<*>, block: () -> T): T? {
         val remainingDepth = expandingUnions[union]
         return when {
@@ -324,7 +320,7 @@ data class OutputOptions(
             inlineRefs = true, // because it's a single SchemaObject
             useAnyOf = true, // Does not support oneOf / discriminator
             usePropertyOrdering = true, // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output#fields
-            maxRecursionDepth = 4,
+            maxRecursionDepth = 4, // balances schema size vs nesting depth for Gemini structured output
             supportsStringFormat = {
                 when (it) {
                     // https://ai.google.dev/api/caching#Schema
@@ -488,7 +484,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             buildInlineUnion(unsafeCases)
                         } ?: run {
                             val terminal = unrollState.terminalCases(this)
-                            require(terminal.isNotEmpty()) {
+                            check(terminal.isNotEmpty()) {
                                 "Recursive union '${resolver.resolve(this, this.metadata)}' has no terminal (non-recursive) cases and cannot be unrolled"
                             }
                             buildInlineUnion(terminal)

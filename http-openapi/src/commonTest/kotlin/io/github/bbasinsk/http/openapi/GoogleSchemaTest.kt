@@ -6,6 +6,8 @@ import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class GoogleSchemaTest {
 
@@ -136,21 +138,21 @@ class GoogleSchemaTest {
     fun `should handle recursive union with maxRecursionDepth 0`() {
         val schema = with(Schema) { variant(string()) }
         val obj = schema.toSchemaObject(OutputOptions.gemini.copy(maxRecursionDepth = 0))
-        val json = OpenApiJson.encodeToJsonElement(obj)
+        OpenApiJson.encodeToJsonElement(obj)
 
-        // Top level should have all 3 cases
+        // Top level should have all 3 cases (order matches variant() definition: Value, Optional, Choice)
         val topAnyOf = obj.anyOf!!
         assertEquals(3, topAnyOf.size)
 
         // The Optional case's variant field should only have the terminal case (Value)
-        val optionalCase = topAnyOf[1] // Optional
-        val optionalRecord = optionalCase.allOf!![1] // the record part
+        val optionalCase = topAnyOf[1] // Optional (index 1 per variant() case order)
+        val optionalRecord = optionalCase.allOf!![1] // allOf[0] is discriminator, [1] is the record
         val variantField = optionalRecord.properties!!["variant"]!!
         val nestedAnyOf = variantField.anyOf!!
         assertEquals(1, nestedAnyOf.size, "At depth 0, recursive re-entry should only include terminal cases")
 
         // The Choice case's options items should only have the terminal case (Value)
-        val choiceCase = topAnyOf[2] // Choice
+        val choiceCase = topAnyOf[2] // Choice (index 2 per variant() case order)
         val choiceRecord = choiceCase.allOf!![1]
         val optionsField = choiceRecord.properties!!["options"]!!
         val itemsAnyOf = optionsField.items!!.anyOf!!
@@ -189,9 +191,33 @@ class GoogleSchemaTest {
     }
 
     @Test
-    fun `non-recursive union should work without maxRecursionDepth`() {
-        // Non-recursive unions should still work fine without maxRecursionDepth
+    fun `non-recursive union should work with gemini defaults`() {
         val obj = Human.schema.toSchemaObject(OutputOptions.gemini)
         assertEquals(2, obj.anyOf!!.size)
+    }
+
+    @Test
+    fun `recursive union should work with default gemini depth`() {
+        val schema = with(Schema) { variant(string()) }
+        val obj = schema.toSchemaObject(OutputOptions.gemini)
+        // Should not stack overflow and should produce all 3 top-level cases
+        assertEquals(3, obj.anyOf!!.size)
+    }
+
+    @Test
+    fun `all-recursive union should fail with descriptive error`() {
+        val schema = with(Schema) { allRecursive() }
+        val error = assertFailsWith<IllegalStateException> {
+            schema.toSchemaObject(OutputOptions.gemini)
+        }
+        assertTrue(error.message!!.contains("no terminal"))
+    }
+
+    @Test
+    fun `recursive union without maxRecursionDepth should inline refs`() {
+        val schema = with(Schema) { variant(string()) }
+        // inlineRefs=false uses $ref, so recursive schemas don't blow up even without depth limiting
+        val obj = schema.toSchemaObject(OutputOptions(inlineRefs = false))
+        assertNotNull(obj.oneOf)
     }
 }
