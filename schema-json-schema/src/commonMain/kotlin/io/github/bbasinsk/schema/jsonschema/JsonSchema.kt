@@ -47,6 +47,7 @@ data class JsonOptions(
 )
 
 fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
+    require(maxRecursionDepth == null || maxRecursionDepth >= 0) { "maxRecursionDepth must be non-negative, got $maxRecursionDepth" }
     val definitions = mutableMapOf<String, JsonSchema>()
     val resolver = DefinitionNameResolver()
     val unrollState = maxRecursionDepth?.let { UnrollState(maxDepth = it) }
@@ -78,7 +79,6 @@ private class IdentitySet<T> {
     private val items = mutableListOf<T>()
     fun contains(item: T): Boolean = items.any { it === item }
     fun add(item: T): Boolean = if (contains(item)) false else { items.add(item); true }
-    fun remove(item: T) { items.removeAll { it === item } }
 }
 
 private class IdentityMap<K, V> {
@@ -147,9 +147,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 ).orNull(options)
             }
 
-        is Schema.Transform<*, *> -> when {
-            else -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
-        }
+        is Schema.Transform<*, *> -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
 
         is Schema.Optional<*> ->
             schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs, resolver, unrollState)
@@ -167,15 +165,20 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             val typeName = resolver.resolve(this, this.metadata)
 
             if (unrollState != null) {
+                fun refOrNullable(defName: String): JsonSchema {
+                    val ref = JsonSchema(ref = "#/${'$'}defs/$defName")
+                    return if (options.optional) JsonSchema(anyOf = listOf(ref, JsonSchema(type = listOf("null")))) else ref
+                }
+
                 // Back-reference: during level generation, recursive refs point one level down
                 val refTarget = unrollState.refTargets[this]
                 if (refTarget != null) {
-                    return JsonSchema(ref = "#/${'$'}defs/$refTarget")
+                    return refOrNullable(refTarget)
                 }
 
                 // Already fully unrolled in a previous encounter
                 if (unrollState.completedUnions.contains(this)) {
-                    return JsonSchema(ref = "#/${'$'}defs/${typeName}_${unrollState.maxDepth}")
+                    return refOrNullable("${typeName}_${unrollState.maxDepth}")
                 }
 
                 // Check if this union is actually recursive
@@ -183,7 +186,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 if (isRecursive) {
                     generateUnrolledLevels(this, typeName, definitions, resolver, unrollState)
                     unrollState.completedUnions.add(this)
-                    return JsonSchema(ref = "#/${'$'}defs/${typeName}_${unrollState.maxDepth}")
+                    return refOrNullable("${typeName}_${unrollState.maxDepth}")
                 }
             }
 
@@ -242,17 +245,16 @@ private fun generateUnrolledLevels(
 ) {
     val cases = union.unsafeCases()
     val terminalCases = cases.filter { !containsReference(it.schema, union) }
-    val allCases = cases
+    require(terminalCases.isNotEmpty()) { "Union '$typeName' has no terminal (non-recursive) cases and cannot be unrolled" }
 
     for (depth in 0..unrollState.maxDepth) {
         val levelName = "${typeName}_$depth"
-        val casesToUse = if (depth == 0) terminalCases else allCases
+        val casesToUse = if (depth == 0) terminalCases else cases
 
         if (depth > 0) {
             unrollState.refTargets[union] = "${typeName}_${depth - 1}"
         }
 
-        definitions[levelName] = JsonSchema(type = listOf("object")) // placeholder
         val levelSchema = JsonSchema(
             anyOf = casesToUse.map { case ->
                 case.schema.toJsonSchemaImpl(

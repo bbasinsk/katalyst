@@ -6,6 +6,7 @@ import io.github.bbasinsk.schema.Schema.Companion.record
 import kotlinx.serialization.json.*
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 
 class GenericJsonSchemaTest {
     // https://avro.apache.org/docs/current/specification/
@@ -237,6 +238,51 @@ class GenericJsonSchemaTest {
             "Expected defs to contain $pairName but had ${defs.keys}"
         }
     }
+
+    @Test
+    fun `maxRecursionDepth 0 produces terminal-only output`() {
+        val jsonSchema = Wrapper.schema.toJsonSchema(maxRecursionDepth = 0).encodeToJsonElement().jsonObject
+        val defs = jsonSchema["\$defs"]!!.jsonObject
+
+        val variantPrefix = "io.github.bbasinsk.schema.jsonschema.Variant.of.io.github.bbasinsk.schema.jsonschema.Something"
+
+        // Top-level ref points to Variant_0
+        val variantRef = jsonSchema["properties"]!!.jsonObject["variant"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assertEquals("#/\$defs/${variantPrefix}_0", variantRef)
+
+        // Variant_0 exists and contains only terminal case (Value)
+        val variant0 = defs["${variantPrefix}_0"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(1, variant0.size)
+        assertEquals("Value", variant0[0].jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content)
+    }
+
+    @Test
+    fun `negative maxRecursionDepth throws`() {
+        assertFailsWith<IllegalArgumentException> {
+            Wrapper.schema.toJsonSchema(maxRecursionDepth = -1)
+        }
+    }
+
+    @Test
+    fun `optional recursive union includes null in unrolled ref`() {
+        val jsonSchema = OptionalVariantWrapper.schema.toJsonSchema(maxRecursionDepth = 1).encodeToJsonElement().jsonObject
+        val variantField = jsonSchema["properties"]!!.jsonObject["variant"]!!.jsonObject
+
+        // Top-level ref should be wrapped in anyOf with null
+        val anyOf = variantField["anyOf"]!!.jsonArray
+        assertEquals(2, anyOf.size)
+        val refEntry = anyOf.first { it.jsonObject.containsKey("\$ref") }
+        val nullEntry = anyOf.first { it.jsonObject.containsKey("type") }
+        assertEquals("null", nullEntry.jsonObject["type"]!!.jsonPrimitive.content)
+        assert(refEntry.jsonObject["\$ref"]!!.jsonPrimitive.content.endsWith("_1"))
+    }
+
+    @Test
+    fun `all-recursive union throws`() {
+        assertFailsWith<IllegalArgumentException> {
+            AllRecursiveWrapper.schema.toJsonSchema(maxRecursionDepth = 2)
+        }
+    }
 }
 
 sealed interface Variant<T> {
@@ -363,6 +409,48 @@ private data class ShapeWrapper(val shape: Shape) {
         val schema: Schema<ShapeWrapper> = record(
             field(Schema.shape, "shape") { shape },
             ::ShapeWrapper
+        )
+    }
+}
+
+private data class OptionalVariantWrapper(val variant: Variant<Something>?) {
+    companion object {
+        val schema: Schema<OptionalVariantWrapper> = record(
+            field(Schema.variant(Schema.something).optional(), "variant") { variant },
+            ::OptionalVariantWrapper
+        )
+    }
+}
+
+// Union where every case is recursive (no terminal cases)
+private sealed interface AllRecursive {
+    data class Left(val next: AllRecursive) : AllRecursive
+    data class Right(val next: AllRecursive) : AllRecursive
+}
+
+private val Schema.Companion.allRecursive: Schema<AllRecursive>
+    get() = fix { self, metadata ->
+        val left: Schema<AllRecursive.Left> = record(
+            field(lazy { self }, "next") { next },
+            AllRecursive::Left
+        )
+        val right: Schema<AllRecursive.Right> = record(
+            field(lazy { self }, "next") { next },
+            AllRecursive::Right
+        )
+        union(
+            case(left, "Left"),
+            case(right, "Right"),
+            metadata = metadata,
+            key = "type"
+        )
+    }
+
+private data class AllRecursiveWrapper(val value: AllRecursive) {
+    companion object {
+        val schema: Schema<AllRecursiveWrapper> = record(
+            field(Schema.allRecursive, "value") { value },
+            ::AllRecursiveWrapper
         )
     }
 }
