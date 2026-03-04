@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.1...katalyst-v0.3.2) (2026-03-04)
+
+
+### Bug Fixes
+
+* recursive union unrolling for JSON Schema ([#84](https://github.com/bbasinsk/katalyst/issues/84)) ([ba42c30](https://github.com/bbasinsk/katalyst/commit/ba42c30af106e2cf44ebf7d434a100b763bec1b2))
+
 ## [0.3.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.0...katalyst-v0.3.1) (2026-02-19)
 
 
