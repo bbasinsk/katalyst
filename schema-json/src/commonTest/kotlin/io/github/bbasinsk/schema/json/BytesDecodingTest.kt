@@ -5,7 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class SourceDecodingTest {
+class BytesDecodingTest {
 
     private fun parse(json: String, config: JsonDecodingConfig = JsonDecodingConfig()): SchemaValue =
         decodeSchemaValueFromString(json, config)

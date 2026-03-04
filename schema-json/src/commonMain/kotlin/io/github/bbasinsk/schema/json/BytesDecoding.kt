@@ -1,24 +1,29 @@
 package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.SchemaValue
-import kotlinx.io.Source
 
-fun decodeSchemaValueFromSource(source: Source, config: JsonDecodingConfig = JsonDecodingConfig()): SchemaValue =
-    JsonParser(source, config).parseValue()
+fun decodeSchemaValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = JsonDecodingConfig()): SchemaValue =
+    JsonParser(bytes, config).parseValue()
 
-private class JsonParser(private val source: Source, private val config: JsonDecodingConfig) {
+private class JsonParser(private val buffer: ByteArray, private val config: JsonDecodingConfig) {
+    private var pos: Int = 0
+
+    companion object {
+        private const val QUOTE: Byte = '"'.code.toByte()
+        private const val BACKSLASH: Byte = '\\'.code.toByte()
+    }
 
     fun parseValue(): SchemaValue {
         skipWhitespaceAndComments()
-        require(!source.exhausted()) { "Unexpected end of input" }
-        val ch = peekChar()
+        require(pos < buffer.size) { "Unexpected end of input" }
+        val ch = buffer[pos].toInt().toChar()
         return when {
             ch == '"' -> parseString()
             ch == 't' || ch == 'f' -> parseBoolean()
             ch == 'n' -> parseNull()
             ch == '{' -> parseObject()
             ch == '[' -> parseArray()
-            ch == '-' || ch.isDigit() -> parseNumber()
+            ch == '-' || ch in '0'..'9' -> parseNumber()
             else -> throw IllegalArgumentException("Unexpected character '$ch'")
         }
     }
@@ -28,21 +33,37 @@ private class JsonParser(private val source: Source, private val config: JsonDec
 
     private fun readJsonString(): String {
         expectChar('"')
-        val sb = StringBuilder()
+        val start = pos
+        // Fast path: scan for closing quote with no escapes
+        while (pos < buffer.size) {
+            when (buffer[pos]) {
+                QUOTE -> return buffer.decodeToString(start, pos++)
+                BACKSLASH -> return readJsonStringSlow(start)
+                else -> pos++
+            }
+        }
+        throw IllegalArgumentException("Unterminated string")
+    }
+
+    private fun readJsonStringSlow(start: Int): String {
+        // Copy the unescaped prefix we already scanned
+        val sb = StringBuilder(pos - start + 16)
+        sb.append(buffer.decodeToString(start, pos))
         while (true) {
-            require(!source.exhausted()) { "Unterminated string" }
-            val ch = readChar()
-            when {
-                ch == '"' -> return sb.toString()
-                ch == '\\' -> sb.append(readEscaped())
-                else -> sb.append(ch)
+            require(pos < buffer.size) { "Unterminated string" }
+            val b = buffer[pos++]
+            when (b) {
+                QUOTE -> return sb.toString()
+                BACKSLASH -> sb.append(readEscaped())
+                else -> sb.append(b.toInt().toChar())
             }
         }
     }
 
     private fun readEscaped(): Char {
-        require(!source.exhausted()) { "Unterminated escape sequence" }
-        return when (val ch = readChar()) {
+        require(pos < buffer.size) { "Unterminated escape sequence" }
+        val ch = buffer[pos++].toInt().toChar()
+        return when (ch) {
             '"' -> '"'
             '\\' -> '\\'
             '/' -> '/'
@@ -54,8 +75,8 @@ private class JsonParser(private val source: Source, private val config: JsonDec
             'u' -> {
                 val hex = buildString(4) {
                     repeat(4) {
-                        require(!source.exhausted()) { "Unterminated unicode escape" }
-                        append(readChar())
+                        require(pos < buffer.size) { "Unterminated unicode escape" }
+                        append(buffer[pos++].toInt().toChar())
                     }
                 }
                 hex.toInt(16).toChar()
@@ -89,25 +110,25 @@ private class JsonParser(private val source: Source, private val config: JsonDec
     }
 
     private fun readNumberToken(): String {
-        val sb = StringBuilder()
-        while (!source.exhausted()) {
-            val ch = peekChar()
-            if (ch.isDigit() || ch == '-' || ch == '+' || ch == '.' || ch == 'e' || ch == 'E') {
-                sb.append(readChar())
+        val start = pos
+        while (pos < buffer.size) {
+            val ch = buffer[pos].toInt().toChar()
+            if (ch in '0'..'9' || ch == '-' || ch == '+' || ch == '.' || ch == 'e' || ch == 'E') {
+                pos++
             } else {
                 break
             }
         }
-        require(sb.isNotEmpty()) { "Expected number" }
-        return sb.toString()
+        require(pos > start) { "Expected number" }
+        return buffer.decodeToString(start, pos)
     }
 
     private fun parseObject(): SchemaValue.Obj {
         expectChar('{')
         skipWhitespaceAndComments()
         val entries = linkedMapOf<String, SchemaValue>()
-        if (peekCharOrNull() == '}') {
-            readChar()
+        if (pos < buffer.size && buffer[pos].toInt().toChar() == '}') {
+            pos++
             return SchemaValue.Obj(entries)
         }
         while (true) {
@@ -118,17 +139,18 @@ private class JsonParser(private val source: Source, private val config: JsonDec
             val value = parseValue()
             entries[key] = value
             skipWhitespaceAndComments()
-            when (peekCharOrNull()) {
+            val next = if (pos < buffer.size) buffer[pos].toInt().toChar() else null
+            when (next) {
                 ',' -> {
-                    readChar()
+                    pos++
                     skipWhitespaceAndComments()
-                    if (config.allowTrailingCommas && peekCharOrNull() == '}') {
-                        readChar()
+                    if (config.allowTrailingCommas && pos < buffer.size && buffer[pos].toInt().toChar() == '}') {
+                        pos++
                         return SchemaValue.Obj(entries)
                     }
                 }
                 '}' -> {
-                    readChar()
+                    pos++
                     return SchemaValue.Obj(entries)
                 }
                 else -> throw IllegalArgumentException("Expected ',' or '}' in object")
@@ -140,24 +162,25 @@ private class JsonParser(private val source: Source, private val config: JsonDec
         expectChar('[')
         skipWhitespaceAndComments()
         val items = mutableListOf<SchemaValue>()
-        if (peekCharOrNull() == ']') {
-            readChar()
+        if (pos < buffer.size && buffer[pos].toInt().toChar() == ']') {
+            pos++
             return SchemaValue.Arr(items)
         }
         while (true) {
             items.add(parseValue())
             skipWhitespaceAndComments()
-            when (peekCharOrNull()) {
+            val next = if (pos < buffer.size) buffer[pos].toInt().toChar() else null
+            when (next) {
                 ',' -> {
-                    readChar()
+                    pos++
                     skipWhitespaceAndComments()
-                    if (config.allowTrailingCommas && peekCharOrNull() == ']') {
-                        readChar()
+                    if (config.allowTrailingCommas && pos < buffer.size && buffer[pos].toInt().toChar() == ']') {
+                        pos++
                         return SchemaValue.Arr(items)
                     }
                 }
                 ']' -> {
-                    readChar()
+                    pos++
                     return SchemaValue.Arr(items)
                 }
                 else -> throw IllegalArgumentException("Expected ',' or ']' in array")
@@ -166,33 +189,28 @@ private class JsonParser(private val source: Source, private val config: JsonDec
     }
 
     private fun readLiteral(): String {
-        val sb = StringBuilder()
-        while (!source.exhausted()) {
-            val ch = peekChar()
-            if (ch.isLetter()) {
-                sb.append(readChar())
+        val start = pos
+        while (pos < buffer.size) {
+            val ch = buffer[pos].toInt().toChar()
+            if (ch in 'a'..'z' || ch in 'A'..'Z') {
+                pos++
             } else {
                 break
             }
         }
-        return sb.toString()
+        return buffer.decodeToString(start, pos)
     }
 
     private fun skipWhitespaceAndComments() {
-        while (!source.exhausted()) {
-            val ch = peekChar()
+        while (pos < buffer.size) {
+            val ch = buffer[pos].toInt().toChar()
             when {
-                ch.isWhitespace() -> readChar()
+                ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r' -> pos++
                 config.allowComments && ch == '/' -> {
-                    val peek = source.peek()
-                    peek.readByte() // consume '/'
-                    if (!peek.exhausted() && peek.readByte().toInt().toChar() == '/') {
-                        // Line comment: consume '//' and everything until newline
-                        readChar() // '/'
-                        readChar() // '/'
-                        while (!source.exhausted()) {
-                            val c = readChar()
-                            if (c == '\n') break
+                    if (pos + 1 < buffer.size && buffer[pos + 1].toInt().toChar() == '/') {
+                        pos += 2
+                        while (pos < buffer.size) {
+                            if (buffer[pos++].toInt().toChar() == '\n') break
                         }
                     } else {
                         return
@@ -203,22 +221,9 @@ private class JsonParser(private val source: Source, private val config: JsonDec
         }
     }
 
-    private fun readChar(): Char =
-        source.readByte().toInt().toChar()
-
-    private fun peekChar(): Char =
-        source.peek().readByte().toInt().toChar()
-
-    private fun peekCharOrNull(): Char? =
-        if (source.exhausted()) null else peekChar()
-
     private fun expectChar(expected: Char) {
-        require(!source.exhausted()) { "Expected '$expected' but reached end of input" }
-        val ch = readChar()
+        require(pos < buffer.size) { "Expected '$expected' but reached end of input" }
+        val ch = buffer[pos++].toInt().toChar()
         require(ch == expected) { "Expected '$expected' but got '$ch'" }
     }
-
-    private fun Char.isDigit(): Boolean = this in '0'..'9'
-    private fun Char.isLetter(): Boolean = this in 'a'..'z' || this in 'A'..'Z'
-    private fun Char.isWhitespace(): Boolean = this == ' ' || this == '\t' || this == '\n' || this == '\r'
 }
