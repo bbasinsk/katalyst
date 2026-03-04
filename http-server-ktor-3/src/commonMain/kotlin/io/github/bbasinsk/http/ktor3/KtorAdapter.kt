@@ -37,7 +37,6 @@ import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.io.readByteArray
-import java.io.Writer
 
 fun <Path, Input, Error, Output, Auth> RoutingNode.httpEndpointToRoute(
     endpoint: HttpEndpoint<Path, Input, Error, Output, Auth, RoutingCall>
@@ -330,37 +329,34 @@ data class SchemaError(
 
 /**
  * Responds with a Server-Sent Events (SSE) stream.
- * Includes error handling - if the flow throws, an error event is sent before closing.
- * Gracefully handles client disconnections without logging errors.
+ *
+ * Uses [OutgoingContent.WriteChannelContent] to write directly to the [ByteWriteChannel],
+ * avoiding the Writer/OutputStream layer whose implicit close/flush can throw
+ * [io.ktor.utils.io.ClosedByteChannelException] when the HTTP/2 stream has already closed.
  */
 private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events: Flow<SSEEvent<A>>) {
-    try {
-        respondTextWriter(contentType = io.ktor.http.ContentType.Text.EventStream) {
+    val routingCall = this
+    respond(object : OutgoingContent.WriteChannelContent() {
+        override val contentType = io.ktor.http.ContentType.Text.EventStream
+
+        override suspend fun writeTo(channel: ByteWriteChannel) {
             try {
                 events.collect { event ->
-                    writeSSEEvent(bodySchema, event)
+                    channel.writeSSEEvent(bodySchema, event)
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (e.isChannelClosedException()) return@respondTextWriter
+                if (e.isChannelClosedException()) return
 
-                appendLine("event: error")
-                appendLine("data: An error occurred")
-                appendLine()
-                flush()
-                application.environment.log.error("An error occurred writing an SSE event", e)
+                runCatching {
+                    channel.writeFully("event: error\ndata: An error occurred\n\n".encodeToByteArray())
+                    channel.flush()
+                }
+                routingCall.application.environment.log.error("An error occurred writing an SSE event", e)
             }
         }
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        if (e.isChannelClosedException()) {
-            application.environment.log.debug("SSE client disconnected")
-            return
-        }
-        throw e
-    }
+    })
 }
 
 /**
@@ -370,26 +366,28 @@ private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events
 internal expect fun Throwable.isChannelClosedException(): Boolean
 
 /**
- * Writes a single SSE event to the response writer.
+ * Writes a single SSE event directly to the channel as UTF-8 bytes.
  * Handles multi-line data by prefixing each line with "data: " as per SSE spec.
  */
-private fun <A> Writer.writeSSEEvent(bodySchema: BodySchema<A>, event: SSEEvent<A>) {
-    event.comment?.let { appendLine(": $it") }
-    event.id?.let { appendLine("id: $it") }
-    event.event?.let { appendLine("event: $it") }
-    event.retry?.let { appendLine("retry: $it") }
-    val data = event.data
-    when {
-        data != null -> {
-            val serialized = serializeEventData(bodySchema, data)
-            // SSE protocol requires each line of data to have "data: " prefix
-            serialized.lines().forEach { line ->
-                appendLine("data: $line")
+private suspend fun <A> ByteWriteChannel.writeSSEEvent(bodySchema: BodySchema<A>, event: SSEEvent<A>) {
+    val text = buildString {
+        event.comment?.let { appendLine(": $it") }
+        event.id?.let { appendLine("id: $it") }
+        event.event?.let { appendLine("event: $it") }
+        event.retry?.let { appendLine("retry: $it") }
+        val data = event.data
+        when {
+            data != null -> {
+                val serialized = serializeEventData(bodySchema, data)
+                serialized.lines().forEach { line ->
+                    appendLine("data: $line")
+                }
             }
+            event.comment != null -> appendLine("data:") // Empty data for keepalive to trigger client event
         }
-        event.comment != null -> appendLine("data:") // Empty data for keepalive to trigger client event
+        appendLine()
     }
-    appendLine()
+    writeFully(text.encodeToByteArray())
     flush()
 }
 
