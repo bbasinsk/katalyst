@@ -1,5 +1,6 @@
 package io.github.bbasinsk.schema.jsonschema
 
+import io.github.bbasinsk.schema.Case
 import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Primitive
@@ -181,10 +182,11 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                     return refOrNullable("${typeName}_${unrollState.maxDepth}")
                 }
 
-                // Check if this union is actually recursive
-                val isRecursive = unsafeCases().any { case -> containsReference(case.schema, this) }
-                if (isRecursive) {
-                    generateUnrolledLevels(this, typeName, definitions, resolver, unrollState)
+                // Partition cases into terminal vs recursive in a single pass
+                val cases = unsafeCases()
+                val terminalCases = cases.filter { !containsReference(it.schema, this) }
+                if (terminalCases.size < cases.size) {
+                    generateUnrolledLevels(this, typeName, cases, terminalCases, definitions, resolver, unrollState)
                     unrollState.completedUnions.add(this)
                     return refOrNullable("${typeName}_${unrollState.maxDepth}")
                 }
@@ -239,12 +241,12 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 private fun generateUnrolledLevels(
     union: Schema.Union<*>,
     typeName: String,
+    cases: List<Case<*, *>>,
+    terminalCases: List<Case<*, *>>,
     definitions: MutableMap<String, JsonSchema>,
     resolver: DefinitionNameResolver,
     unrollState: UnrollState,
 ) {
-    val cases = union.unsafeCases()
-    val terminalCases = cases.filter { !containsReference(it.schema, union) }
     require(terminalCases.isNotEmpty()) { "Union '$typeName' has no terminal (non-recursive) cases and cannot be unrolled" }
 
     for (depth in 0..unrollState.maxDepth) {
@@ -269,5 +271,6 @@ private fun generateUnrolledLevels(
         definitions[levelName] = levelSchema
     }
 
+    // Clear back-reference now that all levels are generated; prevents stale refs if this union is encountered again
     unrollState.refTargets.remove(union)
 }

@@ -283,6 +283,38 @@ class GenericJsonSchemaTest {
             AllRecursiveWrapper.schema.toJsonSchema(maxRecursionDepth = 2)
         }
     }
+
+    @Test
+    fun `mutually recursive unions both get unrolled`() {
+        val jsonSchema = MutualWrapper.schema.toJsonSchema(maxRecursionDepth = 1).encodeToJsonElement().jsonObject
+        val defs = jsonSchema["\$defs"]!!.jsonObject
+
+        // Both unions should have numbered definitions
+        val treeAPrefix = MutualWrapper.treeAName
+        val treeBPrefix = MutualWrapper.treeBName
+        assert(defs.containsKey("${treeAPrefix}_0")) { "Missing ${treeAPrefix}_0" }
+        assert(defs.containsKey("${treeAPrefix}_1")) { "Missing ${treeAPrefix}_1" }
+        assert(defs.containsKey("${treeBPrefix}_0")) { "Missing ${treeBPrefix}_0" }
+        assert(defs.containsKey("${treeBPrefix}_1")) { "Missing ${treeBPrefix}_1" }
+
+        // Level 0 should contain only terminal cases (Leaf)
+        val treeA0 = defs["${treeAPrefix}_0"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(1, treeA0.size)
+        assertEquals("Leaf", treeA0[0].jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content)
+
+        val treeB0 = defs["${treeBPrefix}_0"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(1, treeB0.size)
+        assertEquals("Leaf", treeB0[0].jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content)
+
+        // Level 1 should have both cases, with cross-references pointing to level 0 of the other union
+        val treeA1 = defs["${treeAPrefix}_1"]!!.jsonObject["anyOf"]!!.jsonArray
+        assertEquals(2, treeA1.size)
+        val nodeA1 = treeA1.first {
+            it.jsonObject["properties"]!!.jsonObject["type"]!!.jsonObject["enum"]!!.jsonArray[0].jsonPrimitive.content == "Node"
+        }
+        val childRefA1 = nodeA1.jsonObject["properties"]!!.jsonObject["child"]!!.jsonObject["\$ref"]!!.jsonPrimitive.content
+        assert(childRefA1.contains(treeBPrefix)) { "TreeA_1.Node.child should reference TreeB, got $childRefA1" }
+    }
 }
 
 sealed interface Variant<T> {
@@ -451,6 +483,43 @@ private data class AllRecursiveWrapper(val value: AllRecursive) {
         val schema: Schema<AllRecursiveWrapper> = record(
             field(Schema.allRecursive, "value") { value },
             ::AllRecursiveWrapper
+        )
+    }
+}
+
+// Mutually recursive unions: TreeA references TreeB and vice versa
+private sealed interface TreeA {
+    data class Leaf(val value: String) : TreeA
+    data class Node(val child: TreeB) : TreeA
+}
+
+private sealed interface TreeB {
+    data class Leaf(val value: Int) : TreeB
+    data class Node(val child: TreeA) : TreeB
+}
+
+private data class MutualWrapper(val a: TreeA, val b: TreeB) {
+    companion object {
+        private val treeA: Schema<TreeA> by kotlin.lazy {
+            Schema.union(
+                Schema.case(record(field(Schema.string(), "value") { value }, TreeA::Leaf), "Leaf"),
+                Schema.case(record(field(Schema.lazy { treeB }, "child") { child }, TreeA::Node), "Node"),
+                key = "type"
+            )
+        }
+        private val treeB: Schema<TreeB> by kotlin.lazy {
+            Schema.union(
+                Schema.case(record(field(Schema.int(), "value") { value }, TreeB::Leaf), "Leaf"),
+                Schema.case(record(field(Schema.lazy { treeA }, "child") { child }, TreeB::Node), "Node"),
+                key = "type"
+            )
+        }
+        val treeAName: String get() = "io.github.bbasinsk.schema.jsonschema.TreeA"
+        val treeBName: String get() = "io.github.bbasinsk.schema.jsonschema.TreeB"
+        val schema: Schema<MutualWrapper> = record(
+            field(Schema.lazy { treeA }, "a") { a },
+            field(Schema.lazy { treeB }, "b") { b },
+            ::MutualWrapper
         )
     }
 }
