@@ -155,7 +155,7 @@ private suspend fun <A> ApplicationCall.receiveRequest(request: BodySchema<A>): 
 @Suppress("UNCHECKED_CAST")
 private suspend fun <A> ApplicationCall.receiveFormUrlEncoded(schema: Schema.Record<A>): Validation<SchemaError, A> {
     val params = receiveParameters()
-    val schemaFields = schema.unsafeFields()
+    val schemaFields = schema.unsafeFields
     val fieldValues = schemaFields.map { field ->
         val values = params.getAll(field.name)
         when (val fieldSchema = field.schema) {

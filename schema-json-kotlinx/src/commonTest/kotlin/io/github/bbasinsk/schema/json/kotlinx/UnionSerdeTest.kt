@@ -44,7 +44,8 @@ class UnionSerdeTest {
                     "type": "IntExample",
                     "value": 42
                 }
-                """.trimIndent()
+                """.trimIndent(),
+                Json.Default
             )
         )
     }
@@ -59,7 +60,8 @@ class UnionSerdeTest {
                     "type": "StringExample",
                     "value": "hello"
                 }
-                """.trimIndent()
+                """.trimIndent(),
+                Json.Default
             )
         )
     }
@@ -80,7 +82,8 @@ class UnionSerdeTest {
                     "type": 42,
                     "value": "hello"
                 }
-                """.trimIndent()
+                """.trimIndent(),
+                Json.Default
             )
         )
     }
@@ -101,7 +104,8 @@ class UnionSerdeTest {
                     "type": "Other",
                     "value": "hello"
                 }
-                """.trimIndent()
+                """.trimIndent(),
+                Json.Default
             )
         )
     }
@@ -122,7 +126,8 @@ class UnionSerdeTest {
                     "subtype": "StringExample",
                     "value": "hello"
                 }
-                """.trimIndent()
+                """.trimIndent(),
+                Json.Default
             )
         )
     }

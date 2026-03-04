@@ -5,6 +5,7 @@ import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -19,11 +20,11 @@ class LenientSerdeTest {
 
         assertEquals(
             Validation.valid(12.123),
-            Schema.lenientDouble().decodeFromJsonString(rawString)
+            Schema.lenientDouble().decodeFromJsonString(rawString, Json.Default)
         )
         assertEquals(
             Validation.invalid(InvalidJson.FieldError(expected = "Double", found = "\"12.123\"", path = emptyList())),
-            Schema.double().decodeFromJsonString(rawString)
+            Schema.double().decodeFromJsonString(rawString, Json.Default)
         )
     }
 
@@ -37,7 +38,7 @@ class LenientSerdeTest {
                     fallback = listOf(InvalidJson.FieldError(expected = "String", found = "{}", path = emptyList()))
                 )
             ),
-            Schema.lenientDouble().decodeFromJsonString(rawString)
+            Schema.lenientDouble().decodeFromJsonString(rawString, Json.Default)
         )
     }
 }

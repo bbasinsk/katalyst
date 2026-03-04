@@ -48,12 +48,12 @@ sealed interface Schema<A> {
     sealed interface Union<A> : Schema<A> {
         val metadata: ObjectMetadata<A>
         val key: String
-        fun unsafeCases(): List<Case<A, *>>
+        val unsafeCases: List<Case<A, *>>
     }
 
     sealed interface Record<A> : Schema<A> {
         val metadata: ObjectMetadata<A>
-        fun unsafeFields(): List<Field<A, *>>
+        val unsafeFields: List<Field<A, *>>
         fun unsafeConstruct(values: List<Any?>): A
     }
 

@@ -5,7 +5,7 @@ data class Record1<A, B1>(
     val field1: Field<A, B1>,
     val construct: (B1) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1)
 
     @Suppress("UNCHECKED_CAST")
@@ -19,7 +19,7 @@ data class Record2<A, B1, B2>(
     val field2: Field<A, B2>,
     val construct: (B1, B2) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2)
 
     @Suppress("UNCHECKED_CAST")
@@ -34,7 +34,7 @@ data class Record3<A, B1, B2, B3>(
     val field3: Field<A, B3>,
     val construct: (B1, B2, B3) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3)
 
     @Suppress("UNCHECKED_CAST")
@@ -50,7 +50,7 @@ data class Record4<A, B1, B2, B3, B4>(
     val field4: Field<A, B4>,
     val construct: (B1, B2, B3, B4) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4)
 
     @Suppress("UNCHECKED_CAST")
@@ -67,7 +67,7 @@ data class Record5<A, B1, B2, B3, B4, B5>(
     val field5: Field<A, B5>,
     val construct: (B1, B2, B3, B4, B5) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5)
 
     @Suppress("UNCHECKED_CAST")
@@ -85,7 +85,7 @@ data class Record6<A, B1, B2, B3, B4, B5, B6>(
     val field6: Field<A, B6>,
     val construct: (B1, B2, B3, B4, B5, B6) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6)
 
     @Suppress("UNCHECKED_CAST")
@@ -104,7 +104,7 @@ data class Record7<A, B1, B2, B3, B4, B5, B6, B7>(
     val field7: Field<A, B7>,
     val construct: (B1, B2, B3, B4, B5, B6, B7) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6, field7)
 
     @Suppress("UNCHECKED_CAST")
@@ -132,7 +132,7 @@ data class Record8<A, B1, B2, B3, B4, B5, B6, B7, B8>(
     val field8: Field<A, B8>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6, field7, field8)
 
     @Suppress("UNCHECKED_CAST")
@@ -162,7 +162,7 @@ data class Record9<A, B1, B2, B3, B4, B5, B6, B7, B8, B9>(
     val field9: Field<A, B9>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6, field7, field8, field9)
 
     @Suppress("UNCHECKED_CAST")
@@ -194,7 +194,7 @@ data class Record10<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10>(
     val field10: Field<A, B10>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10)
 
     @Suppress("UNCHECKED_CAST")
@@ -228,7 +228,7 @@ data class Record11<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11>(
     val field11: Field<A, B11>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11)
 
     @Suppress("UNCHECKED_CAST")
@@ -264,7 +264,7 @@ data class Record12<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12>(
     val field12: Field<A, B12>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(field1, field2, field3, field4, field5, field6, field7, field8, field9, field10, field11, field12)
 
     @Suppress("UNCHECKED_CAST")
@@ -302,7 +302,7 @@ data class Record13<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13>(
     val field13: Field<A, B13>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -356,7 +356,7 @@ data class Record14<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field14: Field<A, B14>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -413,7 +413,7 @@ data class Record15<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field15: Field<A, B15>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -473,7 +473,7 @@ data class Record16<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field16: Field<A, B16>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -536,7 +536,7 @@ data class Record17<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field17: Field<A, B17>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -603,7 +603,7 @@ data class Record18<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field18: Field<A, B18>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -673,7 +673,7 @@ data class Record19<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field19: Field<A, B19>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -746,7 +746,7 @@ data class Record20<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field20: Field<A, B20>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -822,7 +822,7 @@ data class Record21<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field21: Field<A, B21>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -900,7 +900,7 @@ data class Record22<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field22: Field<A, B22>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -981,7 +981,7 @@ data class Record23<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field23: Field<A, B23>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,
@@ -1065,7 +1065,7 @@ data class Record24<A, B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B
     val field24: Field<A, B24>,
     val construct: (B1, B2, B3, B4, B5, B6, B7, B8, B9, B10, B11, B12, B13, B14, B15, B16, B17, B18, B19, B20, B21, B22, B23, B24) -> (A)
 ) : Schema.Record<A> {
-    override fun unsafeFields(): List<Field<A, *>> =
+    override val unsafeFields: List<Field<A, *>> =
         listOf(
             field1,
             field2,

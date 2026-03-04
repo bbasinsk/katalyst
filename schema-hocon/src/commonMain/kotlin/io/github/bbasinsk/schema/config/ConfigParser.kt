@@ -111,11 +111,11 @@ object ConfigParser {
         config: ConfigWrapper
     ): Validation<ConfigParseError, A> =
         config.atField(parser.key).getString().andThen { name ->
-            Validation.requireNotNull(parser.unsafeCases().find { it.name == name }) {
+            Validation.requireNotNull(parser.unsafeCases.find { it.name == name }) {
                 ConfigParseError.InvalidValue(
                     config.path.plus(parser.key),
                     name,
-                    parser.unsafeCases().map { it.name }.toSet()
+                    parser.unsafeCases.map { it.name }.toSet()
                 )
             }
         }.andThen { case ->
@@ -125,7 +125,7 @@ object ConfigParser {
 
     private fun <A> parseRecord(schema: Record<A>, config: ConfigWrapper): Validation<ConfigParseError, A> =
         Validation.sequence(
-            schema.unsafeFields().map { field ->
+            schema.unsafeFields.map { field ->
                 parse(
                     field.schema,
                     config.atField(field.name)

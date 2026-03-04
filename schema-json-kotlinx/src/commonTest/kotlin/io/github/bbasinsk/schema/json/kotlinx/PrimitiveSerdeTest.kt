@@ -6,6 +6,7 @@ import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.mapValid
+import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -22,7 +23,7 @@ class PrimitiveSerdeTest {
         val schema = Schema.empty()
         assertEquals(
             Validation.valid(null),
-            schema.decodeFromJsonString("")
+            schema.decodeFromJsonString("", Json.Default)
         )
     }
 
@@ -31,7 +32,7 @@ class PrimitiveSerdeTest {
         val schema = Schema.empty()
         assertEquals(
             Validation.valid(null),
-            schema.decodeFromJsonString("null")
+            schema.decodeFromJsonString("null", Json.Default)
         )
     }
 
@@ -40,7 +41,7 @@ class PrimitiveSerdeTest {
         val schema = Schema.empty()
         assertEquals(
             Validation.valid(null),
-            schema.decodeFromJsonString("{}")
+            schema.decodeFromJsonString("{}", Json.Default)
         )
     }
 
@@ -56,7 +57,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid(42),
-            schema.decodeFromJsonString("42")
+            schema.decodeFromJsonString("42", Json.Default)
         )
     }
 
@@ -72,7 +73,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString(""""not-an-int"""")
+            schema.decodeFromJsonString(""""not-an-int"""", Json.Default)
         )
     }
 
@@ -88,7 +89,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid("hello"),
-            schema.decodeFromJsonString(""""hello"""")
+            schema.decodeFromJsonString(""""hello"""", Json.Default)
         )
     }
 
@@ -104,7 +105,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString("42")
+            schema.decodeFromJsonString("42", Json.Default)
         )
     }
 
@@ -120,7 +121,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid(true),
-            schema.decodeFromJsonString("true")
+            schema.decodeFromJsonString("true", Json.Default)
         )
     }
 
@@ -135,7 +136,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString("42")
+            schema.decodeFromJsonString("42", Json.Default)
         )
     }
 
@@ -151,7 +152,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid(42.0),
-            schema.decodeFromJsonString("42.0")
+            schema.decodeFromJsonString("42.0", Json.Default)
         )
     }
 
@@ -167,7 +168,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString("not-a-number")
+            schema.decodeFromJsonString("not-a-number", Json.Default)
         )
     }
 
@@ -183,7 +184,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid(42.0f),
-            schema.decodeFromJsonString("42.0")
+            schema.decodeFromJsonString("42.0", Json.Default)
         )
     }
 
@@ -199,7 +200,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString("not-a-number")
+            schema.decodeFromJsonString("not-a-number", Json.Default)
         )
     }
 
@@ -215,7 +216,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid(30000000000L),
-            schema.decodeFromJsonString("30000000000")
+            schema.decodeFromJsonString("30000000000", Json.Default)
         )
     }
 
@@ -231,7 +232,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString("42.0")
+            schema.decodeFromJsonString("42.0", Json.Default)
         )
     }
 
@@ -251,7 +252,7 @@ class PrimitiveSerdeTest {
 
         assertEquals(
             Validation.valid(Color.RED),
-            schema.decodeFromJsonString(""""RED"""")
+            schema.decodeFromJsonString(""""RED"""", Json.Default)
         )
     }
 
@@ -267,7 +268,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString(""""BAD"""")
+            schema.decodeFromJsonString(""""BAD"""", Json.Default)
         )
     }
 
@@ -283,7 +284,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            schema.decodeFromJsonString("""[]""")
+            schema.decodeFromJsonString("""[]""", Json.Default)
         )
     }
 
@@ -324,14 +325,14 @@ class PrimitiveSerdeTest {
         val schema = Schema.tree()
         assertEquals(
             Validation.valid(Tree.Branch(Tree.Leaf(42))),
-            schema.decodeFromJsonString("""{"type": "Branch", "value": {"type": "Leaf", "value": 42}}""")
+            schema.decodeFromJsonString("""{"type": "Branch", "value": {"type": "Leaf", "value": 42}}""", Json.Default)
         )
     }
 
     @Test
     fun `default deserializes with specified default`() {
         val schema = Schema.int().default(42)
-        assertEquals(Validation.valid(42), schema.decodeFromJsonString("null"))
+        assertEquals(Validation.valid(42), schema.decodeFromJsonString("null", Json.Default))
     }
 
     @Test
@@ -343,7 +344,7 @@ class PrimitiveSerdeTest {
     @Test
     fun `optional deserializes with null`() {
         val schema = Schema.int().optional()
-        assertEquals(Validation.valid(null), schema.decodeFromJsonString("null"))
+        assertEquals(Validation.valid(null), schema.decodeFromJsonString("null", Json.Default))
     }
 
     @Test
@@ -366,7 +367,7 @@ class PrimitiveSerdeTest {
         val schema = Schema.byteArray()
         assertEquals(
             Validation.valid("some base64 content"),
-            schema.decodeFromJsonString("c29tZSBiYXNlNjQgY29udGVudA==").mapValid { it.decodeToString() }
+            schema.decodeFromJsonString("c29tZSBiYXNlNjQgY29udGVudA==", Json.Default).mapValid { it.decodeToString() }
         )
     }
 
@@ -390,7 +391,7 @@ class PrimitiveSerdeTest {
                     path = listOf()
                 )
             ),
-            uuidSchema.decodeFromJsonString(""""not-a-uuid"""")
+            uuidSchema.decodeFromJsonString(""""not-a-uuid"""", Json.Default)
         )
     }
 }

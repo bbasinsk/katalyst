@@ -37,6 +37,7 @@ import io.ktor.utils.io.jvm.javaio.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.io.readByteArray
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import java.io.Writer
 
@@ -228,7 +229,7 @@ private suspend fun RoutingCall.receiveJsonElement(): Validation<InvalidJson, Js
         .mapInvalid { InvalidJson.FieldError(expected = "JsonElement", found = it.toString(), path = emptyList()) }
 
 private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): Validation<SchemaError, A> {
-    val schemaFields = schema.unsafeFields()
+    val schemaFields = schema.unsafeFields
     val partValues = buildMap<Field<A, *>, Any?> {
         receiveMultipart().forEachPart { part ->
             val field = schemaFields.find { it.name == part.name } ?: return@forEachPart
@@ -248,7 +249,7 @@ private suspend fun <A> RoutingCall.receiveMultipart(schema: Schema.Record<A>): 
 @Suppress("UNCHECKED_CAST")
 private suspend fun <A> RoutingCall.receiveFormUrlEncoded(schema: Schema.Record<A>): Validation<SchemaError, A> {
     val params = receiveParameters()
-    val schemaFields = schema.unsafeFields()
+    val schemaFields = schema.unsafeFields
     val fieldValues = schemaFields.map { field ->
         val values = params.getAll(field.name)
         when (val fieldSchema = field.schema) {
@@ -291,7 +292,7 @@ private fun <A> PartData?.receivePart(schema: Schema<A>): Validation<String, A> 
         }
 
         is Schema.Dynamic, is Schema.Union, is Schema.Record, is Schema.StringMap<*> -> when (this) {
-            is PartData.FormItem -> schema.decodeFromJsonString(value).mapInvalid { it.reason() }
+            is PartData.FormItem -> schema.decodeFromJsonString(value, Json.Default).mapInvalid { it.reason() }
             null -> Validation.invalid("Missing required part for schema")
             else -> Validation.invalid("Found part of type '${this::class.simpleName}', expected FormItem for primitive schema")
         }

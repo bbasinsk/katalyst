@@ -360,7 +360,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             } else {
                 if (outputOptions.inlineRefs) {
                     // Original inline behavior for Gemini/inlineRefs mode
-                    val cases = unsafeCases().map { case ->
+                    val cases = unsafeCases.map { case ->
                         val commonPropertiesSchema = SchemaObject(
                             type = "object",
                             properties = mapOf(
@@ -394,7 +394,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             oneOf = cases,
                             discriminator = DiscriminatorObject(
                                 propertyName = key,
-                                mapping = unsafeCases().mapNotNull { case ->
+                                mapping = unsafeCases.mapNotNull { case ->
                                     val caseSchemas = case.schema.byRefName(outputOptions = outputOptions, resolver = resolver)
                                     val caseSchema = caseSchemas.toList().firstOrNull()
                                     caseSchema?.run { case.name to refPath(first) }
@@ -405,7 +405,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 } else {
                     // New ref-based behavior for code generators
                     val baseName = resolver.resolve(this, this.metadata)
-                    val withDiscriminatorRefs = unsafeCases().map { case ->
+                    val withDiscriminatorRefs = unsafeCases.map { case ->
                         SchemaObject(ref = refPath("$baseName.${case.name}WithDiscriminator"))
                     }
 
@@ -420,7 +420,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             oneOf = withDiscriminatorRefs,
                             discriminator = DiscriminatorObject(
                                 propertyName = key,
-                                mapping = unsafeCases().associate { case ->
+                                mapping = unsafeCases.associate { case ->
                                     case.name to refPath("$baseName.${case.name}WithDiscriminator")
                                 }
                             )
@@ -439,11 +439,11 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 SchemaObject(
                     type = "object",
                     nullable = field.nullable,
-                    properties = unsafeFields().associate {
+                    properties = unsafeFields.associate {
                         it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions, resolver)
                     },
-                    required = unsafeFields().filter { it.schema !is Schema.Optional<*> }.map { it.name },
-                    propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields().map { it.name } else null
+                    required = unsafeFields.filter { it.schema !is Schema.Optional<*> }.map { it.name },
+                    propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields.map { it.name } else null
                 )
             }
         }
@@ -478,13 +478,13 @@ private fun Schema<*>.byRefName(
                 resolver.withProcessing(unionName) {
                     if (outputOptions.inlineRefs) {
                         // For inline mode, only generate nested schemas from cases
-                        val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                        val nestedSchemas = unsafeCases.fold(emptyMap<String, SchemaObject>()) { acc, case ->
                             acc + case.schema.byRefName(nullable, outputOptions, resolver)
                         }
                         mainSchema + nestedSchemas
                     } else {
                         // For ref mode, generate WithDiscriminator and base schemas
-                        val unionSpecificSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                        val unionSpecificSchemas = unsafeCases.fold(emptyMap<String, SchemaObject>()) { acc, case ->
                             val baseSchemaName = "$unionName.${case.name}"
                             val withDiscriminatorSchemaName = "${baseSchemaName}WithDiscriminator"
 
@@ -514,7 +514,7 @@ private fun Schema<*>.byRefName(
                             )
                         }
 
-                        val nestedSchemas = unsafeCases().fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                        val nestedSchemas = unsafeCases.fold(emptyMap<String, SchemaObject>()) { acc, case ->
                             acc + case.schema.byRefName(nullable, outputOptions, resolver)
                         }
 
@@ -530,7 +530,7 @@ private fun Schema<*>.byRefName(
                 mapOf(name to toSchemaObjectImpl(FieldOptions(), outputOptions, resolver))
             } else {
                 resolver.withProcessing(name) {
-                    unsafeFields().fold(
+                    unsafeFields.fold(
                         mapOf(name to toSchemaObjectImpl(FieldOptions(), outputOptions, resolver))
                     ) { acc, field ->
                         acc + field.schema.byRefName(nullable, outputOptions, resolver)

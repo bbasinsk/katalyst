@@ -15,6 +15,7 @@ import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonString
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
+import kotlinx.serialization.json.Json
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.fold
 import io.ktor.client.HttpClient
@@ -253,7 +254,7 @@ private fun <I> HttpRequestBuilder.applyBody(bodySchema: BodySchema<I>, value: I
 @Suppress("UNCHECKED_CAST")
 private fun <I> encodeMultipart(record: Schema.Record<I>, value: I): List<PartData> =
     formData {
-        for (field in record.unsafeFields()) {
+        for (field in record.unsafeFields) {
             val fieldValue = (field as Field<I, Any?>).extract(value)
             encodeMultipartField(field.name, field.schema, fieldValue)
         }
@@ -287,7 +288,7 @@ private fun FormBuilder.encodeMultipartField(name: String, schema: Schema<Any?>,
 @Suppress("UNCHECKED_CAST")
 private fun <I> encodeFormUrlEncoded(record: Schema.Record<I>, value: I): Parameters =
     Parameters.build {
-        for (field in record.unsafeFields()) {
+        for (field in record.unsafeFields) {
             val fieldValue = (field as Field<I, Any?>).extract(value)
             encodeFormField(field.name, field.schema, fieldValue)
         }
@@ -348,7 +349,7 @@ private fun <A> decodeBody(bodySchema: BodySchema<A>, body: String): A =
     when (bodySchema) {
         is BodySchema.WithMetadata -> decodeBody(bodySchema.schema, body)
         is BodySchema.Single -> when (bodySchema.contentType) {
-            ContentType.Json -> bodySchema.schema.decodeFromJsonString(body).fold(
+            ContentType.Json -> bodySchema.schema.decodeFromJsonString(body, Json.Default).fold(
                 onValid = { it },
                 onInvalid = { errors -> error("Failed to decode JSON response: ${errors.joinToString { it.reason() }}") }
             )
