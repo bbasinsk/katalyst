@@ -1,6 +1,7 @@
 package io.github.bbasinsk.http.openapi
 
 import io.github.bbasinsk.http.*
+import io.github.bbasinsk.schema.Case
 import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
@@ -240,18 +241,86 @@ data class FieldOptions(
     val description: String? = null
 )
 
+// Identity-based collections using === (needed because Schema types are data classes)
+private class IdentitySet<T> {
+    private val items = mutableListOf<T>()
+    fun contains(item: T): Boolean = items.any { it === item }
+    fun add(item: T): Boolean = if (contains(item)) false else { items.add(item); true }
+}
+
+private class IdentityMap<K, V> {
+    private val entries = mutableListOf<Pair<K, V>>()
+    operator fun get(key: K): V? = entries.firstOrNull { it.first === key }?.second
+    operator fun set(key: K, value: V) {
+        entries.removeAll { it.first === key }
+        entries.add(key to value)
+    }
+    fun remove(key: K) { entries.removeAll { it.first === key } }
+}
+
+private fun containsReference(schema: Schema<*>, target: Schema.Union<*>, visited: IdentitySet<Schema<*>> = IdentitySet()): Boolean {
+    if (!visited.add(schema)) return false
+    return when (schema) {
+        is Schema.Lazy -> containsReference(schema.schema(), target, visited)
+        is Schema.Union<*> -> schema === target || schema.unsafeCases.any { containsReference(it.schema, target, visited) }
+        is Schema.Record<*> -> schema.unsafeFields.any { containsReference(it.schema, target, visited) }
+        is Schema.Collection<*> -> containsReference(schema.itemSchema, target, visited)
+        is Schema.Optional<*> -> containsReference(schema.schema, target, visited)
+        is Schema.Metadata<*> -> containsReference(schema.schema, target, visited)
+        is Schema.Default<*> -> containsReference(schema.schema, target, visited)
+        is Schema.Transform<*, *> -> containsReference(schema.schema, target, visited)
+        is Schema.OrElse<*, *> -> containsReference(schema.preferred, target, visited) || containsReference(schema.fallback, target, visited)
+        is Schema.StringMap<*> -> containsReference(schema.valueSchema, target, visited)
+        is Schema.Empty, is Schema.Bytes, is Schema.Dynamic, is Schema.Primitive -> false
+    }
+}
+
+private class InlineUnrollState(val maxDepth: Int) {
+    // Maps each union currently being expanded to its remaining recursion depth
+    private val expandingUnions = IdentityMap<Schema.Union<*>, Int>()
+    // Caches terminal cases per union to avoid redundant containsReference traversals
+    private val terminalCaseCache = IdentityMap<Schema.Union<*>, List<Case<*, *>>>()
+
+    fun terminalCases(union: Schema.Union<*>): List<Case<*, *>> =
+        terminalCaseCache[union] ?: union.unsafeCases.filter { !containsReference(it.schema, union) }.also {
+            terminalCaseCache[union] = it
+        }
+
+    /** Returns null at terminal depth to signal only terminal cases should be used. */
+    inline fun <T> withExpansion(union: Schema.Union<*>, block: () -> T): T? {
+        val remainingDepth = expandingUnions[union]
+        return when {
+            remainingDepth != null && remainingDepth <= 0 -> null // at terminal depth
+            remainingDepth != null -> {
+                expandingUnions[union] = remainingDepth - 1
+                try { block() } finally { expandingUnions[union] = remainingDepth }
+            }
+            else -> {
+                expandingUnions[union] = maxDepth
+                try { block() } finally { expandingUnions.remove(union) }
+            }
+        }
+    }
+}
+
 data class OutputOptions(
     // Really for google gemini structured output
     val inlineRefs: Boolean = false,
     val useAnyOf: Boolean = false,
     val usePropertyOrdering: Boolean = false,
-    val supportsStringFormat: (String) -> Boolean = { true }
+    val supportsStringFormat: (String) -> Boolean = { true },
+    val maxRecursionDepth: Int? = null,
 ) {
+    init {
+        require(maxRecursionDepth == null || maxRecursionDepth >= 0) { "maxRecursionDepth must be non-negative, got $maxRecursionDepth" }
+    }
+
     companion object {
         val gemini = OutputOptions(
             inlineRefs = true, // because it's a single SchemaObject
             useAnyOf = true, // Does not support oneOf / discriminator
             usePropertyOrdering = true, // https://cloud.google.com/vertex-ai/generative-ai/docs/multimodal/control-generated-output#fields
+            maxRecursionDepth = 4, // balances schema size vs nesting depth for Gemini structured output
             supportsStringFormat = {
                 when (it) {
                     // https://ai.google.dev/api/caching#Schema
@@ -269,35 +338,39 @@ data class OutputOptions(
 
 fun <A> Schema<A>.toSchemaObject(
     outputOptions: OutputOptions = OutputOptions(),
-    resolver: DefinitionNameResolver = DefinitionNameResolver()
-): SchemaObject =
-    toSchemaObjectImpl(FieldOptions(), outputOptions, resolver)
+    resolver: DefinitionNameResolver = DefinitionNameResolver(),
+): SchemaObject {
+    val unrollState = outputOptions.maxRecursionDepth?.let { InlineUnrollState(maxDepth = it) }
+    return toSchemaObjectImpl(FieldOptions(), outputOptions, resolver, unrollState)
+}
 
 private fun <A> Schema<A>.toSchemaObjectImpl(
     field: FieldOptions,
     outputOptions: OutputOptions,
     resolver: DefinitionNameResolver,
+    unrollState: InlineUnrollState? = null,
 ): SchemaObject =
     when (this) {
         is Schema.Empty -> error("Unit schema should not be converted to schema object")
         is Schema.Dynamic -> SchemaObject(nullable = field.nullable, description = field.description)
-        is Schema.Lazy<A> -> schema().toSchemaObjectImpl(field, outputOptions, resolver)
+        is Schema.Lazy<A> -> schema().toSchemaObjectImpl(field, outputOptions, resolver, unrollState)
 
         is Schema.Metadata -> schema.toSchemaObjectImpl(
             field = field.copy(description = this.metadata.description),
             outputOptions = outputOptions,
-            resolver = resolver
+            resolver = resolver,
+            unrollState = unrollState
         )
 
         is Schema.Bytes -> SchemaObject(nullable = field.nullable, type = "string", format = "binary")
         is Schema.Collection<*> -> SchemaObject(
             nullable = field.nullable,
             type = "array",
-            items = itemSchema.toSchemaObjectImpl(FieldOptions(ref = field.ref), outputOptions, resolver)
+            items = itemSchema.toSchemaObjectImpl(FieldOptions(ref = field.ref), outputOptions, resolver, unrollState)
         )
 
-        is Schema.Default -> schema.toSchemaObjectImpl(field, outputOptions, resolver)
-        is Schema.Optional<*> -> schema.toSchemaObjectImpl(field.copy(nullable = true), outputOptions, resolver)
+        is Schema.Default -> schema.toSchemaObjectImpl(field, outputOptions, resolver, unrollState)
+        is Schema.Optional<*> -> schema.toSchemaObjectImpl(field.copy(nullable = true), outputOptions, resolver, unrollState)
 
         is Schema.Primitive.Boolean ->
             SchemaObject(nullable = field.nullable, type = "boolean", description = field.description)
@@ -326,7 +399,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 description = field.description
             )
 
-        is Schema.OrElse<A, *> -> preferred.toSchemaObjectImpl(field, outputOptions, resolver)
+        is Schema.OrElse<A, *> -> preferred.toSchemaObjectImpl(field, outputOptions, resolver, unrollState)
 
         is Schema.Transform<*, *> -> when {
             metadata.name.lowercase() == "uuid" && outputOptions.supportsStringFormat("uuid") ->
@@ -338,7 +411,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             metadata.name.lowercase() == "instant" && outputOptions.supportsStringFormat("date-time") ->
                 SchemaObject(type = "string", format = "date-time", nullable = field.nullable)
 
-            else -> schema.toSchemaObjectImpl(field, outputOptions, resolver)
+            else -> schema.toSchemaObjectImpl(field, outputOptions, resolver, unrollState)
         }
 
         is Schema.StringMap<*> -> SchemaObject(
@@ -347,7 +420,8 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
             additionalProperties = valueSchema.toSchemaObjectImpl(
                 FieldOptions(ref = field.ref),
                 outputOptions,
-                resolver
+                resolver,
+                unrollState
             ),
         )
 
@@ -359,48 +433,64 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                 )
             } else {
                 if (outputOptions.inlineRefs) {
-                    // Original inline behavior for Gemini/inlineRefs mode
-                    val cases = unsafeCases.map { case ->
-                        val commonPropertiesSchema = SchemaObject(
-                            type = "object",
-                            properties = mapOf(
-                                key to SchemaObject(
-                                    type = "string",
-                                    enum = listOf(case.name)
+                    fun buildInlineUnion(casesToExpand: List<Case<*, *>>): SchemaObject {
+                        val cases = casesToExpand.map { case ->
+                            val commonPropertiesSchema = SchemaObject(
+                                type = "object",
+                                properties = mapOf(
+                                    key to SchemaObject(
+                                        type = "string",
+                                        enum = listOf(case.name)
+                                    )
+                                ),
+                                required = listOf(key)
+                            )
+
+                            val childSchema = case.schema.toSchemaObjectImpl(
+                                FieldOptions(ref = false),
+                                outputOptions,
+                                resolver,
+                                unrollState
+                            )
+
+                            SchemaObject(
+                                allOf = listOf(commonPropertiesSchema, childSchema)
+                            )
+                        }
+
+                        return if (outputOptions.useAnyOf) {
+                            SchemaObject(
+                                nullable = field.nullable,
+                                anyOf = cases,
+                            )
+                        } else {
+                            SchemaObject(
+                                nullable = field.nullable,
+                                oneOf = cases,
+                                discriminator = DiscriminatorObject(
+                                    propertyName = key,
+                                    mapping = casesToExpand.mapNotNull { case ->
+                                        val caseSchemas = case.schema.byRefName(outputOptions = outputOptions, resolver = resolver)
+                                        val caseSchema = caseSchemas.toList().firstOrNull()
+                                        caseSchema?.run { case.name to refPath(first) }
+                                    }.toMap()
                                 )
-                            ),
-                            required = listOf(key)
-                        )
-
-                        val childSchema = case.schema.toSchemaObjectImpl(
-                            FieldOptions(ref = false),
-                            outputOptions,
-                            resolver
-                        )
-
-                        SchemaObject(
-                            allOf = listOf(commonPropertiesSchema, childSchema)
-                        )
+                            )
+                        }
                     }
 
-                    if (outputOptions.useAnyOf) {
-                        SchemaObject(
-                            nullable = field.nullable,
-                            anyOf = cases,
-                        )
+                    if (unrollState != null) {
+                        unrollState.withExpansion(this) {
+                            buildInlineUnion(unsafeCases)
+                        } ?: run {
+                            val terminal = unrollState.terminalCases(this)
+                            check(terminal.isNotEmpty()) {
+                                "Recursive union '${resolver.resolve(this, this.metadata)}' has no terminal (non-recursive) cases and cannot be unrolled"
+                            }
+                            buildInlineUnion(terminal)
+                        }
                     } else {
-                        SchemaObject(
-                            nullable = field.nullable,
-                            oneOf = cases,
-                            discriminator = DiscriminatorObject(
-                                propertyName = key,
-                                mapping = unsafeCases.mapNotNull { case ->
-                                    val caseSchemas = case.schema.byRefName(outputOptions = outputOptions, resolver = resolver)
-                                    val caseSchema = caseSchemas.toList().firstOrNull()
-                                    caseSchema?.run { case.name to refPath(first) }
-                                }.toMap()
-                            )
-                        )
+                        buildInlineUnion(unsafeCases)
                     }
                 } else {
                     // New ref-based behavior for code generators
@@ -440,7 +530,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     type = "object",
                     nullable = field.nullable,
                     properties = unsafeFields.associate {
-                        it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions, resolver)
+                        it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions, resolver, unrollState)
                     },
                     required = unsafeFields.filter { it.schema !is Schema.Optional<*> }.map { it.name },
                     propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields.map { it.name } else null
