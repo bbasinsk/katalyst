@@ -396,4 +396,55 @@ class SchemaValueEncodingTest {
         val schema = Schema.int().orElse(Schema.string()) { it.toInt() }
         assertEquals(SchemaValue.Integer(42L), schema.encodeToSchemaValue(42))
     }
+
+    // -- Key ordering --
+
+    data class Ordered(val z: Int, val m: Int, val a: Int, val q: Int, val b: Int)
+
+    @Test
+    fun `record encodeToSchemaValue preserves schema-defined key order`() {
+        val schema = Schema.record(
+            Schema.field(Schema.int(), "z") { z },
+            Schema.field(Schema.int(), "m") { m },
+            Schema.field(Schema.int(), "a") { a },
+            Schema.field(Schema.int(), "q") { q },
+            Schema.field(Schema.int(), "b") { b },
+            ::Ordered
+        )
+
+        val obj = schema.encodeToSchemaValue(Ordered(1, 2, 3, 4, 5)) as SchemaValue.Obj
+        assertEquals(listOf("z", "m", "a", "q", "b"), obj.entries.keys.toList())
+    }
+
+    @Test
+    fun `record encodeToSchemaValue to JSON string preserves key order`() {
+        val schema = Schema.record(
+            Schema.field(Schema.int(), "z") { z },
+            Schema.field(Schema.int(), "m") { m },
+            Schema.field(Schema.int(), "a") { a },
+            Schema.field(Schema.int(), "q") { q },
+            Schema.field(Schema.int(), "b") { b },
+            ::Ordered
+        )
+
+        val json = schema.encodeToSchemaValue(Ordered(1, 2, 3, 4, 5)).encodeToJsonString()
+        assertEquals("""{"z":1,"m":2,"a":3,"q":4,"b":5}""", json)
+    }
+
+    @Test
+    fun `record encodeToSchemaValue to pretty JSON string preserves key order`() {
+        val schema = Schema.record(
+            Schema.field(Schema.int(), "z") { z },
+            Schema.field(Schema.int(), "m") { m },
+            Schema.field(Schema.int(), "a") { a },
+            Schema.field(Schema.int(), "q") { q },
+            Schema.field(Schema.int(), "b") { b },
+            ::Ordered
+        )
+
+        val prettyConfig = JsonEncodingConfig(printConfig = JsonEncodingConfig.PrintConfig.pretty())
+        val json = schema.encodeToSchemaValue(Ordered(1, 2, 3, 4, 5)).encodeToJsonString(prettyConfig)
+        val expected = "{\n  \"z\": 1,\n  \"m\": 2,\n  \"a\": 3,\n  \"q\": 4,\n  \"b\": 5\n}"
+        assertEquals(expected, json)
+    }
 }
