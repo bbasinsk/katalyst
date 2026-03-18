@@ -4,9 +4,13 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.transform
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
+import kotlin.time.Instant
 
 fun Schema.Companion.duration() =
     string().transform({ Duration.parseIsoString(it) }) { it.toIsoString() }
 
 fun Schema.Companion.durationUnit() =
     enumeration<DurationUnit>()
+
+fun Schema.Companion.instant() =
+    string().transform({ Instant.parse(it) }) { it.toString() }
