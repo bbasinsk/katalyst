@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.6...katalyst-v0.3.7) (2026-03-18)
+
+
+### Bug Fixes
+
+* omit null optional query params and headers instead of rendering as 'null' ([82291dd](https://github.com/bbasinsk/katalyst/commit/82291dd6f5301da50e3390466392562916de159f))
+
 ## [0.3.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.5...katalyst-v0.3.6) (2026-03-18)
 
 
