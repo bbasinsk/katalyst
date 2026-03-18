@@ -217,6 +217,8 @@ fun <A> ParamSchema<A>.render(value: A): Pair<String, List<String>> =
         is ParamSchema.Single -> {
             val itemSchema = schema.collectionItemSchema()
             when {
+                value == null ->
+                    name to emptyList()
                 itemSchema != null && value is List<*> ->
                     name to value.map { (itemSchema as Schema<Any?>).encodePrimitiveString(it).getOrThrow() }
                 else ->
@@ -255,12 +257,12 @@ fun <A> ParamsSchema<A>.render(value: A): RenderedParams =
 
         is ParamsSchema.QuerySchema -> {
             val (name, values) = param.render(value)
-            RenderedParams(emptyList(), mapOf(name to values), emptyMap())
+            RenderedParams(emptyList(), if (values.isEmpty()) emptyMap() else mapOf(name to values), emptyMap())
         }
 
         is ParamsSchema.HeaderSchema -> {
             val (name, values) = param.render(value)
-            RenderedParams(emptyList(), emptyMap(), mapOf(name to values))
+            RenderedParams(emptyList(), emptyMap(), if (values.isEmpty()) emptyMap() else mapOf(name to values))
         }
 
         is ParamsSchema.Combine<*, *> -> {

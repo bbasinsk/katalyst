@@ -57,6 +57,16 @@ class ParamsRenderTest {
     }
 
     @Test
+    fun `render optional null header omits from headers`() {
+        val api = Http.get { Root / "data" }
+            .header { schema("X-Request-Id") { string().optional() } }
+        val rendered = api.params.render(null)
+
+        assertEquals(listOf("data"), rendered.pathSegments)
+        assertEquals(emptyMap(), rendered.headers)
+    }
+
+    @Test
     fun `render combined path, query, and header params`() {
         val api = Http.get { Root / "users" / param("id") { int() } }
             .query { schema("page") { int() } }
@@ -68,6 +78,37 @@ class ParamsRenderTest {
         assertEquals(listOf("users", "42"), rendered.pathSegments)
         assertEquals(mapOf("page" to listOf("1")), rendered.queryParams)
         assertEquals(mapOf("X-Auth" to listOf("token")), rendered.headers)
+    }
+
+    @Test
+    fun `render optional null query param omits from query params`() {
+        val api = Http.get { Root / "items" }
+            .query { schema("cursor") { string().optional() } }
+        val rendered = api.params.render(null)
+
+        assertEquals(listOf("items"), rendered.pathSegments)
+        assertEquals(emptyMap(), rendered.queryParams)
+    }
+
+    @Test
+    fun `render optional present query param includes in query params`() {
+        val api = Http.get { Root / "items" }
+            .query { schema("cursor") { string().optional() } }
+        val rendered = api.params.render("abc123")
+
+        assertEquals(listOf("items"), rendered.pathSegments)
+        assertEquals(mapOf("cursor" to listOf("abc123")), rendered.queryParams)
+    }
+
+    @Test
+    fun `render multiple optional query params omits only null ones`() {
+        val api = Http.get { Root / "items" }
+            .query { schema("cursor") { string().optional() } }
+            .query { schema("limit") { int() } }
+        val rendered = api.params.render(Pair(null, 30))
+
+        assertEquals(listOf("items"), rendered.pathSegments)
+        assertEquals(mapOf("limit" to listOf("30")), rendered.queryParams)
     }
 
     @Test
