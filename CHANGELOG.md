@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.5...katalyst-v0.3.6) (2026-03-18)
+
+
+### Bug Fixes
+
+* add instant() schema ([a1c2b37](https://github.com/bbasinsk/katalyst/commit/a1c2b37f9523005499bd079aebe709edd1b7a73e))
+* tupleOf constructors taking list of args to tuples ([1496986](https://github.com/bbasinsk/katalyst/commit/149698648926969ef5b257f26659ea5b8051344e))
+
 ## [0.3.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.4...katalyst-v0.3.5) (2026-03-04)
 
 
