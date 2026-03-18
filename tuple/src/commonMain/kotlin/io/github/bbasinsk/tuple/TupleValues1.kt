@@ -7,3 +7,5 @@ public data class TupleValues1<A1>(
 }
 
 public fun <A1> tupleValues(`value`: A1): TupleValues1<A1> = TupleValues1(value)
+
+public fun <A1> tupleOf(a1: A1): A1 = a1

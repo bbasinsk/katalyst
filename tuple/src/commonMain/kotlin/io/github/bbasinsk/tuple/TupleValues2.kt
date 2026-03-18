@@ -10,3 +10,5 @@ public data class TupleValues2<A1, A2>(
 }
 
 public fun <A1, A2> tupleValues(tuples: Pair<A1, A2>): TupleValues2<A1, A2> = TupleValues2(tuples.first, tuples.second)
+
+public fun <A1, A2> tupleOf(a1: A1, a2: A2): Pair<A1, A2> = Pair(a1, a2)

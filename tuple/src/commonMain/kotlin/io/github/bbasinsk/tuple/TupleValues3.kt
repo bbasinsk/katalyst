@@ -15,3 +15,9 @@ public data class TupleValues3<A1, A2, A3>(
 }
 
 public fun <A1, A2, A3> tupleValues(tuples: Pair<Pair<A1, A2>, A3>): TupleValues3<A1, A2, A3> = TupleValues3(tuples.first.first, tuples.first.second, tuples.second)
+
+public fun <A1, A2, A3> tupleOf(
+  a1: A1,
+  a2: A2,
+  a3: A3,
+): Pair<Pair<A1, A2>, A3> = Pair(Pair(a1, a2), a3)

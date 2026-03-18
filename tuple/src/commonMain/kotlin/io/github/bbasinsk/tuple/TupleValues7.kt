@@ -23,3 +23,13 @@ public data class TupleValues7<A1, A2, A3, A4, A5, A6, A7>(
 }
 
 public fun <A1, A2, A3, A4, A5, A6, A7> tupleValues(tuples: Pair<Pair<Pair<Pair<Pair<Pair<A1, A2>, A3>, A4>, A5>, A6>, A7>): TupleValues7<A1, A2, A3, A4, A5, A6, A7> = TupleValues7(tuples.first.first.first.first.first.first, tuples.first.first.first.first.first.second, tuples.first.first.first.first.second, tuples.first.first.first.second, tuples.first.first.second, tuples.first.second, tuples.second)
+
+public fun <A1, A2, A3, A4, A5, A6, A7> tupleOf(
+  a1: A1,
+  a2: A2,
+  a3: A3,
+  a4: A4,
+  a5: A5,
+  a6: A6,
+  a7: A7,
+): Pair<Pair<Pair<Pair<Pair<Pair<A1, A2>, A3>, A4>, A5>, A6>, A7> = Pair(Pair(Pair(Pair(Pair(Pair(a1, a2), a3), a4), a5), a6), a7)

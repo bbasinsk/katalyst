@@ -103,6 +103,39 @@ class TupleGenerator {
                 )
             }
 
+            // --- 3) tupleOf overloads ---
+            if (n == 1) {
+                fileBuilder.addFunction(
+                    FunSpec.builder("tupleOf")
+                        .addTypeVariable(TypeVariableName("A1"))
+                        .addParameter("a1", TypeVariableName("A1"))
+                        .returns(TypeVariableName("A1"))
+                        .addStatement("return a1")
+                        .build()
+                )
+            } else {
+                val nestedPairType = buildNestedPairType(n, allTypeVars)
+                // Build nested Pair constructor: Pair(Pair(Pair(a1, a2), a3), a4)
+                val nestedPairExpr = buildString {
+                    append("a1")
+                    for (i in 2..n) {
+                        insert(0, "Pair(")
+                        append(", a$i)")
+                    }
+                }
+
+                fileBuilder.addFunction(
+                    FunSpec.builder("tupleOf")
+                        .addTypeVariables(allTypeVars)
+                        .apply {
+                            allTypeVars.forEachIndexed { i, tv -> addParameter("a${i + 1}", tv) }
+                        }
+                        .returns(nestedPairType)
+                        .addStatement("return $nestedPairExpr")
+                        .build()
+                )
+            }
+
             fileBuilder.build().writeTo(outputDir)
         }
     }

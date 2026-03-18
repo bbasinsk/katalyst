@@ -51,3 +51,27 @@ public data class TupleValues21<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A1
 }
 
 public fun <A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21> tupleValues(tuples: Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<A1, A2>, A3>, A4>, A5>, A6>, A7>, A8>, A9>, A10>, A11>, A12>, A13>, A14>, A15>, A16>, A17>, A18>, A19>, A20>, A21>): TupleValues21<A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21> = TupleValues21(tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.first.second, tuples.first.first.first.first.first.first.second, tuples.first.first.first.first.first.second, tuples.first.first.first.first.second, tuples.first.first.first.second, tuples.first.first.second, tuples.first.second, tuples.second)
+
+public fun <A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16, A17, A18, A19, A20, A21> tupleOf(
+  a1: A1,
+  a2: A2,
+  a3: A3,
+  a4: A4,
+  a5: A5,
+  a6: A6,
+  a7: A7,
+  a8: A8,
+  a9: A9,
+  a10: A10,
+  a11: A11,
+  a12: A12,
+  a13: A13,
+  a14: A14,
+  a15: A15,
+  a16: A16,
+  a17: A17,
+  a18: A18,
+  a19: A19,
+  a20: A20,
+  a21: A21,
+): Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<Pair<A1, A2>, A3>, A4>, A5>, A6>, A7>, A8>, A9>, A10>, A11>, A12>, A13>, A14>, A15>, A16>, A17>, A18>, A19>, A20>, A21> = Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(Pair(a1, a2), a3), a4), a5), a6), a7), a8), a9), a10), a11), a12), a13), a14), a15), a16), a17), a18), a19), a20), a21)
