@@ -115,7 +115,8 @@ class KatalystClient(
                 values.forEach { value -> header(name, value) }
             }
             applyAuth(endpoint.auth, auth)
-            header("Accept", "text/event-stream")
+            header(HttpHeaders.Accept, "text/event-stream")
+            header(HttpHeaders.CacheControl, "no-store")
         }.execute { response ->
             val channel: ByteReadChannel = response.bodyAsChannel()
             var eventType: String? = null
