@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.7...katalyst-v0.3.8) (2026-03-20)
+
+
+### Bug Fixes
+
+* add Cache-Control no-store header to SSE stream requests ([c787183](https://github.com/bbasinsk/katalyst/commit/c7871833742012a512644c965acf8be5d8b2ca2a))
+
 ## [0.3.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.6...katalyst-v0.3.7) (2026-03-18)
 
 
