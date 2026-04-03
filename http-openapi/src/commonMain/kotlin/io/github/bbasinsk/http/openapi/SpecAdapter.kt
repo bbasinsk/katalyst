@@ -31,7 +31,7 @@ private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
     }
 
 private fun AuthSchema<*>.allSchemes(): List<AuthSchema<*>> = when (this) {
-    is AuthSchema.OneOf<*> -> schemes
+    is AuthSchema.OneOf<*> -> schemes.flatMap { it.allSchemes() }
     is AuthSchema.Optional<*> -> inner.allSchemes()
     else -> listOf(this)
 }

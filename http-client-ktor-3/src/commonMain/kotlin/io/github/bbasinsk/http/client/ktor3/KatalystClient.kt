@@ -222,7 +222,11 @@ private fun HttpRequestBuilder.applyAuth(schema: AuthSchema<*>, credential: Auth
                     is AuthSchema.OneOf<*> -> false
                 }
             }
-            if (matched != null) applyAuth(matched, credential)
+            if (matched != null) {
+                applyAuth(matched, credential)
+            } else {
+                error("No scheme in OneOf matches credential type ${credential::class.simpleName}")
+            }
         }
     }
 }

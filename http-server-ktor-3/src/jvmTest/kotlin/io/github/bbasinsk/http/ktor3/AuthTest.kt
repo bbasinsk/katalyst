@@ -620,4 +620,56 @@ class AuthTest {
         assertEquals(200, response.status.value)
         assertEquals("Hello Anonymous", response.bodyAsText())
     }
+
+    @Test
+    fun oneOfBearerOrCookieWithInvalidBearerAndValidCookie() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        val authHandler = AuthHandler.standard<User> { token ->
+            if (token == "valid-token") User("1", "Test User") else null
+        }
+
+        application {
+            endpoints {
+                handle(api, authHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        // Invalid bearer present, valid cookie present — bearer is extracted first (non-null), cookie not tried
+        val response = client.get("/profile") {
+            header("Authorization", "Bearer invalid-token")
+            cookie("session", "valid-token")
+        }
+        assertEquals(401, response.status.value)
+    }
+
+    @Test
+    fun oneOfBearerOrCookieWithNoBearerAndValidCookie() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        val authHandler = AuthHandler.standard<User> { token ->
+            if (token == "valid-token") User("1", "Test User") else null
+        }
+
+        application {
+            endpoints {
+                handle(api, authHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        // No bearer header, valid cookie — cookie is extracted and validated
+        val response = client.get("/profile") {
+            cookie("session", "valid-token")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Test User", response.bodyAsText())
+    }
 }

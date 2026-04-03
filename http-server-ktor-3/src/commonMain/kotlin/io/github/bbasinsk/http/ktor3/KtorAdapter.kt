@@ -452,11 +452,10 @@ private suspend fun <A> handleAuth(
     }
 
     is AuthSchema.OneOf -> {
-        for (scheme in schema.schemes) {
-            val result = handleAuth(scheme, authHandler, headers, cookies, queryParams)
-            if (result is AuthResult.Success) return@handleAuth result
+        val token = schema.schemes.firstNotNullOfOrNull { scheme ->
+            extractToken(scheme, headers, cookies)
         }
-        invokeHandler(authHandler, null)
+        invokeHandler(authHandler, token)
     }
 }
 
@@ -464,6 +463,20 @@ private suspend fun <A> handleAuth(
 private suspend fun <A> invokeHandler(handler: AuthHandler<*>?, token: String?): AuthResult<A> {
     val typedHandler = handler as? AuthHandler<A> ?: return AuthResult.Unauthorized
     return typedHandler.handle(token)
+}
+
+private fun extractToken(
+    schema: AuthSchema<*>,
+    headers: io.ktor.http.Headers,
+    cookies: RequestCookies
+): String? = when (schema) {
+    is AuthSchema.Bearer<*> -> extractBearerToken(headers)
+    is AuthSchema.Basic<*> -> extractBasicCredentials(headers)
+    is AuthSchema.ApiKeyHeader<*> -> headers[schema.headerName]
+    is AuthSchema.Cookie<*> -> cookies[schema.cookieName]
+    is AuthSchema.None -> null
+    is AuthSchema.Optional<*> -> extractToken(schema.inner, headers, cookies)
+    is AuthSchema.OneOf<*> -> schema.schemes.firstNotNullOfOrNull { extractToken(it, headers, cookies) }
 }
 
 private fun extractBearerToken(headers: io.ktor.http.Headers): String? =
