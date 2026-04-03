@@ -210,6 +210,20 @@ private fun HttpRequestBuilder.applyAuth(schema: AuthSchema<*>, credential: Auth
         }
 
         is AuthSchema.Optional<*> -> applyAuth(schema.inner, credential)
+        is AuthSchema.OneOf<*> -> {
+            val matched = schema.schemes.firstOrNull { scheme ->
+                when (scheme) {
+                    is AuthSchema.Bearer<*> -> credential is AuthCredential.BearerToken
+                    is AuthSchema.Basic<*> -> credential is AuthCredential.BasicCredentials
+                    is AuthSchema.ApiKeyHeader<*> -> credential is AuthCredential.ApiKey
+                    is AuthSchema.Cookie<*> -> credential is AuthCredential.CookieValue
+                    is AuthSchema.None -> false
+                    is AuthSchema.Optional<*> -> false
+                    is AuthSchema.OneOf<*> -> false
+                }
+            }
+            if (matched != null) applyAuth(matched, credential)
+        }
     }
 }
 
