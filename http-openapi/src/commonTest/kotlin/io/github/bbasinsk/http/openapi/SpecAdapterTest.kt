@@ -3,6 +3,7 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.auth
+import io.github.bbasinsk.http.optional
 import io.github.bbasinsk.http.or
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.transform
@@ -1778,5 +1779,23 @@ class SSESpecAdapterTest {
         assertEquals(2, security.size)
         assertEquals(mapOf("bearerAuth" to emptyList<String>()), security[0])
         assertEquals(mapOf("cookieAuth" to emptyList<String>()), security[1])
+    }
+
+    @Test
+    fun `optional oneOf auth generates security with empty map alternative`() {
+        val api = Http.get { Root / "feed" }
+            .auth { (bearer<Unit>() or cookie("session")).optional() }
+            .output { status(Ok) { plain { string() } } }
+
+        val result = listOf(api).toOpenApiSpec(Info("Test", "1.0"))
+
+        val operation = result.paths["/feed"]?.get("get")
+        assertNotNull(operation)
+        val security = operation.security
+        assertNotNull(security)
+        assertEquals(3, security.size)
+        assertEquals(mapOf("bearerAuth" to emptyList<String>()), security[0])
+        assertEquals(mapOf("cookieAuth" to emptyList<String>()), security[1])
+        assertEquals(emptyMap(), security[2])
     }
 }

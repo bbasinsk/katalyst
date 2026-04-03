@@ -27,7 +27,7 @@ private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
         is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
         is AuthSchema.Cookie<*> -> schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName)
         is AuthSchema.Optional<*> -> inner.toSecurityScheme()
-        is AuthSchema.OneOf<*> -> null
+        is AuthSchema.OneOf<*> -> null // decomposed via allSchemes(); individual schemes register separately
     }
 
 private fun AuthSchema<*>.allSchemes(): List<AuthSchema<*>> = when (this) {
