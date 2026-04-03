@@ -450,6 +450,14 @@ private suspend fun <A> handleAuth(
         val innerResult = handleAuth(schema.inner, authHandler, headers, cookies, queryParams)
         AuthResult.Success((innerResult as? AuthResult.Success)?.principal as A)
     }
+
+    is AuthSchema.OneOf -> {
+        for (scheme in schema.schemes) {
+            val result = handleAuth(scheme, authHandler, headers, cookies, queryParams)
+            if (result is AuthResult.Success) return@handleAuth result
+        }
+        invokeHandler(authHandler, null)
+    }
 }
 
 @Suppress("UNCHECKED_CAST")
