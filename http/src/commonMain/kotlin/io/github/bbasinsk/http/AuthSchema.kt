@@ -47,6 +47,17 @@ sealed interface AuthSchema<A> {
         override val schemeName: String? = inner.schemeName
     }
 
+    class OneOf<A> private constructor(val schemes: List<AuthSchema<A>>) : AuthSchema<A> {
+        override val schemeName: String? = null
+
+        companion object {
+            operator fun <A> invoke(first: AuthSchema<A>, vararg rest: AuthSchema<A>): OneOf<A> =
+                OneOf(listOf(first) + rest)
+
+            internal fun <A> of(schemes: List<AuthSchema<A>>): OneOf<A> = OneOf(schemes)
+        }
+    }
+
     fun isOptional(): Boolean = when (this) {
         is None -> false
         is Bearer<*> -> false
@@ -54,6 +65,7 @@ sealed interface AuthSchema<A> {
         is ApiKeyHeader<*> -> false
         is Cookie<*> -> false
         is Optional<*> -> true
+        is OneOf<*> -> false
     }
 
     companion object {
@@ -68,3 +80,8 @@ sealed interface AuthSchema<A> {
 }
 
 fun <A> AuthSchema<A>.optional(): AuthSchema<A?> = AuthSchema.Optional(this)
+
+infix fun <A> AuthSchema<A>.or(other: AuthSchema<A>): AuthSchema.OneOf<A> = when (this) {
+    is AuthSchema.OneOf -> AuthSchema.OneOf.of(this.schemes + other)
+    else -> AuthSchema.OneOf(this, other)
+}
