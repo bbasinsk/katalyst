@@ -27,17 +27,32 @@ private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
         is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
         is AuthSchema.Cookie<*> -> schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName)
         is AuthSchema.Optional<*> -> inner.toSecurityScheme()
+        is AuthSchema.OneOf<*> -> null
     }
 
+private fun AuthSchema<*>.allSchemes(): List<AuthSchema<*>> = when (this) {
+    is AuthSchema.OneOf<*> -> schemes
+    is AuthSchema.Optional<*> -> inner.allSchemes()
+    else -> listOf(this)
+}
+
 private fun List<Http<*, *, *, *, *>>.collectSecuritySchemes(): Map<String, SecurityScheme> =
-    mapNotNull { it.auth.toSecurityScheme() }.toMap()
+    flatMap { it.auth.allSchemes() }.mapNotNull { it.toSecurityScheme() }.toMap()
 
 private fun Http<*, *, *, *, *>.toSecurityRequirement(): List<Map<String, List<String>>>? {
-    val (schemeName, _) = auth.toSecurityScheme() ?: return null
+    val schemes = auth.allSchemes()
+    if (schemes.all { it is AuthSchema.None }) return null
+
+    val requirements = schemes.mapNotNull { scheme ->
+        val (name, _) = scheme.toSecurityScheme() ?: return@mapNotNull null
+        mapOf(name to emptyList<String>())
+    }
+    if (requirements.isEmpty()) return null
+
     return if (auth.isOptional()) {
-        listOf(mapOf(schemeName to emptyList()), emptyMap())
+        requirements + emptyMap()
     } else {
-        listOf(mapOf(schemeName to emptyList()))
+        requirements
     }
 }
 
