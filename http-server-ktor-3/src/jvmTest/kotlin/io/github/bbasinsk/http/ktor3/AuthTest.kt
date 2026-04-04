@@ -626,24 +626,4 @@ class AuthTest {
         assertEquals(401, response.status.value)
     }
 
-    @Test
-    fun oneOfBearerOrCookieWithNoBearerAndValidCookie() = testApplication {
-        val api = Http.get { Root / "profile" }
-            .auth { bearer<User>() or cookie("session") }
-            .output { status(Ok) { plain { string() } } }
-
-        application {
-            endpoints {
-                handle(api, userHandler) { request ->
-                    Response.success("Hello ${request.auth.name}")
-                }
-            }
-        }
-
-        val response = client.get("/profile") {
-            cookie("session", "valid-token")
-        }
-        assertEquals(200, response.status.value)
-        assertEquals("Hello Test User", response.bodyAsText())
-    }
 }

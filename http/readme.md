@@ -81,7 +81,7 @@ handle(api, authHandler) { request ->
 }
 ```
 
-The server tries each scheme's extraction in order. In the example above, it checks the `Authorization: Bearer` header first, then the `session` cookie. The first non-null token is passed to the handler.
+The server tries each scheme's extraction in order. In the example above, it checks the `Authorization: Bearer` header first, then the `session` cookie. The first non-null token is passed to the handler. If that token fails validation, the server returns 401 without trying subsequent schemes.
 
 This is useful when the same endpoint serves both browser clients (which send cookies) and API clients (which send bearer tokens), and both use the same token format.
 

@@ -217,9 +217,8 @@ private fun HttpRequestBuilder.applyAuth(schema: AuthSchema<*>, credential: Auth
                     is AuthSchema.Basic<*> -> credential is AuthCredential.BasicCredentials
                     is AuthSchema.ApiKeyHeader<*> -> credential is AuthCredential.ApiKey
                     is AuthSchema.Cookie<*> -> credential is AuthCredential.CookieValue
-                    is AuthSchema.None -> false
-                    is AuthSchema.Optional<*> -> false
-                    is AuthSchema.OneOf<*> -> false
+                    // Unreachable: OneOf.of() validates these cannot be nested
+                    is AuthSchema.None, is AuthSchema.Optional<*>, is AuthSchema.OneOf<*> -> false
                 }
             }
             if (matched != null) {
