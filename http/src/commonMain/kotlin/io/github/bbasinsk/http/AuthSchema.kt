@@ -51,11 +51,11 @@ sealed interface AuthSchema<A> {
         override val schemeName: String? = null
 
         companion object {
-            operator fun <A> invoke(first: AuthSchema<A>, vararg rest: AuthSchema<A>): OneOf<A> =
-                OneOf(listOf(first) + rest)
-
             internal fun <A> of(schemes: List<AuthSchema<A>>): OneOf<A> {
                 require(schemes.isNotEmpty()) { "OneOf requires at least one scheme" }
+                require(schemes.none { it is None }) { "OneOf should not contain None — use Optional wrapper instead" }
+                require(schemes.none { it is Optional<*> }) { "OneOf should not contain Optional — wrap the entire OneOf with .optional() instead" }
+                require(schemes.none { it is OneOf<*> }) { "OneOf should not contain nested OneOf — use the or combinator which flattens automatically" }
                 return OneOf(schemes)
             }
         }
