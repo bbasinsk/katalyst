@@ -19,35 +19,25 @@ fun List<Http<*, *, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = 
     )
 }
 
-private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
+private fun AuthSchema<*>.toSecuritySchemes(): List<Pair<String, SecurityScheme>> =
     when (this) {
-        is AuthSchema.None -> null
-        is AuthSchema.Bearer<*> -> schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
-        is AuthSchema.Basic<*> -> schemeName to SecurityScheme(type = "http", scheme = "basic")
-        is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
-        is AuthSchema.Cookie<*> -> schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName)
-        is AuthSchema.Optional<*> -> inner.toSecurityScheme()
-        is AuthSchema.OneOf<*> -> null // decomposed via allSchemes(); individual schemes register separately
+        is AuthSchema.None -> emptyList()
+        is AuthSchema.Bearer<*> -> listOf(schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format))
+        is AuthSchema.Basic<*> -> listOf(schemeName to SecurityScheme(type = "http", scheme = "basic"))
+        is AuthSchema.ApiKeyHeader<*> -> listOf(schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName))
+        is AuthSchema.Cookie<*> -> listOf(schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName))
+        is AuthSchema.Optional<*> -> inner.toSecuritySchemes()
+        is AuthSchema.OneOf<*> -> schemes.flatMap { it.toSecuritySchemes() }
     }
-
-private fun AuthSchema<*>.allSchemes(): List<AuthSchema<*>> = when (this) {
-    is AuthSchema.OneOf<*> -> schemes.flatMap { it.allSchemes() }
-    is AuthSchema.Optional<*> -> inner.allSchemes()
-    else -> listOf(this)
-}
 
 private fun List<Http<*, *, *, *, *>>.collectSecuritySchemes(): Map<String, SecurityScheme> =
-    flatMap { it.auth.allSchemes() }.mapNotNull { it.toSecurityScheme() }.toMap()
+    flatMap { it.auth.toSecuritySchemes() }.toMap()
 
 private fun Http<*, *, *, *, *>.toSecurityRequirement(): List<Map<String, List<String>>>? {
-    val schemes = auth.allSchemes()
-    if (schemes.all { it is AuthSchema.None }) return null
+    val schemes = auth.toSecuritySchemes()
+    if (schemes.isEmpty()) return null
 
-    val requirements = schemes.mapNotNull { scheme ->
-        val (name, _) = scheme.toSecurityScheme() ?: return@mapNotNull null
-        mapOf(name to emptyList<String>())
-    }
-    if (requirements.isEmpty()) return null
+    val requirements = schemes.map { (name, _) -> mapOf(name to emptyList<String>()) }
 
     return if (auth.isOptional()) {
         requirements + emptyMap()

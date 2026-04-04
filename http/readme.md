@@ -65,6 +65,51 @@ val api = Http.get { Root / "dashboard" }
     .output { status(Ok) { json { dashboardSchema } } }
 ```
 
+### Composite Authentication
+
+Use `or` to accept auth from multiple sources. The server extracts the first available token and validates it with a single handler:
+
+```kotlin
+val api = Http.get { Root / "profile" }
+    .auth { bearer<User>() or cookie("session") }
+    .output { status(Ok) { json { userSchema } } }
+
+// Single handler validates whichever token was found
+handle(api, authHandler) { request ->
+    val user: User = request.auth
+    Response.success(user)
+}
+```
+
+The server tries each scheme's extraction in order. In the example above, it checks the `Authorization: Bearer` header first, then the `session` cookie. The first non-null token is passed to the handler.
+
+This is useful when the same endpoint serves both browser clients (which send cookies) and API clients (which send bearer tokens), and both use the same token format.
+
+Composite auth composes with `.optional()`:
+
+```kotlin
+val api = Http.get { Root / "feed" }
+    .auth { (bearer<User>() or cookie("session")).optional() }
+    .output { status(Ok) { json { feedSchema } } }
+```
+
+Chain multiple schemes:
+
+```kotlin
+.auth { bearer<User>() or cookie("session") or apiKeyHeader("X-API-Key") }
+```
+
+OpenAPI generates OR-style security requirements:
+
+```json
+{
+  "security": [
+    { "bearerAuth": [] },
+    { "cookieAuth": [] }
+  ]
+}
+```
+
 ### Optional Authentication
 
 Wrap any auth type with `.optional()` to allow unauthenticated access:
