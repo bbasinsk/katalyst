@@ -503,13 +503,9 @@ class AuthTest {
             .auth { bearer<User>() or cookie("session") }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
-            if (token == "valid-token") User("1", "Test User") else null
-        }
-
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -528,13 +524,9 @@ class AuthTest {
             .auth { bearer<User>() or cookie("session") }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
-            if (token == "valid-token") User("1", "Test User") else null
-        }
-
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -553,13 +545,9 @@ class AuthTest {
             .auth { bearer<User>() or cookie("session") }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
-            if (token == "valid-token") User("1", "Test User") else null
-        }
-
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -575,7 +563,7 @@ class AuthTest {
             .auth { bearer<User>() or cookie("session") }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
+        val multiTokenHandler = AuthHandler.standard<User> { token ->
             if (token == "bearer-token") User("1", "Bearer User")
             else if (token == "cookie-token") User("2", "Cookie User")
             else null
@@ -583,7 +571,7 @@ class AuthTest {
 
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, multiTokenHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
@@ -603,13 +591,9 @@ class AuthTest {
             .auth { (bearer<User>() or cookie("session")).optional() }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
-            if (token == "valid-token") User("1", "Test User") else null
-        }
-
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, userHandler) { request ->
                     val greeting = request.auth?.name ?: "Anonymous"
                     Response.success("Hello $greeting")
                 }
@@ -627,19 +611,14 @@ class AuthTest {
             .auth { bearer<User>() or cookie("session") }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
-            if (token == "valid-token") User("1", "Test User") else null
-        }
-
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
         }
 
-        // Invalid bearer present, valid cookie present — bearer is extracted first (non-null), cookie not tried
         val response = client.get("/profile") {
             header("Authorization", "Bearer invalid-token")
             cookie("session", "valid-token")
@@ -653,19 +632,14 @@ class AuthTest {
             .auth { bearer<User>() or cookie("session") }
             .output { status(Ok) { plain { string() } } }
 
-        val authHandler = AuthHandler.standard<User> { token ->
-            if (token == "valid-token") User("1", "Test User") else null
-        }
-
         application {
             endpoints {
-                handle(api, authHandler) { request ->
+                handle(api, userHandler) { request ->
                     Response.success("Hello ${request.auth.name}")
                 }
             }
         }
 
-        // No bearer header, valid cookie — cookie is extracted and validated
         val response = client.get("/profile") {
             cookie("session", "valid-token")
         }

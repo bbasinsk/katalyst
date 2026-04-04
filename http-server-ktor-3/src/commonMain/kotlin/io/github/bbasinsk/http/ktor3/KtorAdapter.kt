@@ -424,37 +424,14 @@ private suspend fun <A> handleAuth(
 ): AuthResult<A> = when (schema) {
     is AuthSchema.None -> AuthResult.Success(Unit as A)
 
-    is AuthSchema.Bearer -> {
-        val token = extractBearerToken(headers)
-        invokeHandler(authHandler, token)
-    }
-
-    is AuthSchema.Basic -> {
-        val credentials = extractBasicCredentials(headers)
-        invokeHandler(authHandler, credentials)
-    }
-
-    is AuthSchema.ApiKeyHeader -> {
-        val key = headers[schema.headerName]
-        invokeHandler(authHandler, key)
-    }
-
-    is AuthSchema.Cookie -> {
-        val value = cookies[schema.cookieName]
-        invokeHandler(authHandler, value)
-    }
-
     is AuthSchema.Optional<*> -> {
-        // For optional auth, any failure (Unauthorized or Redirect) is treated as unauthenticated (null).
-        // This allows pages to serve public content while optionally personalizing for logged-in users.
         val innerResult = handleAuth(schema.inner, authHandler, headers, cookies, queryParams)
         AuthResult.Success((innerResult as? AuthResult.Success)?.principal as A)
     }
 
-    is AuthSchema.OneOf -> {
-        val token = schema.schemes.firstNotNullOfOrNull { scheme ->
-            extractToken(scheme, headers, cookies)
-        }
+    is AuthSchema.Bearer, is AuthSchema.Basic, is AuthSchema.ApiKeyHeader,
+    is AuthSchema.Cookie, is AuthSchema.OneOf -> {
+        val token = extractToken(schema, headers, cookies)
         invokeHandler(authHandler, token)
     }
 }
