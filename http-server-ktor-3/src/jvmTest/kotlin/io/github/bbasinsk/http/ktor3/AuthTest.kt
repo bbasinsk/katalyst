@@ -5,6 +5,7 @@ import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.auth
 import io.github.bbasinsk.http.optional
+import io.github.bbasinsk.http.or
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -495,4 +496,134 @@ class AuthTest {
         assertEquals(302, response.status.value)
         assertEquals("/login", response.headers["Location"])
     }
+
+    @Test
+    fun oneOfBearerOrCookieWithBearerToken() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, userHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/profile") {
+            header("Authorization", "Bearer valid-token")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Test User", response.bodyAsText())
+    }
+
+    @Test
+    fun oneOfBearerOrCookieWithCookie() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, userHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/profile") {
+            cookie("session", "valid-token")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Test User", response.bodyAsText())
+    }
+
+    @Test
+    fun oneOfBearerOrCookieWithNeitherReturns401() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, userHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/profile")
+        assertEquals(401, response.status.value)
+    }
+
+    @Test
+    fun oneOfBearerOrCookiePrefersFirstScheme() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        val multiTokenHandler = AuthHandler.standard<User> { token ->
+            if (token == "bearer-token") User("1", "Bearer User")
+            else if (token == "cookie-token") User("2", "Cookie User")
+            else null
+        }
+
+        application {
+            endpoints {
+                handle(api, multiTokenHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/profile") {
+            header("Authorization", "Bearer bearer-token")
+            cookie("session", "cookie-token")
+        }
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Bearer User", response.bodyAsText())
+    }
+
+    @Test
+    fun oneOfOptionalWithBearerOrCookieWithoutEither() = testApplication {
+        val api = Http.get { Root / "feed" }
+            .auth { (bearer<User>() or cookie("session")).optional() }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, userHandler) { request ->
+                    val greeting = request.auth?.name ?: "Anonymous"
+                    Response.success("Hello $greeting")
+                }
+            }
+        }
+
+        val response = client.get("/feed")
+        assertEquals(200, response.status.value)
+        assertEquals("Hello Anonymous", response.bodyAsText())
+    }
+
+    @Test
+    fun oneOfBearerOrCookieWithInvalidBearerAndValidCookie() = testApplication {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<User>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api, userHandler) { request ->
+                    Response.success("Hello ${request.auth.name}")
+                }
+            }
+        }
+
+        val response = client.get("/profile") {
+            header("Authorization", "Bearer invalid-token")
+            cookie("session", "valid-token")
+        }
+        assertEquals(401, response.status.value)
+    }
+
 }

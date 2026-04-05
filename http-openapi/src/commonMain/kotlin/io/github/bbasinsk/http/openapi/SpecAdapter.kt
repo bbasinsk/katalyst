@@ -19,25 +19,30 @@ fun List<Http<*, *, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = 
     )
 }
 
-private fun AuthSchema<*>.toSecurityScheme(): Pair<String, SecurityScheme>? =
+private fun AuthSchema<*>.toSecuritySchemes(): List<Pair<String, SecurityScheme>> =
     when (this) {
-        is AuthSchema.None -> null
-        is AuthSchema.Bearer<*> -> schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format)
-        is AuthSchema.Basic<*> -> schemeName to SecurityScheme(type = "http", scheme = "basic")
-        is AuthSchema.ApiKeyHeader<*> -> schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName)
-        is AuthSchema.Cookie<*> -> schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName)
-        is AuthSchema.Optional<*> -> inner.toSecurityScheme()
+        is AuthSchema.None -> emptyList()
+        is AuthSchema.Bearer<*> -> listOf(schemeName to SecurityScheme(type = "http", scheme = "bearer", bearerFormat = format))
+        is AuthSchema.Basic<*> -> listOf(schemeName to SecurityScheme(type = "http", scheme = "basic"))
+        is AuthSchema.ApiKeyHeader<*> -> listOf(schemeName to SecurityScheme(type = "apiKey", location = "header", name = headerName))
+        is AuthSchema.Cookie<*> -> listOf(schemeName to SecurityScheme(type = "apiKey", location = "cookie", name = cookieName))
+        is AuthSchema.Optional<*> -> inner.toSecuritySchemes()
+        is AuthSchema.OneOf<*> -> schemes.flatMap { it.toSecuritySchemes() }
     }
 
 private fun List<Http<*, *, *, *, *>>.collectSecuritySchemes(): Map<String, SecurityScheme> =
-    mapNotNull { it.auth.toSecurityScheme() }.toMap()
+    flatMap { it.auth.toSecuritySchemes() }.toMap()
 
 private fun Http<*, *, *, *, *>.toSecurityRequirement(): List<Map<String, List<String>>>? {
-    val (schemeName, _) = auth.toSecurityScheme() ?: return null
+    val schemes = auth.toSecuritySchemes()
+    if (schemes.isEmpty()) return null
+
+    val requirements = schemes.map { (name, _) -> mapOf(name to emptyList<String>()) }
+
     return if (auth.isOptional()) {
-        listOf(mapOf(schemeName to emptyList()), emptyMap())
+        requirements + emptyMap()
     } else {
-        listOf(mapOf(schemeName to emptyList()))
+        requirements
     }
 }
 

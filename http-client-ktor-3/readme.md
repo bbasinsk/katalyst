@@ -139,3 +139,17 @@ client.call(api, auth = AuthCredential.CookieValue("session-id"))
 ```
 
 The credential type must match the endpoint's auth schema — mismatches throw at runtime.
+
+For composite auth (`or`), the client matches the credential type to the first compatible scheme:
+
+```kotlin
+val api = Http.get { Root / "profile" }
+    .auth { bearer<String>() or cookie("session") }
+    .output { status(Ok) { plain { string() } } }
+
+// BearerToken matches the bearer scheme
+client.call(api, auth = AuthCredential.BearerToken("my-token"))
+
+// CookieValue matches the cookie scheme
+client.call(api, auth = AuthCredential.CookieValue("session-id"))
+```

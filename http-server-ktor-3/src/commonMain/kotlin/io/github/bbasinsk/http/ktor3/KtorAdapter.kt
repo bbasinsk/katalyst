@@ -424,31 +424,15 @@ private suspend fun <A> handleAuth(
 ): AuthResult<A> = when (schema) {
     is AuthSchema.None -> AuthResult.Success(Unit as A)
 
-    is AuthSchema.Bearer -> {
-        val token = extractBearerToken(headers)
-        invokeHandler(authHandler, token)
-    }
-
-    is AuthSchema.Basic -> {
-        val credentials = extractBasicCredentials(headers)
-        invokeHandler(authHandler, credentials)
-    }
-
-    is AuthSchema.ApiKeyHeader -> {
-        val key = headers[schema.headerName]
-        invokeHandler(authHandler, key)
-    }
-
-    is AuthSchema.Cookie -> {
-        val value = cookies[schema.cookieName]
-        invokeHandler(authHandler, value)
-    }
-
     is AuthSchema.Optional<*> -> {
-        // For optional auth, any failure (Unauthorized or Redirect) is treated as unauthenticated (null).
-        // This allows pages to serve public content while optionally personalizing for logged-in users.
         val innerResult = handleAuth(schema.inner, authHandler, headers, cookies, queryParams)
         AuthResult.Success((innerResult as? AuthResult.Success)?.principal as A)
+    }
+
+    is AuthSchema.Bearer, is AuthSchema.Basic, is AuthSchema.ApiKeyHeader,
+    is AuthSchema.Cookie, is AuthSchema.OneOf -> {
+        val token = extractToken(schema, headers, cookies)
+        invokeHandler(authHandler, token)
     }
 }
 
@@ -456,6 +440,20 @@ private suspend fun <A> handleAuth(
 private suspend fun <A> invokeHandler(handler: AuthHandler<*>?, token: String?): AuthResult<A> {
     val typedHandler = handler as? AuthHandler<A> ?: return AuthResult.Unauthorized
     return typedHandler.handle(token)
+}
+
+private fun extractToken(
+    schema: AuthSchema<*>,
+    headers: io.ktor.http.Headers,
+    cookies: RequestCookies
+): String? = when (schema) {
+    is AuthSchema.Bearer<*> -> extractBearerToken(headers)
+    is AuthSchema.Basic<*> -> extractBasicCredentials(headers)
+    is AuthSchema.ApiKeyHeader<*> -> headers[schema.headerName]
+    is AuthSchema.Cookie<*> -> cookies[schema.cookieName]
+    is AuthSchema.None -> null
+    is AuthSchema.Optional<*> -> extractToken(schema.inner, headers, cookies)
+    is AuthSchema.OneOf<*> -> schema.schemes.firstNotNullOfOrNull { extractToken(it, headers, cookies) }
 }
 
 private fun extractBearerToken(headers: io.ktor.http.Headers): String? =

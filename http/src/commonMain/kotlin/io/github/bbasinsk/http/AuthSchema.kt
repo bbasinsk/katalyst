@@ -47,6 +47,20 @@ sealed interface AuthSchema<A> {
         override val schemeName: String? = inner.schemeName
     }
 
+    class OneOf<A> private constructor(val schemes: List<AuthSchema<A>>) : AuthSchema<A> {
+        override val schemeName: String? = null
+
+        companion object {
+            internal fun <A> of(schemes: List<AuthSchema<A>>): OneOf<A> {
+                require(schemes.isNotEmpty()) { "OneOf requires at least one scheme" }
+                require(schemes.none { it is None }) { "OneOf should not contain None — use Optional wrapper instead" }
+                require(schemes.none { it is Optional<*> }) { "OneOf should not contain Optional — wrap the entire OneOf with .optional() instead" }
+                require(schemes.none { it is OneOf<*> }) { "OneOf should not contain nested OneOf — use the or combinator which flattens automatically" }
+                return OneOf(schemes)
+            }
+        }
+    }
+
     fun isOptional(): Boolean = when (this) {
         is None -> false
         is Bearer<*> -> false
@@ -54,6 +68,7 @@ sealed interface AuthSchema<A> {
         is ApiKeyHeader<*> -> false
         is Cookie<*> -> false
         is Optional<*> -> true
+        is OneOf<*> -> false
     }
 
     companion object {
@@ -68,3 +83,9 @@ sealed interface AuthSchema<A> {
 }
 
 fun <A> AuthSchema<A>.optional(): AuthSchema<A?> = AuthSchema.Optional(this)
+
+infix fun <A> AuthSchema<A>.or(other: AuthSchema<A>): AuthSchema.OneOf<A> {
+    val left = if (this is AuthSchema.OneOf) this.schemes else listOf(this)
+    val right = if (other is AuthSchema.OneOf) other.schemes else listOf(other)
+    return AuthSchema.OneOf.of(left + right)
+}

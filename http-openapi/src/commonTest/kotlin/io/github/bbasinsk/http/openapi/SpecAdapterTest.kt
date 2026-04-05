@@ -3,12 +3,16 @@ package io.github.bbasinsk.http.openapi
 import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.auth
+import io.github.bbasinsk.http.optional
+import io.github.bbasinsk.http.or
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class SpecAdapterTest {
 
@@ -1749,5 +1753,49 @@ class SSESpecAdapterTest {
         )
 
         assertEquals(expected, json)
+    }
+
+    @Test
+    fun `oneOf auth generates OR security requirements`() {
+        val api = Http.get { Root / "profile" }
+            .auth { bearer<Unit>() or cookie("session") }
+            .output { status(Ok) { plain { string() } } }
+
+        val result = listOf(api).toOpenApiSpec(Info("Test", "1.0"))
+
+        val securitySchemes = result.components.securitySchemes
+        assertEquals(2, securitySchemes.size)
+        assertTrue(securitySchemes.containsKey("bearerAuth"))
+        assertTrue(securitySchemes.containsKey("cookieAuth"))
+        assertEquals("http", securitySchemes["bearerAuth"]?.type)
+        assertEquals("bearer", securitySchemes["bearerAuth"]?.scheme)
+        assertEquals("apiKey", securitySchemes["cookieAuth"]?.type)
+        assertEquals("cookie", securitySchemes["cookieAuth"]?.location)
+
+        val operation = result.paths["/profile"]?.get("get")
+        assertNotNull(operation)
+        val security = operation.security
+        assertNotNull(security)
+        assertEquals(2, security.size)
+        assertEquals(mapOf("bearerAuth" to emptyList<String>()), security[0])
+        assertEquals(mapOf("cookieAuth" to emptyList<String>()), security[1])
+    }
+
+    @Test
+    fun `optional oneOf auth generates security with empty map alternative`() {
+        val api = Http.get { Root / "feed" }
+            .auth { (bearer<Unit>() or cookie("session")).optional() }
+            .output { status(Ok) { plain { string() } } }
+
+        val result = listOf(api).toOpenApiSpec(Info("Test", "1.0"))
+
+        val operation = result.paths["/feed"]?.get("get")
+        assertNotNull(operation)
+        val security = operation.security
+        assertNotNull(security)
+        assertEquals(3, security.size)
+        assertEquals(mapOf("bearerAuth" to emptyList<String>()), security[0])
+        assertEquals(mapOf("cookieAuth" to emptyList<String>()), security[1])
+        assertEquals(emptyMap(), security[2])
     }
 }
