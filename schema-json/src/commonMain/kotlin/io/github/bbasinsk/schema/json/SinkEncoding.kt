@@ -52,14 +52,14 @@ private fun <A> Schema.Primitive<A>.encodePrimitive(value: A, sink: Sink, config
             if (d.isNaN() || d.isInfinite()) {
                 require(config.allowSpecialFloatingPointValues) { "Non-finite double value: $d" }
             }
-            sink.writeString(d.toString())
+            sink.writeJsonDouble(d)
         }
         is Schema.Primitive.Float -> {
             val f = value as Float
             if (f.isNaN() || f.isInfinite()) {
                 require(config.allowSpecialFloatingPointValues) { "Non-finite float value: $f" }
             }
-            sink.writeString(f.toString())
+            sink.writeJsonDouble(f.toDouble())
         }
         is Schema.Primitive.String -> sink.writeJsonString(value as String)
         is Schema.Primitive.Enumeration<*> -> sink.writeJsonString(value.toString())
@@ -228,6 +228,13 @@ private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEnco
             sink.writeString("}")
         }
     }
+}
+
+// JS toString() omits trailing .0 for whole-number doubles (e.g. 42.0 -> "42")
+private fun Sink.writeJsonDouble(d: Double) {
+    val s = d.toString()
+    writeString(s)
+    if ('.' !in s && !d.isNaN() && !d.isInfinite()) writeString(".0")
 }
 
 private fun escapeFor(ch: Char): String? = when (ch) {

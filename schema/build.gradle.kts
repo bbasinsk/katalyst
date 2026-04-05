@@ -43,6 +43,10 @@ kotlin {
                 implementation(libs.kotlin.test)
             }
         }
+        // androidLibrary uses a different plugin than androidTarget(),
+        // so the hierarchy template's withAndroidTarget() doesn't wire it
+        val qualifiedNameMain by getting
+        androidMain { dependsOn(qualifiedNameMain) }
     }
 }
 
