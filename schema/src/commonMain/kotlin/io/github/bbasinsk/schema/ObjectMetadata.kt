@@ -14,20 +14,7 @@ data class ObjectMetadata<A>(
         if (namespace == null) name else "$namespace.$name"
 }
 
-fun <A> KClass<*>.toMetadata(typeArguments: List<String> = emptyList()): ObjectMetadata<A> =
-    if (qualifiedName == null) {
-        ObjectMetadata(
-            name = simpleName ?: "Unknown",
-            namespace = null,
-            typeArguments = typeArguments
-        )
-    } else {
-        ObjectMetadata(
-            name = qualifiedName!!.substringAfterLast("."),
-            namespace = qualifiedName!!.substringBeforeLast("."),
-            typeArguments = typeArguments
-        )
-    }
+expect fun <A> KClass<*>.toMetadata(typeArguments: List<String> = emptyList()): ObjectMetadata<A>
 
 @OptIn(ExperimentalStdlibApi::class)
 inline fun <reified A> metadataFromType(): ObjectMetadata<A> {

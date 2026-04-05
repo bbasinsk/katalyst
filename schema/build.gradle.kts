@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
+
 plugins {
     id("katalyst.library")
     id("katalyst.android-library")
@@ -15,6 +17,21 @@ kotlin {
     iosSimulatorArm64()
     iosX64()
     linuxX64()
+    js {
+        browser()
+        nodejs()
+    }
+
+    @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    applyDefaultHierarchyTemplate {
+        common {
+            group("qualifiedName") {
+                withJvm()
+                withAndroidTarget()
+                group("native")
+            }
+        }
+    }
 
     sourceSets {
         val commonMain by getting {
