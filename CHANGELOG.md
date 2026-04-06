@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.7...katalyst-v0.4.0) (2026-04-06)
+
+
+### Features
+
+* add Kotlin/JS browser and Node.js targets ([#97](https://github.com/bbasinsk/katalyst/issues/97)) ([c9c2c7f](https://github.com/bbasinsk/katalyst/commit/c9c2c7fa62c681031e73e65f5ebc92c26174273a))
+
+
+### Bug Fixes
+
+* add Cache-Control no-store header to SSE stream requests ([c787183](https://github.com/bbasinsk/katalyst/commit/c7871833742012a512644c965acf8be5d8b2ca2a))
+* support composite auth schemas with or combinator ([#96](https://github.com/bbasinsk/katalyst/issues/96)) ([1e6938c](https://github.com/bbasinsk/katalyst/commit/1e6938c2dff580f46f373c4dd9dc4ed2c6489fd7))
+
 ## [0.3.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.6...katalyst-v0.3.7) (2026-03-18)
 
 
