@@ -52,14 +52,14 @@ private fun <A> Schema.Primitive<A>.encodePrimitive(value: A, sink: Sink, config
             if (d.isNaN() || d.isInfinite()) {
                 require(config.allowSpecialFloatingPointValues) { "Non-finite double value: $d" }
             }
-            sink.writeString(d.toString())
+            sink.writeJsonDouble(d)
         }
         is Schema.Primitive.Float -> {
             val f = value as Float
             if (f.isNaN() || f.isInfinite()) {
                 require(config.allowSpecialFloatingPointValues) { "Non-finite float value: $f" }
             }
-            sink.writeString(f.toString())
+            sink.writeJsonFloat(f)
         }
         is Schema.Primitive.String -> sink.writeJsonString(value as String)
         is Schema.Primitive.Enumeration<*> -> sink.writeJsonString(value.toString())
@@ -196,7 +196,7 @@ private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEnco
             if (value.value.isNaN() || value.value.isInfinite()) {
                 require(config.allowSpecialFloatingPointValues) { "Non-finite double value in SchemaValue.Decimal: ${value.value}" }
             }
-            sink.writeString(value.value.toString())
+            sink.writeJsonDouble(value.value)
         }
         is SchemaValue.Str -> sink.writeJsonString(value.value)
         is SchemaValue.Arr -> {
@@ -227,6 +227,25 @@ private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEnco
             }
             sink.writeString("}")
         }
+    }
+}
+
+// JS toString() omits trailing .0 for whole-number values (e.g. 42.0 -> "42")
+private fun Sink.writeJsonDouble(d: Double) {
+    val s = d.toString()
+    if ('.' !in s && 'e' !in s && 'E' !in s && !d.isNaN() && !d.isInfinite()) {
+        writeString(s + ".0")
+    } else {
+        writeString(s)
+    }
+}
+
+private fun Sink.writeJsonFloat(f: Float) {
+    val s = f.toString()
+    if ('.' !in s && 'e' !in s && 'E' !in s && !f.isNaN() && !f.isInfinite()) {
+        writeString(s + ".0")
+    } else {
+        writeString(s)
     }
 }
 
