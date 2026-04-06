@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.0...katalyst-v0.4.1) (2026-04-06)
+
+
+### Bug Fixes
+
+* handle null KType.classifier on Kotlin/JS in qualifiedTypeName ([d595d82](https://github.com/bbasinsk/katalyst/commit/d595d823ef71f8beb4b31da6b60d88af618698f1))
+
 ## [0.4.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.3.7...katalyst-v0.4.0) (2026-04-06)
 
 
