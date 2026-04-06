@@ -99,6 +99,7 @@ class KatalystClient(
     fun <P, I, E, O, A> stream(
         endpoint: Http<P, I, E, O, A>,
         params: P,
+        input: I,
         auth: AuthCredential? = null
     ): Flow<SSEEvent<O>> = channelFlow {
         val rendered = endpoint.params.render(params)
@@ -115,6 +116,7 @@ class KatalystClient(
                 values.forEach { value -> header(name, value) }
             }
             applyAuth(endpoint.auth, auth)
+            applyBody(endpoint.input, input)
             header(HttpHeaders.Accept, "text/event-stream")
             header(HttpHeaders.CacheControl, "no-store")
         }.execute { response ->
@@ -167,11 +169,25 @@ class KatalystClient(
         }
     }
 
+    @JvmName("streamNoParamsNoInput")
+    fun <E, O, A> stream(
+        endpoint: Http<Unit, Nothing?, E, O, A>,
+        auth: AuthCredential? = null
+    ): Flow<SSEEvent<O>> = stream(endpoint, Unit, null, auth)
+
+    @JvmName("streamNoInput")
+    fun <P, E, O, A> stream(
+        endpoint: Http<P, Nothing?, E, O, A>,
+        params: P,
+        auth: AuthCredential? = null
+    ): Flow<SSEEvent<O>> = stream(endpoint, params, null, auth)
+
     @JvmName("streamNoParams")
     fun <I, E, O, A> stream(
         endpoint: Http<Unit, I, E, O, A>,
+        input: I,
         auth: AuthCredential? = null
-    ): Flow<SSEEvent<O>> = stream(endpoint, Unit, auth)
+    ): Flow<SSEEvent<O>> = stream(endpoint, Unit, input, auth)
 }
 
 private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
