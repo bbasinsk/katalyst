@@ -233,8 +233,11 @@ private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEnco
 // JS toString() omits trailing .0 for whole-number doubles (e.g. 42.0 -> "42")
 private fun Sink.writeJsonDouble(d: Double) {
     val s = d.toString()
-    writeString(s)
-    if ('.' !in s && !d.isNaN() && !d.isInfinite()) writeString(".0")
+    if ('.' !in s && 'e' !in s && 'E' !in s && !d.isNaN() && !d.isInfinite()) {
+        writeString(s + ".0")
+    } else {
+        writeString(s)
+    }
 }
 
 private fun escapeFor(ch: Char): String? = when (ch) {

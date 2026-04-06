@@ -3,16 +3,14 @@ package io.github.bbasinsk.schema
 import kotlin.reflect.KClass
 
 actual fun <A> KClass<*>.toMetadata(typeArguments: List<String>): ObjectMetadata<A> =
-    if (qualifiedName == null) {
+    qualifiedName?.let { fqn ->
         ObjectMetadata(
-            name = simpleName ?: "Unknown",
-            namespace = null,
+            name = fqn.substringAfterLast("."),
+            namespace = fqn.substringBeforeLast(".", missingDelimiterValue = "").ifBlank { null },
             typeArguments = typeArguments
         )
-    } else {
-        ObjectMetadata(
-            name = qualifiedName!!.substringAfterLast("."),
-            namespace = qualifiedName!!.substringBeforeLast("."),
-            typeArguments = typeArguments
-        )
-    }
+    } ?: ObjectMetadata(
+        name = simpleName ?: "Unknown",
+        namespace = null,
+        typeArguments = typeArguments
+    )
