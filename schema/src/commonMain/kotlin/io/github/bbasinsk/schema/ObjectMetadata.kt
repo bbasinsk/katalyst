@@ -35,7 +35,7 @@ internal fun KType.typeArgumentNames(): List<String> =
 
 @PublishedApi
 internal fun KType.qualifiedTypeName(): String {
-    val classifier = classifier
+    val classifier = classifier ?: return toString()
     if (classifier !is KClass<*>) error(
         """
         |Type argument '$classifier' could not be resolved. This typically happens when using a generic schema function without 'inline reified'.
