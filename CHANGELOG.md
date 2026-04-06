@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.1...katalyst-v0.4.2) (2026-04-06)
+
+
+### Bug Fixes
+
+* add input parameter to client stream() for POST body support ([4925ee5](https://github.com/bbasinsk/katalyst/commit/4925ee5aa946cbc92ea5fd2eb27dc33cb080bcd1))
+
 ## [0.4.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.0...katalyst-v0.4.1) (2026-04-06)
 
 
