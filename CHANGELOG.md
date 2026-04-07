@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.2...katalyst-v0.4.3) (2026-04-07)
+
+
+### Bug Fixes
+
+* ensure deterministic key ordering in generated OpenAPI spec ([4c1d2f3](https://github.com/bbasinsk/katalyst/commit/4c1d2f321fa456dc515b9e132d18929bae281a54))
+* only scan user classes for endpoint groups in OpenAPI generator ([5d39531](https://github.com/bbasinsk/katalyst/commit/5d39531de8706be0dae5fc6a8cdf5d88164984eb))
+
 ## [0.4.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.1...katalyst-v0.4.2) (2026-04-06)
 
 
