@@ -2,6 +2,7 @@ package io.github.bbasinsk.http.gradle
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
 import org.gradle.api.tasks.SourceSetContainer
 import org.jetbrains.kotlin.gradle.dsl.KotlinJvmProjectExtension
 
@@ -42,7 +43,14 @@ class OpenApiPlugin : Plugin<Project> {
                     task.classpath.from(mainSourceSet.output.classesDirs)
                     task.classpath.from(mainSourceSet.compileDependencyFiles)
 
-                    // Depend on compilation
+                    // Only scan user and project-dependency classes for endpoint groups
+                    task.scanClasspath.from(mainSourceSet.output.classesDirs)
+                    val projectDependencyJars = project.configurations.getByName(mainSourceSet.compileDependencyConfigurationName)
+                        .incoming.artifactView { view ->
+                            view.componentFilter { it is ProjectComponentIdentifier }
+                        }.files
+                    task.scanClasspath.from(projectDependencyJars)
+
                     task.dependsOn(mainSourceSet.compileTaskProvider)
                 } ?: run {
                     // Fallback to Java source sets if Kotlin is not available
@@ -51,7 +59,14 @@ class OpenApiPlugin : Plugin<Project> {
                     task.classpath.from(mainSourceSet.output.classesDirs)
                     task.classpath.from(mainSourceSet.runtimeClasspath)
 
-                    // Depend on compilation
+                    // Only scan user and project-dependency classes for endpoint groups
+                    task.scanClasspath.from(mainSourceSet.output.classesDirs)
+                    val projectDependencyJars = project.configurations.getByName(mainSourceSet.runtimeClasspathConfigurationName)
+                        .incoming.artifactView { view ->
+                            view.componentFilter { it is ProjectComponentIdentifier }
+                        }.files
+                    task.scanClasspath.from(projectDependencyJars)
+
                     task.dependsOn(project.tasks.named("classes"))
                 }
 

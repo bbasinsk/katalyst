@@ -18,6 +18,10 @@ abstract class GenerateOpenApiTask : DefaultTask() {
     @get:Classpath
     abstract val classpath: ConfigurableFileCollection
 
+    @get:InputFiles
+    @get:Classpath
+    abstract val scanClasspath: ConfigurableFileCollection
+
     @get:Input
     abstract val info: Property<InfoConfig>
 
@@ -57,7 +61,7 @@ abstract class GenerateOpenApiTask : DefaultTask() {
     private fun discoverEndpointGroups(classLoader: URLClassLoader): List<HttpEndpointGroup> {
         val endpointGroups = mutableListOf<HttpEndpointGroup>()
 
-        classpath.files.forEach { file ->
+        scanClasspath.files.forEach { file ->
             if (file.extension == "jar") {
                 // Scan JAR file
                 JarFile(file).use { jar ->
