@@ -72,7 +72,7 @@ class KatalystClient(
             decodeResponse(endpoint, response)
         } catch (e: CancellationException) {
             throw e
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             HttpResult.NetworkError(e)
         }
 
