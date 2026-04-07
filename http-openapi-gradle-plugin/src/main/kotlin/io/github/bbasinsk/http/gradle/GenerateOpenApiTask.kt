@@ -75,12 +75,12 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                                     val instance = clazz.kotlin.objectInstance as HttpEndpointGroup
                                     endpointGroups.add(instance)
                                 }
-                            } catch (_: ClassNotFoundException) {
-                                // Skip classes that can't be loaded
-                            } catch (_: NoClassDefFoundError) {
-                                // Skip classes with missing dependencies
-                            } catch (_: LinkageError) {
-                                // Skip classes with linkage errors
+                            } catch (e: ClassNotFoundException) {
+                                logger.warn("Failed to load class $className: ${e.message}")
+                            } catch (e: NoClassDefFoundError) {
+                                logger.warn("Failed to load class $className: ${e.message}")
+                            } catch (e: LinkageError) {
+                                logger.warn("Failed to load class $className: ${e.message}")
                             }
                         }
                 }
@@ -100,12 +100,12 @@ abstract class GenerateOpenApiTask : DefaultTask() {
                                 val instance = clazz.kotlin.objectInstance as HttpEndpointGroup
                                 endpointGroups.add(instance)
                             }
-                        } catch (_: ClassNotFoundException) {
-                            // Skip classes that can't be loaded
-                        } catch (_: NoClassDefFoundError) {
-                            // Skip classes with missing dependencies
-                        } catch (_: LinkageError) {
-                            // Skip classes with linkage errors
+                        } catch (e: ClassNotFoundException) {
+                            logger.warn("Failed to load class $className: ${e.message}")
+                        } catch (e: NoClassDefFoundError) {
+                            logger.warn("Failed to load class $className: ${e.message}")
+                        } catch (e: LinkageError) {
+                            logger.warn("Failed to load class $className: ${e.message}")
                         }
                     }
             }
