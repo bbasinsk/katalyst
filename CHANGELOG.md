@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.6...katalyst-v0.4.7) (2026-04-07)
+
+
+### Bug Fixes
+
+* only scan user and project-dependency classes for endpoint groups ([5f541b5](https://github.com/bbasinsk/katalyst/commit/5f541b542f0fb164c7396eb7d2cd4246ad572a6c)), closes [#102](https://github.com/bbasinsk/katalyst/issues/102)
+
 ## [0.4.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.5...katalyst-v0.4.6) (2026-04-07)
 
 
