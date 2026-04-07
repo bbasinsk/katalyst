@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.4...katalyst-v0.4.5) (2026-04-07)
+
+
+### Bug Fixes
+
+* log classloading errors during OpenAPI endpoint discovery ([70be11d](https://github.com/bbasinsk/katalyst/commit/70be11d8197d6915c9fa01852fab615dcca08ad8)), closes [#102](https://github.com/bbasinsk/katalyst/issues/102)
+
 ## [0.4.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.3...katalyst-v0.4.4) (2026-04-07)
 
 
