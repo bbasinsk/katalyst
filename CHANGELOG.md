@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.4](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.3...katalyst-v0.4.4) (2026-04-07)
+
+
+### Bug Fixes
+
+* only scan user classes for endpoint groups in OpenAPI generator ([b3708f7](https://github.com/bbasinsk/katalyst/commit/b3708f7e6ca0f1ac3e2b6f070bdccbedd1583764))
+
 ## [0.4.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.2...katalyst-v0.4.3) (2026-04-07)
 
 
