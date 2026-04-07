@@ -248,6 +248,7 @@ private fun HttpRequestBuilder.applyAuth(schema: AuthSchema<*>, credential: Auth
 
 @Suppress("UNCHECKED_CAST")
 private fun <I> HttpRequestBuilder.applyBody(bodySchema: BodySchema<I>, value: I) {
+    if (bodySchema.schema() is Schema.Empty) return
     when (bodySchema) {
         is BodySchema.WithMetadata -> applyBody(bodySchema.schema, value)
         is BodySchema.Single -> when (bodySchema.contentType) {

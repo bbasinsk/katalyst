@@ -28,6 +28,13 @@ kotlin {
                 api(project(":schema-json"))
             }
         }
+        val jsTest by getting {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+                implementation(libs.ktor3.client.mock)
+            }
+        }
         val jvmTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
