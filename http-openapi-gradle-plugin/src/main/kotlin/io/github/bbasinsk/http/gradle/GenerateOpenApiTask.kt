@@ -14,6 +14,11 @@ import java.util.jar.JarFile
 
 abstract class GenerateOpenApiTask : DefaultTask() {
 
+    /** Directories to scan for HttpEndpointGroup objects (user's compiled classes only). */
+    @get:InputFiles
+    abstract val scanClasspath: ConfigurableFileCollection
+
+    /** Full classpath needed to load classes (includes dependencies for type resolution). */
     @get:InputFiles
     @get:Classpath
     abstract val classpath: ConfigurableFileCollection
@@ -31,7 +36,7 @@ abstract class GenerateOpenApiTask : DefaultTask() {
     fun generate() {
         val urls = classpath.files.map { it.toURI().toURL() }.toTypedArray()
         URLClassLoader(urls, HttpEndpointGroup::class.java.classLoader).use { classLoader ->
-            val endpointGroups = discoverEndpointGroups(classLoader)
+            val endpointGroups = discoverEndpointGroups(classLoader, scanClasspath.files)
             val apis = endpointGroups.flatMap { it.apis }
 
             val openApiSpec = apis.toOpenApiSpec(
@@ -54,11 +59,11 @@ abstract class GenerateOpenApiTask : DefaultTask() {
         }
     }
 
-    private fun discoverEndpointGroups(classLoader: URLClassLoader): List<HttpEndpointGroup> {
+    private fun discoverEndpointGroups(classLoader: URLClassLoader, scanFiles: Set<File>): List<HttpEndpointGroup> {
         val endpointGroups = mutableListOf<HttpEndpointGroup>()
 
-        // Scan for classes that extend HttpEndpointGroup
-        classpath.files.forEach { file ->
+        // Only scan user's compiled output, not dependency JARs
+        scanFiles.forEach { file ->
             if (file.extension == "jar") {
                 // Scan JAR file
                 JarFile(file).use { jar ->

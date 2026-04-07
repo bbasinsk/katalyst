@@ -39,6 +39,7 @@ class OpenApiPlugin : Plugin<Project> {
                 // Configure classpath from Kotlin compilation
                 project.extensions.findByType(KotlinJvmProjectExtension::class.java)?.let { kotlinExt ->
                     val mainSourceSet = kotlinExt.target.compilations.getByName("main")
+                    task.scanClasspath.from(mainSourceSet.output.classesDirs)
                     task.classpath.from(mainSourceSet.output.classesDirs)
                     task.classpath.from(mainSourceSet.compileDependencyFiles)
 
@@ -48,6 +49,7 @@ class OpenApiPlugin : Plugin<Project> {
                     // Fallback to Java source sets if Kotlin is not available
                     val sourceSets = project.extensions.getByType(SourceSetContainer::class.java)
                     val mainSourceSet = sourceSets.getByName("main")
+                    task.scanClasspath.from(mainSourceSet.output.classesDirs)
                     task.classpath.from(mainSourceSet.output.classesDirs)
                     task.classpath.from(mainSourceSet.runtimeClasspath)
 
