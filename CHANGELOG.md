@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.6](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.5...katalyst-v0.4.6) (2026-04-07)
+
+
+### Bug Fixes
+
+* catch Throwable instead of Exception in KatalystClient.call() ([5092e13](https://github.com/bbasinsk/katalyst/commit/5092e13f44f89a747fc9a49cba53f3e377917e48))
+* skip setting request body for empty body schemas in KatalystClient ([e3f2cfc](https://github.com/bbasinsk/katalyst/commit/e3f2cfc562de351f8ab1ac64178e07d6121c26c7))
+
 ## [0.4.5](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.4...katalyst-v0.4.5) (2026-04-07)
 
 
