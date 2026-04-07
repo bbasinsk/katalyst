@@ -6,15 +6,18 @@ import io.github.bbasinsk.schema.DefinitionNameResolver
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 
+private fun <V> Map<String, V>.sortedByKey(): Map<String, V> =
+    entries.sortedBy { it.key }.associate { it.key to it.value }
+
 fun List<Http<*, *, *, *, *>>.toOpenApiSpec(info: Info, servers: List<Server> = emptyList()): OpenAPI {
     val resolver = DefinitionNameResolver()
     return OpenAPI(
         info = info,
         servers = servers,
-        paths = this.toOpenApiPaths(resolver),
+        paths = this.toOpenApiPaths(resolver).sortedByKey(),
         components = Components(
-            schemas = this.flatMap { it.toComponents(resolver) }.toMap(),
-            securitySchemes = this.collectSecuritySchemes()
+            schemas = this.flatMap { it.toComponents(resolver) }.toMap().sortedByKey(),
+            securitySchemes = this.collectSecuritySchemes().sortedByKey()
         )
     )
 }
@@ -68,7 +71,7 @@ private fun List<Http<*, *, *, *, *>>.toOpenApiPaths(resolver: DefinitionNameRes
         .mapValues { (_, value) ->
             value.associate { (endpoint, operation) ->
                 endpoint.method.name.lowercase() to operation
-            }
+            }.sortedByKey()
         }
 
 private fun ParamsSchema<*>.toFormattedPath(): String =
@@ -89,7 +92,7 @@ private fun <Params, Input, Error, Output, Auth> Http<Params, Input, Error, Outp
         )
         else -> (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
             status.code.toString() to case.toResponseObject(status, resolver)
-        }.toMap()
+        }.toMap().sortedByKey()
     }
 
     return Operation(
