@@ -7,11 +7,8 @@ import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpointGroup
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.openapi.Info
+import io.github.bbasinsk.http.openapi.OpenapiDocs
 import io.github.bbasinsk.http.openapi.Server
-import io.github.bbasinsk.http.openapi.renderOpenapiJson
-import io.github.bbasinsk.http.openapi.renderRedocHtml
-import io.github.bbasinsk.http.openapi.renderStoplightHtml
-import io.github.bbasinsk.http.openapi.renderSwaggerHtml
 import io.github.bbasinsk.schema.Schema
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -48,14 +45,6 @@ fun main() {
             )
         }
 
-        val info = Info(
-            title = "Person API",
-            version = "1.0.0",
-            description = "Example API."
-        )
-        val servers = listOf(Server(url = "http://localhost:33333"))
-        val specPath = "/openapi.json"
-
         // Docs routes are plain Http definitions — compose with .auth/.tag like anything else.
         val openApiFile = Http.get { Root / "openapi.json" }
             .output { status(Ok) { bytes(ContentType.Json) } }
@@ -70,17 +59,25 @@ fun main() {
             .output { status(Ok) { html() } }
             .tag("docs")
 
+        val docs = OpenapiDocs(
+            spec = openApiFile,
+            info = Info(
+                title = "Person API",
+                version = "1.0.0",
+                description = "Example API."
+            ),
+            servers = listOf(Server(url = "http://localhost:33333")),
+        )
+
         endpoints {
             multipartEndpoints()
             personEndpoints(domainService)
             sseEndpoints()
 
-            handle(openApiFile) { _ ->
-                Response.success(renderOpenapiJson(apis(), info, servers))
-            }
-            handle(swaggerUi) { _ -> Response.success(renderSwaggerHtml(specPath)) }
-            handle(redocUi) { _ -> Response.success(renderRedocHtml(specPath)) }
-            handle(stoplightUi) { _ -> Response.success(renderStoplightHtml(specPath)) }
+            handle(openApiFile) { _ -> Response.success(docs.specJson(apis())) }
+            handle(swaggerUi)   { _ -> Response.success(docs.swaggerHtml()) }
+            handle(redocUi)     { _ -> Response.success(docs.redocHtml()) }
+            handle(stoplightUi) { _ -> Response.success(docs.stoplightHtml()) }
         }
     }.start(wait = true)
 }
