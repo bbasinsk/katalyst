@@ -2,6 +2,137 @@
 
 Type-safe HTTP API definitions with support for authentication and streaming via Server-Sent Events (SSE).
 
+## Request Headers
+
+Declare typed request headers with `.header { schema(...) }`. Headers compose the same way as `.query {}` — each call adds another header, and the endpoint's `params` type grows to include them.
+
+```kotlin
+val updatePerson = Http.put { Root / "person" }
+    .header { schema("X-Request-Id") { string() } }
+    .header { schema("X-Client-Version") { int() } }
+    .input { json { personSchema } }
+    .output { status(Ok) { json { personSchema } } }
+
+handle(updatePerson) { request ->
+    val (requestId, clientVersion) = tupleValues(request.params)
+    // ...
+}
+```
+
+Header values support the same `ParamSchema` combinators as path/query params — including `.optional()` for headers that may be absent:
+
+```kotlin
+.header { schema("X-Trace-Id") { string().optional() } }
+```
+
+The client automatically sends declared headers when you invoke `call()` / `stream()` — no extra configuration is needed. On the OpenAPI side, headers surface as `in: header` parameters.
+
+## Parameter and Body Metadata
+
+Any path, query, header, or body schema can be annotated with `.description()`, `.example()`, and `.deprecated()`. These show up in the generated OpenAPI spec and help API consumers understand each field:
+
+```kotlin
+val api = Http.get { Root / "search" }
+    .query {
+        schema("q") { string() }
+            .description("Full-text search query")
+            .example("recent", "kotlin multiplatform")
+    }
+    .header {
+        schema("X-API-Version") { int() }
+            .deprecated("Use Accept-Version instead")
+    }
+    .output {
+        status(Ok) {
+            json { resultSchema }
+                .description("Matching results")
+                .example("empty", emptyList())
+        }
+    }
+```
+
+Multiple `.example(name, value)` calls accumulate — each named example is rendered separately in the OpenAPI output.
+
+## Endpoint Metadata
+
+Attach OpenAPI metadata directly on the endpoint with `.summary()`, `.deprecated()`, and `.tag()`:
+
+```kotlin
+val updatePerson = Http.put { Root / "person" / param("id") { uuid() } }
+    .summary("Update a person")
+    .deprecated("Use PATCH /person/{id} instead")
+    .tag("people", "admin")
+    .input { json { personSchema } }
+    .output { status(Ok) { json { personSchema } } }
+```
+
+- `summary` becomes the operation's short description in the OpenAPI spec
+- `deprecated(reason)` marks the operation as deprecated and records the reason
+- `tag(...)` accepts varargs and appends to any tags already set — useful for grouping endpoints in Swagger UI
+
+## Request Body Formats
+
+`json` and `plain` are the most common body formats, but the `input {}` / output `status(...) {}` blocks accept several others:
+
+| Format | DSL | Content-Type |
+|--------|-----|--------------|
+| JSON | `json { schema }` | `application/json` |
+| Plain text | `plain { schema }` | `text/plain` |
+| HTML | `html()` | `text/html` |
+| Avro | `avro { schema }` | `application/avro` |
+| Raw bytes | `bytes(contentType)` | caller-supplied |
+| Multipart | `multipart { recordSchema }` | `multipart/form-data` |
+| URL-encoded form | `formUrlEncoded { recordSchema }` | `application/x-www-form-urlencoded` |
+| Empty | `empty()` | — |
+
+### Multipart
+
+`multipart` takes a record schema; each field becomes one form part. Use `Schema.byteArray()` for file uploads and `list(byteArray())` for multiple files under a single field name:
+
+```kotlin
+data class UploadRequest(val name: String, val files: List<ByteArray>)
+
+val upload = Http.post { Root / "upload" }
+    .input {
+        multipart {
+            record(
+                field(string(), "name") { name },
+                field(list(byteArray()), "files") { files },
+                ::UploadRequest
+            )
+        }
+    }
+    .output { status(Ok) { plain { string() } } }
+```
+
+### Form URL-encoded
+
+```kotlin
+val login = Http.post { Root / "login" }
+    .input {
+        formUrlEncoded {
+            record(
+                field(string(), "username") { username },
+                field(string(), "password") { password },
+                ::LoginForm
+            )
+        }
+    }
+    .output { status(Ok) { json { tokenSchema } } }
+```
+
+### Raw bytes
+
+Use `bytes(...)` when the body is opaque to Katalyst and you want to pass it through untouched:
+
+```kotlin
+val uploadImage = Http.post { Root / "image" }
+    .input { bytes(ContentType.Image.Png) }
+    .output { status(Ok) { empty() } }
+```
+
+Available content types are defined in `ContentType` — `Json`, `Plain`, `Html`, `Avro`, `MultipartFormData`, `FormUrlEncoded`, `EventStream`, and the `ContentType.Image` family (`Jpeg`, `Png`, `Gif`, `Webp`).
+
 ## Authentication
 
 Katalyst provides type-safe authentication with phantom types to ensure compile-time safety between your auth schema and validator.
