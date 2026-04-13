@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.7...katalyst-v0.4.8) (2026-04-13)
+
+
+### Bug Fixes
+
+* move auto-rendering of openapi out of http handler ([#106](https://github.com/bbasinsk/katalyst/issues/106)) ([4869d67](https://github.com/bbasinsk/katalyst/commit/4869d67aad0b3918dac56c99a758432066fc479d))
+
 ## [0.4.7](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.6...katalyst-v0.4.7) (2026-04-07)
 
 
