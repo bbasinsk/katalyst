@@ -70,14 +70,14 @@ data class HttpEndpoints(
     }
 
     /**
-     * Snapshot of every [Http] definition currently registered in this block. Safe to call
-     * from inside a handler lambda — the list is captured at request time, so newly-added
-     * endpoints are reflected if the block is still being built.
+     * Returns every [Http] definition registered in this block at the time of the call.
      *
-     * Typical use is in an OpenAPI spec handler:
+     * By the time a handler lambda runs, the enclosing `endpoints { }` block has already
+     * finished building, so every endpoint registered in it is always present. Typical use
+     * is from an OpenAPI spec handler:
      * ```
      * handle(openApiFile, basicAuth) { _ ->
-     *     Response.success(renderOpenapiJson(apis(), info, servers))
+     *     Response.success(docs.specJson(apis()))
      * }
      * ```
      */

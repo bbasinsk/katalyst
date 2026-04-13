@@ -183,55 +183,7 @@ val cookieHandler = AuthHandler.withRedirect<Session>("/login") { cookieValue ->
 }
 ```
 
-### OpenAPI Generation
-
-Auth schemas automatically generate OpenAPI security schemes:
-
-```json
-{
-  "components": {
-    "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
-      "basicAuth": { "type": "http", "scheme": "basic" },
-      "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" },
-      "cookieAuth": { "type": "apiKey", "in": "cookie", "name": "token" }
-    }
-  }
-}
-```
-
-#### Custom Scheme Names
-
-Use the `schemeName` parameter to avoid collisions when multiple endpoints use different auth configurations of the same type:
-
-```kotlin
-// Two Bearer auth endpoints with different configurations
-val jwtEndpoint = Http.get { Root / "jwt-protected" }
-    .auth { bearer<User>(format = "JWT", schemeName = "jwtAuth") }
-
-val opaqueEndpoint = Http.get { Root / "opaque-protected" }
-    .auth { bearer<User>(schemeName = "opaqueAuth") }
-
-// Two API Key endpoints with different header names
-val apiKeyEndpoint = Http.get { Root / "api" }
-    .auth { apiKeyHeader<ApiToken>("X-API-Key", schemeName = "apiKeyAuth") }
-
-val customKeyEndpoint = Http.get { Root / "custom" }
-    .auth { apiKeyHeader<ApiToken>("X-Custom-Key", schemeName = "customKeyAuth") }
-```
-
-This generates distinct security schemes in OpenAPI:
-
-```json
-{
-  "securitySchemes": {
-    "jwtAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" },
-    "opaqueAuth": { "type": "http", "scheme": "bearer" },
-    "apiKeyAuth": { "type": "apiKey", "in": "header", "name": "X-API-Key" },
-    "customKeyAuth": { "type": "apiKey", "in": "header", "name": "X-Custom-Key" }
-  }
-}
-```
+See [`http-openapi/readme.md`](../http-openapi/readme.md) for how auth schemas surface as OpenAPI security schemes, how to generate and serialize a spec, and how to host it alongside the built-in UIs.
 
 ## Server-Sent Events (SSE) Streaming
 

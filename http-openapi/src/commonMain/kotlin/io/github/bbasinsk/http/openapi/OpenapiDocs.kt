@@ -51,13 +51,29 @@ class OpenapiDocs(
         ).encodeToByteArray()
 
     /** Swagger UI HTML page pointing at [specPath]. */
-    fun swaggerHtml(): String = swaggerTemplate(specPath)
+    fun swaggerHtml(): String = swaggerTemplate(specPath.htmlEscaped())
 
     /** ReDoc UI HTML page pointing at [specPath]. */
-    fun redocHtml(): String = redocTemplate(specPath)
+    fun redocHtml(): String = redocTemplate(specPath.htmlEscaped())
 
     /** Stoplight Elements UI HTML page pointing at [specPath]. */
-    fun stoplightHtml(): String = stoplightTemplate(specPath)
+    fun stoplightHtml(): String = stoplightTemplate(specPath.htmlEscaped())
+}
+
+/**
+ * HTML-escapes the five characters that can break out of an attribute/text context. The
+ * spec path is developer-controlled (it comes from the `Http` DSL), but escaping it here
+ * means an exotic path segment can never produce broken — or injectable — HTML.
+ */
+private fun String.htmlEscaped(): String = buildString(length) {
+    for (ch in this@htmlEscaped) when (ch) {
+        '&' -> append("&amp;")
+        '<' -> append("&lt;")
+        '>' -> append("&gt;")
+        '"' -> append("&quot;")
+        '\'' -> append("&#39;")
+        else -> append(ch)
+    }
 }
 
 private fun swaggerTemplate(specPath: String): String =
@@ -115,7 +131,7 @@ private fun stoplightTemplate(specPath: String): String =
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-        <title>Elements in HTML</title>
+        <title>Stoplight Elements</title>
         <script src="https://cdn.jsdelivr.net/npm/@stoplight/elements/web-components.min.js"></script>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stoplight/elements/styles.min.css">
       </head>
