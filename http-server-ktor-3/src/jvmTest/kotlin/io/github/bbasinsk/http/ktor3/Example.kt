@@ -2,10 +2,12 @@
 
 package io.github.bbasinsk.http.ktor3
 
+import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpointGroup
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.openapi.Info
+import io.github.bbasinsk.http.openapi.OpenapiDocs
 import io.github.bbasinsk.http.openapi.Server
 import io.github.bbasinsk.schema.Schema
 import io.ktor.serialization.kotlinx.json.*
@@ -43,21 +45,39 @@ fun main() {
             )
         }
 
+        // Docs routes are plain Http definitions — compose with .auth/.tag like anything else.
+        val openApiFile = Http.get { Root / "openapi.json" }
+            .output { status(Ok) { bytes(ContentType.Json) } }
+            .tag("docs")
+        val swaggerUi = Http.get { Root / "swagger" }
+            .output { status(Ok) { html() } }
+            .tag("docs")
+        val redocUi = Http.get { Root / "redoc" }
+            .output { status(Ok) { html() } }
+            .tag("docs")
+        val stoplightUi = Http.get { Root / "stoplight" }
+            .output { status(Ok) { html() } }
+            .tag("docs")
+
+        val docs = OpenapiDocs(
+            spec = openApiFile,
+            info = Info(
+                title = "Person API",
+                version = "1.0.0",
+                description = "Example API."
+            ),
+            servers = listOf(Server(url = "http://localhost:33333")),
+        )
+
         endpoints {
-            openApi(
-                jsonSpecPath = "/openapi.json",
-                info = Info(
-                    title = "Person API",
-                    version = "1.0.0",
-                    description = "Molestiae occaecati molestiae at aut et consequatur ut facere commodi et eos fugiat. Vitae et labore est ex. Facere sed numquam blanditiis vel dolores sint sint ut quae officiis et. Alias dolorem sit odit aut animi ut eos consequatur sit quod suscipit est eum. Modi quo aliquid impedit architecto et laborum odit non non est et. Possimus in animi sunt maxime impedit ex ut odio qui odit laborum consequatur autem omnis quaerat. Nam dicta commodi rerum fuga ducimus et quas aut molestias illum. Ex asperiores perspiciatis facere voluptate est architecto non est ex quos unde adipisci vel ratione. Aut a ea placeat inventore atque id quisquam velit facere."
-                ),
-                servers = listOf(
-                    Server(url = "http://localhost:33333")
-                )
-            )
             multipartEndpoints()
             personEndpoints(domainService)
             sseEndpoints()
+
+            handle(openApiFile) { _ -> Response.success(docs.specJson(apis())) }
+            handle(swaggerUi)   { _ -> Response.success(docs.swaggerHtml()) }
+            handle(redocUi)     { _ -> Response.success(docs.redocHtml()) }
+            handle(stoplightUi) { _ -> Response.success(docs.stoplightHtml()) }
         }
     }.start(wait = true)
 }

@@ -6,8 +6,6 @@ import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.optional
-import io.github.bbasinsk.http.openapi.Info
-import io.github.bbasinsk.http.openapi.Server
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.utils.io.KtorDsl
@@ -18,17 +16,8 @@ fun HttpEndpoints.httpEndpoints(vararg tags: String, builder: HttpEndpoints.() -
 
 data class HttpEndpoints(
     val underlying: MutableList<HttpEndpoint<*, *, *, *, *, RoutingCall>> = mutableListOf(),
-    var openApiBuilder: OpenApiBuilder? = null,
     val tags: List<String> = emptyList(),
 ) {
-
-    fun openApi(
-        info: Info,
-        servers: List<Server> = emptyList(),
-        jsonSpecPath: String = "/openapi.json"
-    ) {
-        openApiBuilder = OpenApiBuilder(jsonSpecPath, info, servers)
-    }
 
     // Handle for endpoints with Auth = Unit (no auth required)
     @KtorDsl
@@ -80,6 +69,18 @@ data class HttpEndpoints(
         underlying.forEach { httpEndpointToRoute(it) }
     }
 
-    internal fun apis(): List<Http<*, *, *, *, *>> =
+    /**
+     * Returns every [Http] definition registered in this block at the time of the call.
+     *
+     * By the time a handler lambda runs, the enclosing `endpoints { }` block has already
+     * finished building, so every endpoint registered in it is always present. Typical use
+     * is from an OpenAPI spec handler:
+     * ```
+     * handle(openApiFile, basicAuth) { _ ->
+     *     Response.success(docs.specJson(apis()))
+     * }
+     * ```
+     */
+    fun apis(): List<Http<*, *, *, *, *>> =
         underlying.map { it.api }
 }

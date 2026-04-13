@@ -1,5 +1,6 @@
 package io.github.bbasinsk.http.ktor3
 
+import io.github.bbasinsk.http.ContentType as KatalystContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.query
@@ -394,6 +395,30 @@ class KtorAdapterTest {
 
         assertEquals(200, response.status.value)
         assertEquals("wrapped:my-value", response.bodyAsText())
+    }
+
+    @Test
+    fun bytesWithContentTypeJsonIsWrittenVerbatimAsApplicationJson() = testApplication {
+        val api = Http.get { Root / "openapi.json" }
+            .output { status(Ok) { bytes(KatalystContentType.Json) } }
+
+        val rawJson = """{"openapi":"3.0.0","info":{"title":"t","version":"1"}}"""
+
+        application {
+            endpoints {
+                handle(api) { _ -> success(rawJson.encodeToByteArray()) }
+            }
+        }
+
+        val response = createClient { }.get("/openapi.json")
+
+        assertEquals(200, response.status.value)
+        assertEquals(
+            ContentType.Application.Json,
+            response.contentType()?.withoutParameters()
+        )
+        // The body is written verbatim — not base64-encoded through Schema.Bytes' JSON codec.
+        assertEquals(rawJson, response.bodyAsText())
     }
 }
 

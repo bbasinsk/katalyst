@@ -295,7 +295,16 @@ private suspend fun <A> RoutingCall.respondSchema(status: HttpStatusCode, schema
         is BodySchema.WithMetadata -> respondSchema(status, schema.schema, value)
         is BodySchema.Single -> when (schema.contentType) {
             is ContentType.Image -> respondBytes(contentType = schema.contentType.toKtorContentType(), status = status, bytes = value as ByteArray)
-            ContentType.Json -> respondJson(status, schema.schema(), value)
+            ContentType.Json ->
+                if (schema.schema is Schema.Bytes) {
+                    // bytes(ContentType.Json) is modeled as Single(Schema.Bytes, Json), so
+                    // A is always ByteArray here — the handler hands back pre-serialized JSON
+                    // that should be written verbatim instead of re-encoded through the schema.
+                    @Suppress("UNCHECKED_CAST")
+                    respondBytes(value as ByteArray, io.ktor.http.ContentType.Application.Json, status)
+                } else {
+                    respondJson(status, schema.schema(), value)
+                }
             ContentType.Avro -> respondAvro(status, schema.schema(), value)
             ContentType.Plain -> respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
             ContentType.Html -> respondText(schema.schema.encodePrimitiveString(value).getOrThrow(), schema.contentType.toKtorContentType(), status)
