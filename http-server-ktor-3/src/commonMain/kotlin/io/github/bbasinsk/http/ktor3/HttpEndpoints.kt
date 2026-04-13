@@ -6,8 +6,6 @@ import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.optional
-import io.github.bbasinsk.http.openapi.Info
-import io.github.bbasinsk.http.openapi.Server
 import io.ktor.server.routing.RoutingCall
 import io.ktor.server.routing.RoutingRoot
 import io.ktor.utils.io.KtorDsl
@@ -18,17 +16,8 @@ fun HttpEndpoints.httpEndpoints(vararg tags: String, builder: HttpEndpoints.() -
 
 data class HttpEndpoints(
     val underlying: MutableList<HttpEndpoint<*, *, *, *, *, RoutingCall>> = mutableListOf(),
-    var openApiBuilder: OpenApiBuilder? = null,
     val tags: List<String> = emptyList(),
 ) {
-
-    fun openApi(
-        info: Info,
-        servers: List<Server> = emptyList(),
-        jsonSpecPath: String = "/openapi.json"
-    ) {
-        openApiBuilder = OpenApiBuilder(jsonSpecPath, info, servers)
-    }
 
     // Handle for endpoints with Auth = Unit (no auth required)
     @KtorDsl
@@ -80,6 +69,18 @@ data class HttpEndpoints(
         underlying.forEach { httpEndpointToRoute(it) }
     }
 
-    internal fun apis(): List<Http<*, *, *, *, *>> =
+    /**
+     * Snapshot of every [Http] definition currently registered in this block. Safe to call
+     * from inside a handler lambda — the list is captured at request time, so newly-added
+     * endpoints are reflected if the block is still being built.
+     *
+     * Typical use is in an OpenAPI spec handler:
+     * ```
+     * handle(openApiFile, basicAuth) { _ ->
+     *     Response.success(renderOpenapiJson(apis(), info, servers))
+     * }
+     * ```
+     */
+    fun apis(): List<Http<*, *, *, *, *>> =
         underlying.map { it.api }
 }

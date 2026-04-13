@@ -14,19 +14,6 @@ fun Application.endpoints(
     val httpEndpoints = HttpEndpoints().apply(builder)
     val configure = httpEndpoints.configure()
     @Suppress("UNCHECKED_CAST")
-    val routing = pluginOrNull(RoutingRoot)?.apply(configure) ?: install(RoutingRoot, configure as Routing.() -> Unit)
-
-    return routing.apply {
-        httpEndpoints.openApiBuilder?.let { openApi ->
-            openapiSpecJson(
-                path = openApi.jsonSpecPath,
-                apis = httpEndpoints.apis(),
-                info = openApi.info,
-                servers = openApi.servers
-            )
-            stoplight(specPath = openApi.jsonSpecPath)
-            swagger(specPath = openApi.jsonSpecPath)
-            redoc(specPath = openApi.jsonSpecPath)
-        }
-    }
+    return pluginOrNull(RoutingRoot)?.apply(configure)
+        ?: install(RoutingRoot, configure as Routing.() -> Unit)
 }
