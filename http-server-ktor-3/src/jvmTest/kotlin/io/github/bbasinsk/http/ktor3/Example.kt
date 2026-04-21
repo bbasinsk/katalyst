@@ -93,7 +93,7 @@ object SSEEndpoints : HttpEndpointGroup("SSE") {
 
     val longLivedStream = http {
         get { Root / "sse" / "heartbeat" }
-            .output { sse { json { heartbeatSchema } } }
+            .output { sse(Ok) { json { heartbeatSchema } } }
     }
 }
 

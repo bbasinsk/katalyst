@@ -1417,7 +1417,7 @@ class SSESpecAdapterTest {
     @Test
     fun `should generate OpenAPI for SSE streaming endpoint with simple schema`() {
         val http = Http.get { Root / "stream" }
-            .output { sse { json { string() } } }
+            .output { sse(Ok) { json { string() } } }
 
         val result = listOf(http).toOpenApiSpec(info)
 
@@ -1472,7 +1472,7 @@ class SSESpecAdapterTest {
         }
 
         val http = Http.get { Root / "messages" }
-            .output { sse { json { messageSchema } } }
+            .output { sse(Ok) { json { messageSchema } } }
 
         val result = listOf(http).toOpenApiSpec(info)
 
@@ -1534,7 +1534,7 @@ class SSESpecAdapterTest {
     @Test
     fun `should generate OpenAPI for SSE streaming endpoint with plain text`() {
         val http = Http.get { Root / "plain-stream" }
-            .output { sse { plain { string() } } }
+            .output { sse(Ok) { plain { string() } } }
 
         val result = listOf(http).toOpenApiSpec(info)
 
@@ -1590,7 +1590,7 @@ class SSESpecAdapterTest {
 
         val http = Http.get { Root / "events" }
             .output {
-                sse {
+                sse(Ok) {
                     json { eventSchema }
                         .example("greeting", Event("greeting", "Hello"))
                         .example("farewell", Event("farewell", "Goodbye"))
@@ -1684,7 +1684,7 @@ class SSESpecAdapterTest {
             .output { status(Ok) { json { messageSchema } } }
 
         val streamingHttp = Http.get { Root / "stream" }
-            .output { sse { json { messageSchema } } }
+            .output { sse(Ok) { json { messageSchema } } }
 
         val result = listOf(regularHttp, streamingHttp).toOpenApiSpec(info)
 

@@ -41,8 +41,14 @@ import io.ktor.utils.io.ByteReadChannel
 import io.ktor.utils.io.readLine
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.jvm.JvmName
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.SendChannel
+import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.launch
 
 class KatalystClient(
     val httpClient: HttpClient
@@ -96,98 +102,166 @@ class KatalystClient(
         auth: AuthCredential? = null
     ): HttpResult<E, O> = call(endpoint, Unit, input, auth)
 
-    fun <P, I, E, O, A> stream(
+    suspend fun <P, I, E, O, A> stream(
         endpoint: Http<P, I, E, O, A>,
         params: P,
         input: I,
         auth: AuthCredential? = null
-    ): Flow<SSEEvent<O>> = channelFlow {
+    ): HttpResult<E, Flow<SSEEvent<O>>> {
         val rendered = endpoint.params.render(params)
-        val eventStream = endpoint.output.findEventStream()
-            ?: error("Endpoint output schema has no SSE EventStream variant")
+        val events = Channel<SSEEvent<O>>(Channel.BUFFERED)
+        val outcome = CompletableDeferred<HttpResult<E, Unit>>()
 
-        httpClient.prepareRequest {
-            method = endpoint.method.toKtorMethod()
-            url { appendPathSegments(rendered.pathSegments) }
-            rendered.queryParams.forEach { (name, values) ->
-                values.forEach { value -> url.parameters.append(name, value) }
-            }
-            rendered.headers.forEach { (name, values) ->
-                values.forEach { value -> header(name, value) }
-            }
-            applyAuth(endpoint.auth, auth)
-            applyBody(endpoint.input, input)
-            header(HttpHeaders.Accept, "text/event-stream")
-            header(HttpHeaders.CacheControl, "no-store")
-        }.execute { response ->
-            val channel: ByteReadChannel = response.bodyAsChannel()
-            var eventType: String? = null
-            var dataLines = mutableListOf<String>()
-            var eventId: String? = null
-            var retry: Long? = null
-            var comment: String? = null
-
-            while (!channel.isClosedForRead) {
-                val line = channel.readLine() ?: break
-
-                when {
-                    line.isEmpty() -> {
-                        if (dataLines.isNotEmpty() || comment != null) {
-                            val data = if (dataLines.isNotEmpty()) {
-                                val raw = dataLines.joinToString("\n")
-                                if (raw.isBlank() || raw == "null") null else decodeBody(eventStream.bodySchema, raw.encodeToByteArray())
-                            } else null
-
-                            send(
-                                SSEEvent(
-                                    data = data,
-                                    event = eventType,
-                                    id = eventId,
-                                    retry = retry,
-                                    comment = comment
-                                )
-                            )
+        val job = httpClient.launch {
+            try {
+                httpClient.prepareRequest {
+                    method = endpoint.method.toKtorMethod()
+                    url { appendPathSegments(rendered.pathSegments) }
+                    rendered.queryParams.forEach { (name, values) ->
+                        values.forEach { value -> url.parameters.append(name, value) }
+                    }
+                    rendered.headers.forEach { (name, values) ->
+                        values.forEach { value -> header(name, value) }
+                    }
+                    applyAuth(endpoint.auth, auth)
+                    applyBody(endpoint.input, input)
+                    header(HttpHeaders.Accept, "text/event-stream")
+                    header(HttpHeaders.CacheControl, "no-store")
+                }.execute { response ->
+                    val statusCode = response.status.value
+                    when (val match = matchStatusSchema(endpoint, statusCode)) {
+                        is StatusMatch.EventStream<O> -> {
+                            outcome.complete(HttpResult.Success(Unit))
+                            try {
+                                streamEvents(response.bodyAsChannel(), match.schema, events)
+                                events.close()
+                            } catch (e: CancellationException) {
+                                events.close(e)
+                                throw e
+                            } catch (e: Throwable) {
+                                events.close(e)
+                            }
                         }
-                        eventType = null
-                        dataLines = mutableListOf()
-                        eventId = null
-                        retry = null
-                        comment = null
-                    }
 
-                    line.startsWith(":") -> {
-                        comment = line.removePrefix(": ").takeIf { it.isNotBlank() }
-                            ?: line.removePrefix(":").takeIf { it.isNotBlank() }
-                    }
+                        is StatusMatch.Error<E> -> {
+                            outcome.complete(decodeFailure(match.schema, statusCode, response.readRawBytes()))
+                            events.close()
+                        }
 
-                    line.startsWith("event:") -> eventType = line.removePrefix("event:").removePrefix(" ")
-                    line.startsWith("data:") -> dataLines.add(line.removePrefix("data:").removePrefix(" "))
-                    line.startsWith("id:") -> eventId = line.removePrefix("id:").removePrefix(" ")
-                    line.startsWith("retry:") -> retry = line.removePrefix("retry:").removePrefix(" ").toLongOrNull()
+                        is StatusMatch.Output<O> -> {
+                            outcome.complete(HttpResult.NetworkError(
+                                IllegalStateException("Stream endpoint returned non-SSE success $statusCode")
+                            ))
+                            events.close()
+                        }
+
+                        StatusMatch.Unmatched -> {
+                            val bytes = response.readRawBytes()
+                            outcome.complete(HttpResult.NetworkError(
+                                IllegalStateException("Unexpected status $statusCode: ${bytes.decodeToString()}")
+                            ))
+                            events.close()
+                        }
+                    }
                 }
+            } catch (e: CancellationException) {
+                if (!outcome.isCompleted) outcome.completeExceptionally(e)
+                events.close(e)
+                throw e
+            } catch (e: Throwable) {
+                if (!outcome.isCompleted) outcome.complete(HttpResult.NetworkError(e))
+                events.close(e)
             }
+        }
+
+        val result = try {
+            outcome.await()
+        } catch (e: Throwable) {
+            job.cancel()
+            throw e
+        }
+
+        return when (result) {
+            is HttpResult.Success -> HttpResult.Success(
+                flow { events.consumeEach { emit(it) } }
+                    .onCompletion { job.cancel() }
+            )
+            is HttpResult.Failure -> result
+            is HttpResult.NetworkError -> result
         }
     }
 
     @JvmName("streamNoParamsNoInput")
-    fun <E, O, A> stream(
+    suspend fun <E, O, A> stream(
         endpoint: Http<Unit, Nothing?, E, O, A>,
         auth: AuthCredential? = null
-    ): Flow<SSEEvent<O>> = stream(endpoint, Unit, null, auth)
+    ): HttpResult<E, Flow<SSEEvent<O>>> = stream(endpoint, Unit, null, auth)
 
     @JvmName("streamNoInput")
-    fun <P, E, O, A> stream(
+    suspend fun <P, E, O, A> stream(
         endpoint: Http<P, Nothing?, E, O, A>,
         params: P,
         auth: AuthCredential? = null
-    ): Flow<SSEEvent<O>> = stream(endpoint, params, null, auth)
+    ): HttpResult<E, Flow<SSEEvent<O>>> = stream(endpoint, params, null, auth)
 
     @JvmName("streamNoParams")
-    fun <I, E, O, A> stream(
+    suspend fun <I, E, O, A> stream(
         endpoint: Http<Unit, I, E, O, A>,
         input: I,
         auth: AuthCredential? = null
-    ): Flow<SSEEvent<O>> = stream(endpoint, Unit, input, auth)
+    ): HttpResult<E, Flow<SSEEvent<O>>> = stream(endpoint, Unit, input, auth)
+}
+
+private suspend fun <O> streamEvents(
+    channel: ByteReadChannel,
+    bodySchema: BodySchema<O>,
+    events: SendChannel<SSEEvent<O>>
+) {
+    var eventType: String? = null
+    var dataLines = mutableListOf<String>()
+    var eventId: String? = null
+    var retry: Long? = null
+    var comment: String? = null
+
+    while (!channel.isClosedForRead) {
+        val line = channel.readLine() ?: break
+
+        when {
+            line.isEmpty() -> {
+                if (dataLines.isNotEmpty() || comment != null) {
+                    val data = if (dataLines.isNotEmpty()) {
+                        val raw = dataLines.joinToString("\n")
+                        if (raw.isBlank() || raw == "null") null else decodeBody(bodySchema, raw.encodeToByteArray())
+                    } else null
+
+                    events.send(
+                        SSEEvent(
+                            data = data,
+                            event = eventType,
+                            id = eventId,
+                            retry = retry,
+                            comment = comment
+                        )
+                    )
+                }
+                eventType = null
+                dataLines = mutableListOf()
+                eventId = null
+                retry = null
+                comment = null
+            }
+
+            line.startsWith(":") -> {
+                comment = line.removePrefix(": ").takeIf { it.isNotBlank() }
+                    ?: line.removePrefix(":").takeIf { it.isNotBlank() }
+            }
+
+            line.startsWith("event:") -> eventType = line.removePrefix("event:").removePrefix(" ")
+            line.startsWith("data:") -> dataLines.add(line.removePrefix("data:").removePrefix(" "))
+            line.startsWith("id:") -> eventId = line.removePrefix("id:").removePrefix(" ")
+            line.startsWith("retry:") -> retry = line.removePrefix("retry:").removePrefix(" ").toLongOrNull()
+        }
+    }
 }
 
 private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
@@ -354,7 +428,33 @@ private fun ParametersBuilder.encodeFormField(name: String, schema: Schema<Any?>
     }
 }
 
+private sealed interface StatusMatch<out E, out O> {
+    data class Output<O>(val schema: BodySchema<O>) : StatusMatch<Nothing, O>
+    data class EventStream<O>(val schema: BodySchema<O>) : StatusMatch<Nothing, O>
+    data class Error<E>(val schema: BodySchema<E>) : StatusMatch<E, Nothing>
+    data object Unmatched : StatusMatch<Nothing, Nothing>
+}
+
 @Suppress("UNCHECKED_CAST")
+private fun <P, I, E, O, A> matchStatusSchema(
+    endpoint: Http<P, I, E, O, A>,
+    statusCode: Int
+): StatusMatch<E, O> {
+    endpoint.output.schemaByStatus().entries
+        .firstOrNull { it.key.code == statusCode }
+        ?.let { return StatusMatch.Output(it.value as BodySchema<O>) }
+
+    endpoint.output.findEventStream()
+        ?.takeIf { it.status.code == statusCode }
+        ?.let { return StatusMatch.EventStream(it.bodySchema) }
+
+    endpoint.error.schemaByStatus().entries
+        .firstOrNull { it.key.code == statusCode }
+        ?.let { return StatusMatch.Error(it.value as BodySchema<E>) }
+
+    return StatusMatch.Unmatched
+}
+
 private suspend fun <P, I, E, O, A> decodeResponse(
     endpoint: Http<P, I, E, O, A>,
     response: HttpResponse
@@ -362,25 +462,32 @@ private suspend fun <P, I, E, O, A> decodeResponse(
     val statusCode = response.status.value
     val bytes = response.readRawBytes()
 
-    val outputByStatus = endpoint.output.schemaByStatus()
-    val errorByStatus = endpoint.error.schemaByStatus()
-
-    val matchedOutput = outputByStatus.entries.firstOrNull { it.key.code == statusCode }
-    if (matchedOutput != null) {
-        return runCatching { decodeBody(matchedOutput.value as BodySchema<O>, bytes) }
+    return when (val match = matchStatusSchema(endpoint, statusCode)) {
+        is StatusMatch.Output<O> -> runCatching { decodeBody(match.schema, bytes) }
             .fold(onSuccess = { HttpResult.Success(it) }, onFailure = { HttpResult.NetworkError(it) })
-    }
 
-    val matchedError = errorByStatus.entries.firstOrNull { it.key.code == statusCode }
-    if (matchedError != null) {
-        return runCatching { decodeBody(matchedError.value as BodySchema<E>, bytes) }
-            .fold(onSuccess = { HttpResult.Failure(statusCode, it) }, onFailure = { HttpResult.NetworkError(it) })
-    }
+        is StatusMatch.EventStream<O> -> HttpResult.NetworkError(
+            IllegalStateException("Endpoint returned an event stream; use stream() instead of call()")
+        )
 
-    return HttpResult.NetworkError(
-        IllegalStateException("Unexpected status $statusCode: ${bytes.decodeToString()}")
-    )
+        is StatusMatch.Error<E> -> decodeFailure(match.schema, statusCode, bytes)
+
+        StatusMatch.Unmatched -> HttpResult.NetworkError(
+            IllegalStateException("Unexpected status $statusCode: ${bytes.decodeToString()}")
+        )
+    }
 }
+
+private fun <E> decodeFailure(
+    schema: BodySchema<E>,
+    statusCode: Int,
+    bytes: ByteArray
+): HttpResult<E, Nothing> =
+    runCatching { decodeBody(schema, bytes) }
+        .fold(
+            onSuccess = { HttpResult.Failure(statusCode, it) },
+            onFailure = { HttpResult.NetworkError(it) }
+        )
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> decodeBody(bodySchema: BodySchema<A>, bytes: ByteArray): A =

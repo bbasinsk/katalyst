@@ -88,7 +88,7 @@ private fun <Params, Input, Error, Output, Auth> Http<Params, Input, Error, Outp
 ): Operation {
     val responses = when (val out = output) {
         is ResponseSchema.EventStream -> mapOf(
-            "200" to out.bodySchema.toServerSentEventStream(resolver)
+            out.status.code.toString() to out.bodySchema.toServerSentEventStream(resolver)
         )
         else -> (output.schemaByStatus() + error.schemaByStatus()).map { (status, case) ->
             status.code.toString() to case.toResponseObject(status, resolver)

@@ -101,18 +101,23 @@ val result = client.call(api)
 
 ## SSE Streaming
 
-For endpoints that return Server-Sent Events, use `stream()` which returns a `Flow<SSEEvent<O>>`:
+For endpoints that return Server-Sent Events, use `stream()`. It suspends until the server responds with headers, then returns an `HttpResult<E, Flow<SSEEvent<O>>>` — mirroring `call()`'s result shape, with the success case carrying the event flow:
 
 ```kotlin
 val streamApi = Http.get { Root / "stream" }
-    .output { sse { json { string() } } }
+    .output { sse(Ok) { json { string() } } }
+    .error { status(Conflict) { json { errorSchema } } }
 
-val events: Flow<SSEEvent<String>> = client.stream(streamApi)
-
-events.collect { event ->
-    println("Received: ${event.data}")
+when (val result = client.stream(streamApi)) {
+    is HttpResult.Failure -> println("HTTP ${result.status}: ${result.error}")
+    is HttpResult.NetworkError -> println("Transport error: ${result.cause}")
+    is HttpResult.Success -> result.value
+        .catch { e -> println("Mid-stream error: $e") }
+        .collect { event -> println("Received: ${event.data}") }
 }
 ```
+
+A typed `Failure` or pre-flight `NetworkError` can only be the terminal outcome — once the connection is established, events flow through `Success` and mid-stream transport errors surface as exceptions on the inner flow (handle via `.catch { }`).
 
 Each `SSEEvent` carries optional `data`, `event`, `id`, `retry`, and `comment` fields.
 

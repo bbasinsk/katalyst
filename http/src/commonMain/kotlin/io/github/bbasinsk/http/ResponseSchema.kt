@@ -4,7 +4,7 @@ sealed interface ResponseSchema<A> {
     data object None : ResponseSchema<Nothing>
     data class Multiple<A>(val left: ResponseSchema<A>, val right: ResponseSchema<A>) : ResponseSchema<A>
     data class Single<A, B : A>(val status: ResponseStatus, val res: BodySchema<B>, val deconstruct: (A) -> Boolean) : ResponseSchema<A>
-    data class EventStream<A>(val bodySchema: BodySchema<A>) : ResponseSchema<A>
+    data class EventStream<A>(val status: ResponseStatus, val bodySchema: BodySchema<A>) : ResponseSchema<A>
 
     fun getStatus(value: A): ResponseStatus =
         get(value).key
@@ -68,8 +68,9 @@ sealed interface ResponseSchema<A> {
             Single(status, BodySchema.schema()) { true }
 
         fun <A> sse(
+            status: ResponseStatus,
             schema: BodySchema.Companion.() -> BodySchema<A>
         ): ResponseSchema<A> =
-            EventStream(BodySchema.schema())
+            EventStream(status, BodySchema.schema())
     }
 }
