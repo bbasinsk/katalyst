@@ -24,6 +24,7 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.testing.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
@@ -202,7 +203,7 @@ class KatalystClientTest {
     @Test
     fun `SSE streaming returns flow of events`() = testApplication {
         val api = Http.get { Root / "stream" }
-            .output { sse { json { string() } } }
+            .output { sse(Ok) { json { string() } } }
 
         application {
             endpoints {
@@ -219,7 +220,8 @@ class KatalystClientTest {
         }
 
         val katalystClient = KatalystClient(client)
-        val events = katalystClient.stream(api).toList()
+        val result = assertIs<HttpResult.Success<Flow<SSEEvent<String>>>>(katalystClient.stream(api))
+        val events = result.value.toList()
 
         assertEquals(3, events.size)
         assertEquals("event-1", events[0].data)
@@ -227,10 +229,173 @@ class KatalystClientTest {
         assertEquals("event-3", events[2].data)
     }
 
+    data class ChatError(val code: String, val message: String)
+
+    val chatErrorSchema: Schema<ChatError> = Schema.record(
+        Schema.field(Schema.string(), "code") { code },
+        Schema.field(Schema.string(), "message") { message },
+        ::ChatError
+    )
+
+    @Test
+    fun `stream returns Failure on declared error status`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = """{"code":"CONFLICT","message":"already exists"}""",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+            .error { status(Conflict) { json { chatErrorSchema } } }
+
+        val failure = assertIs<HttpResult.Failure<ChatError>>(KatalystClient(client).stream(api))
+        assertEquals(409, failure.status)
+        assertEquals(ChatError("CONFLICT", "already exists"), failure.error)
+    }
+
+    @Test
+    fun `stream returns NetworkError on undeclared error status`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "boom",
+                status = HttpStatusCode.InternalServerError,
+                headers = headersOf(HttpHeaders.ContentType, "text/plain")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+            .error { status(Conflict) { json { chatErrorSchema } } }
+
+        val networkError = assertIs<HttpResult.NetworkError>(KatalystClient(client).stream(api))
+        assertIs<IllegalStateException>(networkError.cause)
+        assertEquals("Unexpected status 500: boom", networkError.cause.message)
+    }
+
+    @Test
+    fun `stream returns NetworkError on body decode failure for declared error status`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "not valid json",
+                status = HttpStatusCode.Conflict,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+            .error { status(Conflict) { json { chatErrorSchema } } }
+
+        assertIs<HttpResult.NetworkError>(KatalystClient(client).stream(api))
+    }
+
+    @Test
+    fun `stream returns NetworkError on connection failure`() = runTest {
+        val mockEngine = MockEngine { throw IOException("Connection refused") }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+
+        val networkError = assertIs<HttpResult.NetworkError>(KatalystClient(client).stream(api))
+        assertIs<IOException>(networkError.cause)
+    }
+
+    @Test
+    fun `stream CancellationException propagates unchanged`() = runTest {
+        val mockEngine = MockEngine { throw CancellationException("cancelled") }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+
+        assertFailsWith<CancellationException> {
+            KatalystClient(client).stream(api)
+        }
+    }
+
+    @Test
+    fun `mid-stream decode failure surfaces as flow exception after prior events`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "data: \"first\"\n\ndata: not-json-at-all\n\n",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+
+        val result = assertIs<HttpResult.Success<Flow<SSEEvent<String>>>>(KatalystClient(client).stream(api))
+
+        val received = mutableListOf<SSEEvent<String>>()
+        assertFailsWith<Throwable> {
+            result.value.collect { received += it }
+        }
+        assertEquals(1, received.size)
+        assertEquals("first", received.single().data)
+    }
+
+    @Test
+    fun `stream routes to SSE when endpoint declares oneOf(status, sse) at same status`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "data: \"hello\"\n\n",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output {
+                oneOf(
+                    status(Ok) { json { Schema.string() } },
+                    sse(Ok) { json { Schema.string() } },
+                )
+            }
+
+        val result = assertIs<HttpResult.Success<Flow<SSEEvent<String>>>>(KatalystClient(client).stream(api))
+        val events = result.value.toList()
+        assertEquals(1, events.size)
+        assertEquals("hello", events.single().data)
+    }
+
+    @Test
+    fun `call routes to Success when endpoint declares oneOf(status, sse) and server responds non-SSE`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "\"hello\"",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output {
+                oneOf(
+                    status(Ok) { json { Schema.string() } },
+                    sse(Ok) { json { Schema.string() } },
+                )
+            }
+
+        val result = assertIs<HttpResult.Success<String>>(KatalystClient(client).call(api))
+        assertEquals("hello", result.value)
+    }
+
     @Test
     fun `SSE stream with keepalive heartbeats skips null data`() = testApplication {
         val api = Http.get { Root / "heartbeat" }
-            .output { sse { json { userSchema } } }
+            .output { sse(Ok) { json { userSchema } } }
 
         application {
             endpoints {
@@ -247,7 +412,8 @@ class KatalystClientTest {
         }
 
         val katalystClient = KatalystClient(client)
-        val events = katalystClient.stream(api).toList()
+        val result = assertIs<HttpResult.Success<Flow<SSEEvent<User>>>>(katalystClient.stream(api))
+        val events = result.value.toList()
 
         assertEquals(3, events.size)
         assertEquals(User("Alice", 30), events[0].data)
