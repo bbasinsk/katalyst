@@ -321,6 +321,78 @@ class KatalystClientTest {
     }
 
     @Test
+    fun `mid-stream decode failure surfaces as flow exception after prior events`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "data: \"first\"\n\ndata: not-json-at-all\n\n",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output { sse(Ok) { json { Schema.string() } } }
+
+        val result = assertIs<HttpResult.Success<Flow<SSEEvent<String>>>>(KatalystClient(client).stream(api))
+
+        val received = mutableListOf<SSEEvent<String>>()
+        assertFailsWith<Throwable> {
+            result.value.collect { received += it }
+        }
+        assertEquals(1, received.size)
+        assertEquals("first", received.single().data)
+    }
+
+    @Test
+    fun `stream routes to SSE when endpoint declares oneOf(status, sse) at same status`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "data: \"hello\"\n\n",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "text/event-stream")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output {
+                oneOf(
+                    status(Ok) { json { Schema.string() } },
+                    sse(Ok) { json { Schema.string() } },
+                )
+            }
+
+        val result = assertIs<HttpResult.Success<Flow<SSEEvent<String>>>>(KatalystClient(client).stream(api))
+        val events = result.value.toList()
+        assertEquals(1, events.size)
+        assertEquals("hello", events.single().data)
+    }
+
+    @Test
+    fun `call routes to Success when endpoint declares oneOf(status, sse) and server responds non-SSE`() = runTest {
+        val mockEngine = MockEngine {
+            respond(
+                content = "\"hello\"",
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
+        }
+        val client = HttpClient(mockEngine)
+
+        val api = Http.post { Root / "chat" }
+            .output {
+                oneOf(
+                    status(Ok) { json { Schema.string() } },
+                    sse(Ok) { json { Schema.string() } },
+                )
+            }
+
+        val result = assertIs<HttpResult.Success<String>>(KatalystClient(client).call(api))
+        assertEquals("hello", result.value)
+    }
+
+    @Test
     fun `SSE stream with keepalive heartbeats skips null data`() = testApplication {
         val api = Http.get { Root / "heartbeat" }
             .output { sse(Ok) { json { userSchema } } }

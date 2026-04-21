@@ -15,6 +15,7 @@ import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
+import io.github.bbasinsk.http.ResponseStatus
 import io.github.bbasinsk.http.SSEEvent
 import io.github.bbasinsk.schema.*
 import io.github.bbasinsk.schema.avro.BinaryDeserialization.deserializeIgnoringSchemaId
@@ -109,17 +110,17 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
             is Response.StreamingError -> {
                 val sseSchema = endpoint.api.error.findEventStream() ?: error(
                     "Handler returned StreamingError but error schema has no SSE variant. " +
-                            "Add sse(Ok) { ... } to your error schema, or use oneOf(..., sse(Ok) { ... })."
+                            "Add sse(<status>) { ... } to your error schema, or use oneOf(..., sse(<status>) { ... })."
                 )
-                call.respondSSE(sseSchema.bodySchema, response.events)
+                call.respondSSE(sseSchema.status, sseSchema.bodySchema, response.events)
             }
 
             is Response.StreamingSuccess -> {
                 val sseSchema = endpoint.api.output.findEventStream() ?: error(
                     "Handler returned StreamingSuccess but output schema has no SSE variant. " +
-                            "Add sse(Ok) { ... } to your output schema, or use oneOf(..., sse(Ok) { ... })."
+                            "Add sse(<status>) { ... } to your output schema, or use oneOf(..., sse(<status>) { ... })."
                 )
-                call.respondSSE(sseSchema.bodySchema, response.events)
+                call.respondSSE(sseSchema.status, sseSchema.bodySchema, response.events)
             }
         }
     } catch (e: CancellationException) {
@@ -343,10 +344,15 @@ data class SchemaError(
  * avoiding the Writer/OutputStream layer whose implicit close/flush can throw
  * [io.ktor.utils.io.ClosedByteChannelException] when the HTTP/2 stream has already closed.
  */
-private suspend fun <A> RoutingCall.respondSSE(bodySchema: BodySchema<A>, events: Flow<SSEEvent<A>>) {
+private suspend fun <A> RoutingCall.respondSSE(
+    responseStatus: ResponseStatus,
+    bodySchema: BodySchema<A>,
+    events: Flow<SSEEvent<A>>
+) {
     val routingCall = this
     respond(object : OutgoingContent.WriteChannelContent() {
         override val contentType = io.ktor.http.ContentType.Text.EventStream
+        override val status = HttpStatusCode.fromValue(responseStatus.code)
 
         override suspend fun writeTo(channel: ByteWriteChannel) {
             try {

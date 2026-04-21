@@ -32,6 +32,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.client.statement.readRawBytes
+import io.ktor.http.contentType
 import io.ktor.http.Headers
 import io.ktor.http.HttpHeaders
 import io.ktor.http.Parameters
@@ -42,9 +43,11 @@ import io.ktor.utils.io.readLine
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.jvm.JvmName
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.consumeEach
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onCompletion
@@ -102,6 +105,21 @@ class KatalystClient(
         auth: AuthCredential? = null
     ): HttpResult<E, O> = call(endpoint, Unit, input, auth)
 
+    /**
+     * Opens an SSE stream. Suspends until the server returns response headers,
+     * then returns a typed outcome:
+     *  - [HttpResult.Failure] — server responded with a declared error status and body
+     *  - [HttpResult.NetworkError] — transport, undeclared status, decode failure, or
+     *    pre-flight cancellation
+     *  - [HttpResult.Success] — the inner [Flow] yields SSE events until the connection
+     *    closes. Mid-stream transport failures surface as exceptions on the flow (use
+     *    [kotlinx.coroutines.flow.catch]).
+     *
+     * The returned flow is single-consumer. It **must be collected** (or the enclosing
+     * coroutine cancelled) for the connection to be released — if a caller receives
+     * [HttpResult.Success] and never subscribes, the request stays open until the caller's
+     * coroutine scope is cancelled.
+     */
     suspend fun <P, I, E, O, A> stream(
         endpoint: Http<P, I, E, O, A>,
         params: P,
@@ -111,8 +129,9 @@ class KatalystClient(
         val rendered = endpoint.params.render(params)
         val events = Channel<SSEEvent<O>>(Channel.BUFFERED)
         val outcome = CompletableDeferred<HttpResult<E, Unit>>()
+        val scope = CoroutineScope(currentCoroutineContext())
 
-        val job = httpClient.launch {
+        val job = scope.launch {
             try {
                 httpClient.prepareRequest {
                     method = endpoint.method.toKtorMethod()
@@ -129,7 +148,8 @@ class KatalystClient(
                     header(HttpHeaders.CacheControl, "no-store")
                 }.execute { response ->
                     val statusCode = response.status.value
-                    when (val match = matchStatusSchema(endpoint, statusCode)) {
+                    val isEventStream = response.isEventStream()
+                    when (val match = matchStatusSchema(endpoint, statusCode, isEventStream)) {
                         is StatusMatch.EventStream<O> -> {
                             outcome.complete(HttpResult.Success(Unit))
                             try {
@@ -212,44 +232,48 @@ class KatalystClient(
     ): HttpResult<E, Flow<SSEEvent<O>>> = stream(endpoint, Unit, input, auth)
 }
 
+private fun HttpResponse.isEventStream(): Boolean =
+    contentType()?.match(io.ktor.http.ContentType.Text.EventStream) == true
+
 private suspend fun <O> streamEvents(
     channel: ByteReadChannel,
     bodySchema: BodySchema<O>,
     events: SendChannel<SSEEvent<O>>
 ) {
     var eventType: String? = null
-    var dataLines = mutableListOf<String>()
+    val dataLines = mutableListOf<String>()
     var eventId: String? = null
     var retry: Long? = null
     var comment: String? = null
+
+    suspend fun flushEvent() {
+        if (dataLines.isEmpty() && comment == null) return
+        val data = if (dataLines.isNotEmpty()) {
+            val raw = dataLines.joinToString("\n")
+            if (raw.isBlank() || raw == "null") null else decodeBody(bodySchema, raw.encodeToByteArray())
+        } else null
+
+        events.send(
+            SSEEvent(
+                data = data,
+                event = eventType,
+                id = eventId,
+                retry = retry,
+                comment = comment
+            )
+        )
+        eventType = null
+        dataLines.clear()
+        eventId = null
+        retry = null
+        comment = null
+    }
 
     while (!channel.isClosedForRead) {
         val line = channel.readLine() ?: break
 
         when {
-            line.isEmpty() -> {
-                if (dataLines.isNotEmpty() || comment != null) {
-                    val data = if (dataLines.isNotEmpty()) {
-                        val raw = dataLines.joinToString("\n")
-                        if (raw.isBlank() || raw == "null") null else decodeBody(bodySchema, raw.encodeToByteArray())
-                    } else null
-
-                    events.send(
-                        SSEEvent(
-                            data = data,
-                            event = eventType,
-                            id = eventId,
-                            retry = retry,
-                            comment = comment
-                        )
-                    )
-                }
-                eventType = null
-                dataLines = mutableListOf()
-                eventId = null
-                retry = null
-                comment = null
-            }
+            line.isEmpty() -> flushEvent()
 
             line.startsWith(":") -> {
                 comment = line.removePrefix(": ").takeIf { it.isNotBlank() }
@@ -262,6 +286,8 @@ private suspend fun <O> streamEvents(
             line.startsWith("retry:") -> retry = line.removePrefix("retry:").removePrefix(" ").toLongOrNull()
         }
     }
+
+    flushEvent()
 }
 
 private fun HttpMethod.toKtorMethod(): io.ktor.http.HttpMethod =
@@ -438,15 +464,21 @@ private sealed interface StatusMatch<out E, out O> {
 @Suppress("UNCHECKED_CAST")
 private fun <P, I, E, O, A> matchStatusSchema(
     endpoint: Http<P, I, E, O, A>,
-    statusCode: Int
+    statusCode: Int,
+    isEventStream: Boolean
 ): StatusMatch<E, O> {
-    endpoint.output.schemaByStatus().entries
+    val matchedOutput = endpoint.output.schemaByStatus().entries
         .firstOrNull { it.key.code == statusCode }
-        ?.let { return StatusMatch.Output(it.value as BodySchema<O>) }
-
-    endpoint.output.findEventStream()
+    val matchedEventStream = endpoint.output.findEventStream()
         ?.takeIf { it.status.code == statusCode }
-        ?.let { return StatusMatch.EventStream(it.bodySchema) }
+
+    if (isEventStream) {
+        matchedEventStream?.let { return StatusMatch.EventStream(it.bodySchema) }
+        matchedOutput?.let { return StatusMatch.Output(it.value as BodySchema<O>) }
+    } else {
+        matchedOutput?.let { return StatusMatch.Output(it.value as BodySchema<O>) }
+        matchedEventStream?.let { return StatusMatch.EventStream(it.bodySchema) }
+    }
 
     endpoint.error.schemaByStatus().entries
         .firstOrNull { it.key.code == statusCode }
@@ -461,8 +493,9 @@ private suspend fun <P, I, E, O, A> decodeResponse(
 ): HttpResult<E, O> {
     val statusCode = response.status.value
     val bytes = response.readRawBytes()
+    val isEventStream = response.isEventStream()
 
-    return when (val match = matchStatusSchema(endpoint, statusCode)) {
+    return when (val match = matchStatusSchema(endpoint, statusCode, isEventStream)) {
         is StatusMatch.Output<O> -> runCatching { decodeBody(match.schema, bytes) }
             .fold(onSuccess = { HttpResult.Success(it) }, onFailure = { HttpResult.NetworkError(it) })
 
