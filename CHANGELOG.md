@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.9](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.8...katalyst-v0.4.9) (2026-04-21)
+
+
+### Bug Fixes
+
+* **client:** typed stream outcome via HttpResult&lt;E, Flow&lt;SSEEvent&lt;O&gt;&gt;&gt; ([#108](https://github.com/bbasinsk/katalyst/issues/108)) ([2b9c2dc](https://github.com/bbasinsk/katalyst/commit/2b9c2dc6024983e5ef767ad5c2813ff4e5a2f32f))
+
 ## [0.4.8](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.7...katalyst-v0.4.8) (2026-04-13)
 
 
