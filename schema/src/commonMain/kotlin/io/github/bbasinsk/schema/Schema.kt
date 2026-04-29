@@ -156,6 +156,10 @@ sealed interface Schema<A> {
                 deconstruct = deconstruct
             )
 
+        inline fun <reified A> record(
+            noinline construct: () -> (A)
+        ): Schema.Record<A> = Record0(metadataFromType(), construct)
+
         inline fun <reified A, B1> record(
             field1: Field<A, B1>,
             noinline construct: (B1) -> (A)

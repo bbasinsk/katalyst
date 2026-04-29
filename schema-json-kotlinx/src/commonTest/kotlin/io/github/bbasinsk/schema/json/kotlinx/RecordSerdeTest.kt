@@ -87,4 +87,33 @@ class RecordSerdeTest {
             schema.decodeFromJsonString("{}", Json.Default)
         )
     }
+
+    data object EmptyRecord
+
+    @Test
+    fun `empty record serializes to empty json object`() {
+        val schema = Schema.record { EmptyRecord }
+        assertEquals(
+            Json.parseToJsonElement("{}"),
+            schema.encodeToJsonElement(EmptyRecord)
+        )
+    }
+
+    @Test
+    fun `empty record deserializes from empty json object`() {
+        val schema = Schema.record { EmptyRecord }
+        assertEquals(
+            Validation.valid(EmptyRecord),
+            schema.decodeFromJsonString("{}", Json.Default)
+        )
+    }
+
+    @Test
+    fun `empty record deserializes ignoring extra fields`() {
+        val schema = Schema.record { EmptyRecord }
+        assertEquals(
+            Validation.valid(EmptyRecord),
+            schema.decodeFromJsonString("""{"extra": 1}""", Json.Default)
+        )
+    }
 }

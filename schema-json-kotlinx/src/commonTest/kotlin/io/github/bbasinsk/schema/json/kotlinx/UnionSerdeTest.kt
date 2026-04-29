@@ -162,6 +162,64 @@ class UnionSerdeTest {
         )
     }
 
+    sealed interface Decision {
+        data object Save : Decision
+        data class Revise(val feedback: String) : Decision
+        data object Discard : Decision
+    }
+
+    private fun Schema.Companion.decision(): Schema<Decision> =
+        union(
+            case(record { Decision.Save }),
+            case(
+                record(
+                    field(string(), "feedback") { feedback },
+                    Decision::Revise
+                )
+            ),
+            case(record { Decision.Discard }),
+            key = "kind"
+        )
+
+    @Test
+    fun `union serializes empty case to discriminator-only object`() {
+        assertEquals(
+            Json.parseToJsonElement("""{"kind": "Save"}"""),
+            Schema.decision().encodeToJsonElement(Decision.Save)
+        )
+    }
+
+    @Test
+    fun `union serializes case with fields alongside discriminator`() {
+        assertEquals(
+            Json.parseToJsonElement("""{"kind": "Revise", "feedback": "make it vegetarian"}"""),
+            Schema.decision().encodeToJsonElement(Decision.Revise("make it vegetarian"))
+        )
+    }
+
+    @Test
+    fun `union deserializes empty case from discriminator-only object`() {
+        assertEquals(
+            Validation.valid(Decision.Save),
+            Schema.decision().decodeFromJsonString("""{"kind": "Save"}""", Json.Default)
+        )
+        assertEquals(
+            Validation.valid(Decision.Discard),
+            Schema.decision().decodeFromJsonString("""{"kind": "Discard"}""", Json.Default)
+        )
+    }
+
+    @Test
+    fun `union deserializes case with fields`() {
+        assertEquals(
+            Validation.valid(Decision.Revise("make it vegetarian")),
+            Schema.decision().decodeFromJsonString(
+                """{"kind": "Revise", "feedback": "make it vegetarian"}""",
+                Json.Default
+            )
+        )
+    }
+
     @Test
     fun `union serializes with custom discriminator`() {
         val schema = Schema.union(

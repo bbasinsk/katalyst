@@ -1,5 +1,15 @@
 package io.github.bbasinsk.schema
 
+data class Record0<A>(
+    override val metadata: ObjectMetadata<A>,
+    val construct: () -> A
+) : Schema.Record<A> {
+    override val unsafeFields: List<Field<A, *>> = emptyList()
+
+    override fun unsafeConstruct(values: List<Any?>): A =
+        construct()
+}
+
 data class Record1<A, B1>(
     override val metadata: ObjectMetadata<A>,
     val field1: Field<A, B1>,
