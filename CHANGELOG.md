@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.10](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.9...katalyst-v0.4.10) (2026-04-29)
+
+
+### Bug Fixes
+
+* **schema:** add Record0 for empty records and union empty cases ([#110](https://github.com/bbasinsk/katalyst/issues/110)) ([091134f](https://github.com/bbasinsk/katalyst/commit/091134fa982ccedbe3e22c6fe75306df23bdf883))
+
 ## [0.4.9](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.8...katalyst-v0.4.9) (2026-04-21)
 
 
