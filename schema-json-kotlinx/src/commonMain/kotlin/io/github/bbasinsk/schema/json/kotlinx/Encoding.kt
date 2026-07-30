@@ -2,8 +2,8 @@
 
 package io.github.bbasinsk.schema.json.kotlinx
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.json.JsonEncodingConfig
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonString
@@ -34,7 +34,7 @@ fun <A> Schema<A>.encodeToJsonElement(value: A, json: Json): JsonElement =
 fun <A> Schema<A>.encodeToJsonElement(value: A, config: JsonEncodingConfig = JsonEncodingConfig()): JsonElement =
     when (this) {
         is Schema.Empty -> JsonNull
-        is Schema.Dynamic -> encodeDynamic(value as SchemaValue, config)
+        is Schema.Dynamic -> encodeDynamic(value as JsonValue, config)
         is Schema.Bytes -> JsonPrimitive(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value, config)
         is Schema.Lazy -> schema().encodeToJsonElement(value, config)
@@ -121,13 +121,13 @@ private fun <A> Schema.Union<A>.encodeUnion(value: Any?, config: JsonEncodingCon
     return JsonObject(discriminator.plus(obj))
 }
 
-private fun encodeDynamic(value: SchemaValue, config: JsonEncodingConfig): JsonElement =
+private fun encodeDynamic(value: JsonValue, config: JsonEncodingConfig): JsonElement =
     when (value) {
-        is SchemaValue.Null -> JsonNull
-        is SchemaValue.Bool -> JsonPrimitive(value.value)
+        is JsonValue.Null -> JsonNull
+        is JsonValue.Bool -> JsonPrimitive(value.value)
         // Validated in Number's init, so the literal is a real JSON number, never "null".
-        is SchemaValue.Number -> @OptIn(ExperimentalSerializationApi::class) JsonUnquotedLiteral(value.literal)
-        is SchemaValue.Str -> JsonPrimitive(value.value)
-        is SchemaValue.Arr -> JsonArray(value.values.map { encodeDynamic(it, config) })
-        is SchemaValue.Obj -> JsonObject(value.entries.mapValues { encodeDynamic(it.value, config) })
+        is JsonValue.Number -> @OptIn(ExperimentalSerializationApi::class) JsonUnquotedLiteral(value.literal)
+        is JsonValue.Str -> JsonPrimitive(value.value)
+        is JsonValue.Arr -> JsonArray(value.values.map { encodeDynamic(it, config) })
+        is JsonValue.Obj -> JsonObject(value.entries.mapValues { encodeDynamic(it.value, config) })
     }

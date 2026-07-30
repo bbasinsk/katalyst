@@ -2,8 +2,8 @@
 
 package io.github.bbasinsk.schema.json
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.validation.Validation
 import io.github.bbasinsk.validation.Validation.Companion.invalid
@@ -15,13 +15,17 @@ import io.github.bbasinsk.validation.orElse
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
 
-fun <A> Schema<A>.decodeFromSchemaValue(value: SchemaValue): Validation<InvalidJson, A> =
+@Deprecated("Use decodeFromJsonValue instead", ReplaceWith("decodeFromJsonValue(value)"))
+fun <A> Schema<A>.decodeFromSchemaValue(value: JsonValue): Validation<InvalidJson, A> =
+    decodeFromJsonValue(value)
+
+fun <A> Schema<A>.decodeFromJsonValue(value: JsonValue): Validation<InvalidJson, A> =
     Validation.decode(schema = this, value = value, path = ArrayList(8))
 
 @Suppress("UNCHECKED_CAST")
 private fun <A> Validation.Companion.decode(
     schema: Schema<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     when (schema) {
@@ -51,26 +55,26 @@ private fun <A> Validation.Companion.decode(
 
 private fun <A> Validation.Companion.decodePrimitive(
     schema: Schema.Primitive<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A> {
     val error = InvalidJson.FieldError(schema.name, value.toFoundString(), path.toList())
     @Suppress("UNCHECKED_CAST")
     return when (schema) {
         is Schema.Primitive.Boolean ->
-            if (value is SchemaValue.Bool) valid(value.value as A) else invalid(error)
+            if (value is JsonValue.Bool) valid(value.value as A) else invalid(error)
         is Schema.Primitive.Int ->
-            (value as? SchemaValue.Number)?.toIntOrNull()?.let { valid(it as A) } ?: invalid(error)
+            (value as? JsonValue.Number)?.toIntOrNull()?.let { valid(it as A) } ?: invalid(error)
         is Schema.Primitive.Long ->
-            (value as? SchemaValue.Number)?.toLongOrNull()?.let { valid(it as A) } ?: invalid(error)
+            (value as? JsonValue.Number)?.toLongOrNull()?.let { valid(it as A) } ?: invalid(error)
         is Schema.Primitive.Double ->
-            (value as? SchemaValue.Number)?.toDoubleOrNull()?.let { valid(it as A) } ?: invalid(error)
+            (value as? JsonValue.Number)?.toDoubleOrNull()?.let { valid(it as A) } ?: invalid(error)
         is Schema.Primitive.Float ->
-            (value as? SchemaValue.Number)?.toFloatOrNull()?.let { valid(it as A) } ?: invalid(error)
+            (value as? JsonValue.Number)?.toFloatOrNull()?.let { valid(it as A) } ?: invalid(error)
         is Schema.Primitive.String ->
-            if (value is SchemaValue.Str) valid(value.value as A) else invalid(error)
+            if (value is JsonValue.Str) valid(value.value as A) else invalid(error)
         is Schema.Primitive.Enumeration<*> ->
-            if (value is SchemaValue.Str) {
+            if (value is JsonValue.Str) {
                 fromResult(schema.decodePrimitiveString(value.value)) { error } as Validation<InvalidJson, A>
             } else {
                 invalid(error)
@@ -79,11 +83,11 @@ private fun <A> Validation.Companion.decodePrimitive(
 }
 
 private fun Validation.Companion.decodeBytes(
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, ByteArray> {
     val error = InvalidJson.FieldError("base64 encoded", value.toFoundString(), path.toList())
-    return if (value is SchemaValue.Str) {
+    return if (value is JsonValue.Str) {
         runCatching { Base64.decode(value.value) }.mapInvalid { error }
     } else {
         invalid(error)
@@ -92,21 +96,21 @@ private fun Validation.Companion.decodeBytes(
 
 private fun <A> Validation.Companion.decodeOptional(
     schema: Schema.Optional<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A?> =
-    if (value is SchemaValue.Null) valid(null) else decode(schema.schema, value, path)
+    if (value is JsonValue.Null) valid(null) else decode(schema.schema, value, path)
 
 private fun <A> Validation.Companion.decodeDefault(
     schema: Schema.Default<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
-    if (value is SchemaValue.Null) valid(schema.default) else decode(schema.schema, value, path)
+    if (value is JsonValue.Null) valid(schema.default) else decode(schema.schema, value, path)
 
 private fun <A, B> Validation.Companion.decodeTransform(
     schema: Schema.Transform<A, B>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     decode(schema.schema, value, path)
@@ -119,10 +123,10 @@ private fun <A, B> Validation.Companion.decodeTransform(
 
 private fun <A> Validation.Companion.decodeList(
     schema: Schema.Collection<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, List<A>> =
-    if (value is SchemaValue.Arr) {
+    if (value is JsonValue.Arr) {
         sequence(
             value.values.mapIndexed { i, item ->
                 path.add(Segment.Index(i))
@@ -137,10 +141,10 @@ private fun <A> Validation.Companion.decodeList(
 
 private fun <V> Validation.Companion.decodeStringMap(
     schema: Schema.StringMap<V>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, Map<String, V>> =
-    if (value is SchemaValue.Obj) {
+    if (value is JsonValue.Obj) {
         sequence(
             value.entries.map { (key, v) ->
                 path.add(Segment.Field(key))
@@ -155,14 +159,14 @@ private fun <V> Validation.Companion.decodeStringMap(
 
 private fun <A> Validation.Companion.decodeRecord(
     schema: Schema.Record<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
-    if (value is SchemaValue.Obj) {
+    if (value is JsonValue.Obj) {
         sequence(
             schema.unsafeFields.map {
                 path.add(Segment.Field(it.name))
-                val result = decode(it.schema, value.entries[it.name] ?: SchemaValue.Null, path)
+                val result = decode(it.schema, value.entries[it.name] ?: JsonValue.Null, path)
                 path.removeAt(path.lastIndex)
                 result
             }
@@ -173,12 +177,12 @@ private fun <A> Validation.Companion.decodeRecord(
 
 private fun <A> Validation.Companion.decodeUnion(
     schema: Schema.Union<A>,
-    value: SchemaValue,
+    value: JsonValue,
     path: ArrayList<Segment>
 ): Validation<InvalidJson, A> =
     @Suppress("UNCHECKED_CAST")
-    if (value is SchemaValue.Obj) {
-        val discriminatorValue = value.entries[schema.key] ?: SchemaValue.Null
+    if (value is JsonValue.Obj) {
+        val discriminatorValue = value.entries[schema.key] ?: JsonValue.Null
         path.add(Segment.Field(schema.key))
         val keyResult = decode(Schema.string(), discriminatorValue, path)
         path.removeAt(path.lastIndex)
@@ -202,11 +206,11 @@ private fun <A> Validation.Companion.decodeUnion(
         invalid(InvalidJson.FieldError("Object", value.toFoundString(), path.toList()))
     }
 
-private fun SchemaValue.toFoundString(): String = when (this) {
-    is SchemaValue.Null -> "null"
-    is SchemaValue.Bool -> value.toString()
-    is SchemaValue.Number -> literal
-    is SchemaValue.Str -> "\"$value\""
-    is SchemaValue.Arr -> "Array"
-    is SchemaValue.Obj -> "Object"
+private fun JsonValue.toFoundString(): String = when (this) {
+    is JsonValue.Null -> "null"
+    is JsonValue.Bool -> value.toString()
+    is JsonValue.Number -> literal
+    is JsonValue.Str -> "\"$value\""
+    is JsonValue.Arr -> "Array"
+    is JsonValue.Obj -> "Object"
 }

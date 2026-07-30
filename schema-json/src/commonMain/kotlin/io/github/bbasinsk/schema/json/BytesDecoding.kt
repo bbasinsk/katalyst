@@ -1,8 +1,12 @@
 package io.github.bbasinsk.schema.json
 
-import io.github.bbasinsk.schema.SchemaValue
+import io.github.bbasinsk.schema.JsonValue
 
-fun decodeSchemaValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = JsonDecodingConfig()): SchemaValue {
+@Deprecated("Use decodeJsonValueFromBytes instead", ReplaceWith("decodeJsonValueFromBytes(bytes, config)"))
+fun decodeSchemaValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = JsonDecodingConfig()): JsonValue =
+    decodeJsonValueFromBytes(bytes, config)
+
+fun decodeJsonValueFromBytes(bytes: ByteArray, config: JsonDecodingConfig = JsonDecodingConfig()): JsonValue {
     val parser = JsonParser(bytes, config)
     val value = parser.parseValue()
     parser.expectEndOfInput()
@@ -17,7 +21,7 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
         require(pos == buffer.size) { "Unexpected trailing content at position $pos" }
     }
 
-    fun parseValue(): SchemaValue {
+    fun parseValue(): JsonValue {
         skipWhitespaceAndComments()
         require(pos < buffer.size) { "Unexpected end of input" }
         return when (buffer[pos]) {
@@ -31,8 +35,8 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
         }
     }
 
-    private fun parseString(): SchemaValue.Str =
-        SchemaValue.Str(readJsonString())
+    private fun parseString(): JsonValue.Str =
+        JsonValue.Str(readJsonString())
 
     private fun readJsonString(): String {
         pos++ // consume opening quote
@@ -91,27 +95,27 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
         }
     }
 
-    private fun parseBoolean(): SchemaValue.Bool =
+    private fun parseBoolean(): JsonValue.Bool =
         if (buffer[pos] == B_t) {
             require(pos + 4 <= buffer.size && buffer[pos + 1] == B_r && buffer[pos + 2] == B_u && buffer[pos + 3] == B_e) {
                 "Expected 'true', got '${readLiteralForError()}'"
             }
             pos += 4
-            SchemaValue.Bool(true)
+            JsonValue.Bool(true)
         } else {
             require(pos + 5 <= buffer.size && buffer[pos + 1] == B_a && buffer[pos + 2] == B_l && buffer[pos + 3] == B_s && buffer[pos + 4] == B_e) {
                 "Expected 'false', got '${readLiteralForError()}'"
             }
             pos += 5
-            SchemaValue.Bool(false)
+            JsonValue.Bool(false)
         }
 
-    private fun parseNull(): SchemaValue.Null {
+    private fun parseNull(): JsonValue.Null {
         require(pos + 4 <= buffer.size && buffer[pos + 1] == B_u && buffer[pos + 2] == B_l && buffer[pos + 3] == B_l) {
             "Expected 'null', got '${readLiteralForError()}'"
         }
         pos += 4
-        return SchemaValue.Null
+        return JsonValue.Null
     }
 
     private fun readLiteralForError(): String {
@@ -124,7 +128,7 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
     }
 
     // RFC 8259 `number` grammar: -?(0|[1-9][0-9]*)(.[0-9]+)?([eE][+-]?[0-9]+)?
-    private fun parseNumber(): SchemaValue.Number {
+    private fun parseNumber(): JsonValue.Number {
         val start = pos
         if (pos < buffer.size && buffer[pos] == MINUS) pos++
         require(pos < buffer.size && buffer[pos] in B_0..B_9) { invalidNumberMessage(start) }
@@ -141,19 +145,19 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
             require(pos < buffer.size && buffer[pos] in B_0..B_9) { invalidNumberMessage(start) }
             while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
         }
-        return SchemaValue.Number(buffer.decodeToString(start, pos))
+        return JsonValue.Number(buffer.decodeToString(start, pos))
     }
 
     private fun invalidNumberMessage(start: Int): String =
         "Invalid number: '${buffer.decodeToString(start, minOf(pos + 1, buffer.size))}'"
 
-    private fun parseObject(): SchemaValue.Obj {
+    private fun parseObject(): JsonValue.Obj {
         pos++ // consume '{'
         skipWhitespaceAndComments()
-        val entries = linkedMapOf<String, SchemaValue>()
+        val entries = linkedMapOf<String, JsonValue>()
         if (pos < buffer.size && buffer[pos] == RBRACE) {
             pos++
-            return SchemaValue.Obj(entries)
+            return JsonValue.Obj(entries)
         }
         while (true) {
             skipWhitespaceAndComments()
@@ -169,25 +173,25 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
                     skipWhitespaceAndComments()
                     if (config.allowTrailingCommas && pos < buffer.size && buffer[pos] == RBRACE) {
                         pos++
-                        return SchemaValue.Obj(entries)
+                        return JsonValue.Obj(entries)
                     }
                 }
                 pos < buffer.size && buffer[pos] == RBRACE -> {
                     pos++
-                    return SchemaValue.Obj(entries)
+                    return JsonValue.Obj(entries)
                 }
                 else -> throw IllegalArgumentException("Expected ',' or '}' in object")
             }
         }
     }
 
-    private fun parseArray(): SchemaValue.Arr {
+    private fun parseArray(): JsonValue.Arr {
         pos++ // consume '['
         skipWhitespaceAndComments()
-        val items = mutableListOf<SchemaValue>()
+        val items = mutableListOf<JsonValue>()
         if (pos < buffer.size && buffer[pos] == RBRACKET) {
             pos++
-            return SchemaValue.Arr(items)
+            return JsonValue.Arr(items)
         }
         while (true) {
             items.add(parseValue())
@@ -198,12 +202,12 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
                     skipWhitespaceAndComments()
                     if (config.allowTrailingCommas && pos < buffer.size && buffer[pos] == RBRACKET) {
                         pos++
-                        return SchemaValue.Arr(items)
+                        return JsonValue.Arr(items)
                     }
                 }
                 pos < buffer.size && buffer[pos] == RBRACKET -> {
                     pos++
-                    return SchemaValue.Arr(items)
+                    return JsonValue.Arr(items)
                 }
                 else -> throw IllegalArgumentException("Expected ',' or ']' in array")
             }

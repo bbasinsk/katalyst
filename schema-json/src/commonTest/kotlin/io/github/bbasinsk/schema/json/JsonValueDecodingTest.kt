@@ -1,8 +1,8 @@
 package io.github.bbasinsk.schema.json
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Companion.case
-import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.validation.Validation
@@ -14,7 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class SchemaValueDecodingTest {
+class JsonValueDecodingTest {
 
     private fun <A> assertRoundTrip(schema: Schema<A>, value: A) {
         val json = schema.encodeToJsonString(value)
@@ -264,11 +264,11 @@ class SchemaValueDecodingTest {
     @Test
     fun `round-trip dynamic`() {
         val schema = Schema.dynamic()
-        val value = SchemaValue.Obj(
+        val value = JsonValue.Obj(
             mapOf(
-                "name" to SchemaValue.Str("test"),
-                "count" to SchemaValue.Number("42"),
-                "active" to SchemaValue.Bool(true)
+                "name" to JsonValue.Str("test"),
+                "count" to JsonValue.Number("42"),
+                "active" to JsonValue.Bool(true)
             )
         )
         assertRoundTrip(schema, value)

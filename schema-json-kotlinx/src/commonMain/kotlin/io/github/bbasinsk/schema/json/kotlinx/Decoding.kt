@@ -1,7 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.Segment
@@ -194,16 +194,16 @@ private fun <A> Validation.Companion.decodeUnion(
 private fun <A> List<A>.joinToListString(): String =
     joinToString(", ", "[", "]")
 
-private fun decodeDynamic(json: JsonElement): SchemaValue =
+private fun decodeDynamic(json: JsonElement): JsonValue =
     when (json) {
-        is JsonNull -> SchemaValue.Null
-        is JsonArray -> SchemaValue.Arr(json.map { decodeDynamic(it) })
-        is JsonObject -> SchemaValue.Obj(json.mapValues { decodeDynamic(it.value) })
+        is JsonNull -> JsonValue.Null
+        is JsonArray -> JsonValue.Arr(json.map { decodeDynamic(it) })
+        is JsonObject -> JsonValue.Obj(json.mapValues { decodeDynamic(it.value) })
         is JsonPrimitive -> when {
-            json.isString -> SchemaValue.Str(json.content)
-            json.content == "true" || json.content == "false" -> SchemaValue.Bool(json.content.toBooleanStrict())
+            json.isString -> JsonValue.Str(json.content)
+            json.content == "true" || json.content == "false" -> JsonValue.Bool(json.content.toBooleanStrict())
             // JsonPrimitive.content preserves the source literal, so numbers round-trip digit-exact.
             // Falls back to Str for non-RFC-8259 content that only programmatic construction can produce.
-            else -> SchemaValue.Number.parseOrNull(json.content) ?: SchemaValue.Str(json.content)
+            else -> JsonValue.Number.parseOrNull(json.content) ?: JsonValue.Str(json.content)
         }
     }

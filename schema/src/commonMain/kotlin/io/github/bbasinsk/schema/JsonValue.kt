@@ -1,11 +1,11 @@
 package io.github.bbasinsk.schema
 
-sealed interface SchemaValue {
-    data object Null : SchemaValue
-    data class Bool(val value: Boolean) : SchemaValue
+sealed interface JsonValue {
+    data object Null : JsonValue
+    data class Bool(val value: Boolean) : JsonValue
 
     /** A JSON number held as its source literal, so decode → encode is digit-exact. */
-    data class Number(val literal: String) : SchemaValue {
+    data class Number(val literal: String) : JsonValue {
         init {
             require(isJsonNumberLiteral(literal)) { "Not an RFC 8259 JSON number: '$literal'" }
         }
@@ -36,9 +36,9 @@ sealed interface SchemaValue {
         }
     }
 
-    data class Str(val value: String) : SchemaValue
-    data class Arr(val values: List<SchemaValue>) : SchemaValue
-    data class Obj(val entries: Map<String, SchemaValue>) : SchemaValue
+    data class Str(val value: String) : JsonValue
+    data class Arr(val values: List<JsonValue>) : JsonValue
+    data class Obj(val entries: Map<String, JsonValue>) : JsonValue
 }
 
 private fun isJsonNumberLiteral(s: String): Boolean {
@@ -63,3 +63,6 @@ private fun isJsonNumberLiteral(s: String): Boolean {
     }
     return i == n
 }
+
+@Deprecated("Renamed to JsonValue", ReplaceWith("JsonValue"))
+typealias SchemaValue = JsonValue

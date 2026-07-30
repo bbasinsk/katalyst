@@ -2,8 +2,8 @@
 
 package io.github.bbasinsk.schema.json
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import kotlin.io.encoding.Base64
@@ -12,60 +12,60 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
-class SchemaValueEncodingTest {
+class JsonValueEncodingTest {
 
     @Test
     fun `empty encodes to null`() {
         assertEquals(
-            SchemaValue.Null,
-            Schema.empty().encodeToSchemaValue(null)
+            JsonValue.Null,
+            Schema.empty().encodeToJsonValue(null)
         )
     }
 
     @Test
     fun `dynamic passes through`() {
-        val sv = SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1")))
-        assertEquals(sv, Schema.dynamic().encodeToSchemaValue(sv))
+        val sv = JsonValue.Obj(mapOf("x" to JsonValue.Number("1")))
+        assertEquals(sv, Schema.dynamic().encodeToJsonValue(sv))
     }
 
     @Test
     fun `bytes encodes to base64 string`() {
         val bytes = byteArrayOf(1, 2, 3)
         assertEquals(
-            SchemaValue.Str(Base64.encode(bytes)),
-            Schema.byteArray().encodeToSchemaValue(bytes)
+            JsonValue.Str(Base64.encode(bytes)),
+            Schema.byteArray().encodeToJsonValue(bytes)
         )
     }
 
     @Test
     fun `boolean encodes to Bool`() {
-        assertEquals(SchemaValue.Bool(true), Schema.boolean().encodeToSchemaValue(true))
-        assertEquals(SchemaValue.Bool(false), Schema.boolean().encodeToSchemaValue(false))
+        assertEquals(JsonValue.Bool(true), Schema.boolean().encodeToJsonValue(true))
+        assertEquals(JsonValue.Bool(false), Schema.boolean().encodeToJsonValue(false))
     }
 
     @Test
     fun `string encodes to Str`() {
-        assertEquals(SchemaValue.Str("hello"), Schema.string().encodeToSchemaValue("hello"))
+        assertEquals(JsonValue.Str("hello"), Schema.string().encodeToJsonValue("hello"))
     }
 
     @Test
     fun `int encodes to Integer`() {
-        assertEquals(SchemaValue.Number("42"), Schema.int().encodeToSchemaValue(42))
+        assertEquals(JsonValue.Number("42"), Schema.int().encodeToJsonValue(42))
     }
 
     @Test
     fun `long encodes to Integer`() {
-        assertEquals(SchemaValue.Number("100"), Schema.long().encodeToSchemaValue(100L))
+        assertEquals(JsonValue.Number("100"), Schema.long().encodeToJsonValue(100L))
     }
 
     @Test
     fun `float encodes to Decimal`() {
-        assertEquals(SchemaValue.Number("1.5"), Schema.float().encodeToSchemaValue(1.5f))
+        assertEquals(JsonValue.Number("1.5"), Schema.float().encodeToJsonValue(1.5f))
     }
 
     @Test
     fun `double encodes to Decimal`() {
-        assertEquals(SchemaValue.Number("3.14"), Schema.double().encodeToSchemaValue(3.14))
+        assertEquals(JsonValue.Number("3.14"), Schema.double().encodeToJsonValue(3.14))
     }
 
     enum class Color { RED, GREEN, BLUE }
@@ -73,56 +73,56 @@ class SchemaValueEncodingTest {
     @Test
     fun `enumeration encodes to Str`() {
         assertEquals(
-            SchemaValue.Str("GREEN"),
-            Schema.enumeration<Color>().encodeToSchemaValue(Color.GREEN)
+            JsonValue.Str("GREEN"),
+            Schema.enumeration<Color>().encodeToJsonValue(Color.GREEN)
         )
     }
 
     @Test
     fun `optional non-null encodes value`() {
         assertEquals(
-            SchemaValue.Number("5"),
-            Schema.int().optional().encodeToSchemaValue(5)
+            JsonValue.Number("5"),
+            Schema.int().optional().encodeToJsonValue(5)
         )
     }
 
     @Test
     fun `optional null encodes to Null`() {
         assertEquals(
-            SchemaValue.Null,
-            Schema.int().optional().encodeToSchemaValue(null)
+            JsonValue.Null,
+            Schema.int().optional().encodeToJsonValue(null)
         )
     }
 
     @Test
     fun `default encodes value`() {
         assertEquals(
-            SchemaValue.Number("7"),
-            Schema.int().default(0).encodeToSchemaValue(7)
+            JsonValue.Number("7"),
+            Schema.int().default(0).encodeToJsonValue(7)
         )
     }
 
     @Test
     fun `collection encodes to Arr`() {
         assertEquals(
-            SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"), SchemaValue.Number("3"))),
-            Schema.list(Schema.int()).encodeToSchemaValue(listOf(1, 2, 3))
+            JsonValue.Arr(listOf(JsonValue.Number("1"), JsonValue.Number("2"), JsonValue.Number("3"))),
+            Schema.list(Schema.int()).encodeToJsonValue(listOf(1, 2, 3))
         )
     }
 
     @Test
     fun `empty collection encodes to empty Arr`() {
         assertEquals(
-            SchemaValue.Arr(emptyList()),
-            Schema.list(Schema.string()).encodeToSchemaValue(emptyList())
+            JsonValue.Arr(emptyList()),
+            Schema.list(Schema.string()).encodeToJsonValue(emptyList())
         )
     }
 
     @Test
     fun `stringMap encodes to Obj`() {
         assertEquals(
-            SchemaValue.Obj(mapOf("a" to SchemaValue.Number("1"), "b" to SchemaValue.Number("2"))),
-            Schema.stringMap(Schema.int()).encodeToSchemaValue(mapOf("a" to 1, "b" to 2))
+            JsonValue.Obj(mapOf("a" to JsonValue.Number("1"), "b" to JsonValue.Number("2"))),
+            Schema.stringMap(Schema.int()).encodeToJsonValue(mapOf("a" to 1, "b" to 2))
         )
     }
 
@@ -137,8 +137,8 @@ class SchemaValueEncodingTest {
     @Test
     fun `record encodes to Obj`() {
         assertEquals(
-            SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1"), "y" to SchemaValue.Number("2"))),
-            pointSchema.encodeToSchemaValue(Point(1, 2))
+            JsonValue.Obj(mapOf("x" to JsonValue.Number("1"), "y" to JsonValue.Number("2"))),
+            pointSchema.encodeToJsonValue(Point(1, 2))
         )
     }
 
@@ -153,8 +153,8 @@ class SchemaValueEncodingTest {
         )
 
         assertEquals(
-            SchemaValue.Obj(mapOf("name" to SchemaValue.Str("Alice"), "alias" to SchemaValue.Null)),
-            schema.encodeToSchemaValue(Named("Alice", null))
+            JsonValue.Obj(mapOf("name" to JsonValue.Str("Alice"), "alias" to JsonValue.Null)),
+            schema.encodeToJsonValue(Named("Alice", null))
         )
     }
 
@@ -189,22 +189,22 @@ class SchemaValueEncodingTest {
     @Test
     fun `union encodes with discriminator`() {
         assertEquals(
-            SchemaValue.Obj(mapOf("type" to SchemaValue.Str("Circle"), "radius" to SchemaValue.Number("5"))),
-            shapeSchema.encodeToSchemaValue(Shape.Circle(5))
+            JsonValue.Obj(mapOf("type" to JsonValue.Str("Circle"), "radius" to JsonValue.Number("5"))),
+            shapeSchema.encodeToJsonValue(Shape.Circle(5))
         )
     }
 
     @Test
     fun `union encodes second case`() {
         assertEquals(
-            SchemaValue.Obj(
+            JsonValue.Obj(
                 mapOf(
-                    "type" to SchemaValue.Str("Rect"),
-                    "w" to SchemaValue.Number("3"),
-                    "h" to SchemaValue.Number("4")
+                    "type" to JsonValue.Str("Rect"),
+                    "w" to JsonValue.Number("3"),
+                    "h" to JsonValue.Number("4")
                 )
             ),
-            shapeSchema.encodeToSchemaValue(Shape.Rect(3, 4))
+            shapeSchema.encodeToJsonValue(Shape.Rect(3, 4))
         )
     }
 
@@ -216,27 +216,27 @@ class SchemaValueEncodingTest {
         )
 
         assertEquals(
-            SchemaValue.Str("42"),
-            schema.encodeToSchemaValue(42)
+            JsonValue.Str("42"),
+            schema.encodeToJsonValue(42)
         )
     }
 
     @Test
     fun `lazy encodes through delegate`() {
         val schema = Schema.lazy { Schema.int() }
-        assertEquals(SchemaValue.Number("10"), schema.encodeToSchemaValue(10))
+        assertEquals(JsonValue.Number("10"), schema.encodeToJsonValue(10))
     }
 
     @Test
     fun `metadata passes through to inner schema`() {
         val schema = Schema.int().description("some number")
-        assertEquals(SchemaValue.Number("99"), schema.encodeToSchemaValue(99))
+        assertEquals(JsonValue.Number("99"), schema.encodeToJsonValue(99))
     }
 
     @Test
     fun `orElse encodes via preferred schema`() {
         val schema = Schema.int().orElse(Schema.string()) { it.toInt() }
-        assertEquals(SchemaValue.Number("42"), schema.encodeToSchemaValue(42))
+        assertEquals(JsonValue.Number("42"), schema.encodeToJsonValue(42))
     }
 
     @Test
@@ -262,18 +262,18 @@ class SchemaValueEncodingTest {
 
         val tree = Tree.Branch(Tree.Leaf(1), Tree.Leaf(2))
         assertEquals(
-            SchemaValue.Obj(
+            JsonValue.Obj(
                 mapOf(
-                    "type" to SchemaValue.Str("Branch"),
-                    "left" to SchemaValue.Obj(
-                        mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("1"))
+                    "type" to JsonValue.Str("Branch"),
+                    "left" to JsonValue.Obj(
+                        mapOf("type" to JsonValue.Str("Leaf"), "value" to JsonValue.Number("1"))
                     ),
-                    "right" to SchemaValue.Obj(
-                        mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("2"))
+                    "right" to JsonValue.Obj(
+                        mapOf("type" to JsonValue.Str("Leaf"), "value" to JsonValue.Number("2"))
                     )
                 )
             ),
-            treeSchema.encodeToSchemaValue(tree)
+            treeSchema.encodeToJsonValue(tree)
         )
     }
 
@@ -299,37 +299,37 @@ class SchemaValueEncodingTest {
         )
 
         assertEquals(
-            SchemaValue.Obj(mapOf("kind" to SchemaValue.Str("Circle"), "radius" to SchemaValue.Number("5"))),
-            schema.encodeToSchemaValue(Shape.Circle(5))
+            JsonValue.Obj(mapOf("kind" to JsonValue.Str("Circle"), "radius" to JsonValue.Number("5"))),
+            schema.encodeToJsonValue(Shape.Circle(5))
         )
     }
 
     @Test
     fun `collection of records encodes to Arr of Obj`() {
         assertEquals(
-            SchemaValue.Arr(
+            JsonValue.Arr(
                 listOf(
-                    SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1"), "y" to SchemaValue.Number("2"))),
-                    SchemaValue.Obj(mapOf("x" to SchemaValue.Number("3"), "y" to SchemaValue.Number("4")))
+                    JsonValue.Obj(mapOf("x" to JsonValue.Number("1"), "y" to JsonValue.Number("2"))),
+                    JsonValue.Obj(mapOf("x" to JsonValue.Number("3"), "y" to JsonValue.Number("4")))
                 )
             ),
-            Schema.list(pointSchema).encodeToSchemaValue(listOf(Point(1, 2), Point(3, 4)))
+            Schema.list(pointSchema).encodeToJsonValue(listOf(Point(1, 2), Point(3, 4)))
         )
     }
 
     @Test
     fun `empty stringMap encodes to empty Obj`() {
         assertEquals(
-            SchemaValue.Obj(emptyMap()),
-            Schema.stringMap(Schema.int()).encodeToSchemaValue(emptyMap())
+            JsonValue.Obj(emptyMap()),
+            Schema.stringMap(Schema.int()).encodeToJsonValue(emptyMap())
         )
     }
 
     @Test
     fun `empty byte array encodes to empty base64 string`() {
         assertEquals(
-            SchemaValue.Str(""),
-            Schema.byteArray().encodeToSchemaValue(byteArrayOf())
+            JsonValue.Str(""),
+            Schema.byteArray().encodeToJsonValue(byteArrayOf())
         )
     }
 
@@ -347,7 +347,7 @@ class SchemaValueEncodingTest {
         )
 
         assertFailsWith<IllegalStateException> {
-            schema.encodeToSchemaValue(Wrapper.Text("hello"))
+            schema.encodeToJsonValue(Wrapper.Text("hello"))
         }
     }
 
@@ -370,7 +370,7 @@ class SchemaValueEncodingTest {
         )
 
         assertFailsWith<IllegalArgumentException> {
-            schema.encodeToSchemaValue(Collide.A(Collider("oops")))
+            schema.encodeToJsonValue(Collide.A(Collider("oops")))
         }
     }
 
@@ -386,15 +386,15 @@ class SchemaValueEncodingTest {
         val config = JsonEncodingConfig(explicitNulls = false)
 
         assertEquals(
-            SchemaValue.Obj(mapOf("name" to SchemaValue.Str("Alice"))),
-            schema.encodeToSchemaValue(Named("Alice", null), config)
+            JsonValue.Obj(mapOf("name" to JsonValue.Str("Alice"))),
+            schema.encodeToJsonValue(Named("Alice", null), config)
         )
     }
 
     @Test
     fun `orElse fallback encodes via preferred schema`() {
         val schema = Schema.int().orElse(Schema.string()) { it.toInt() }
-        assertEquals(SchemaValue.Number("42"), schema.encodeToSchemaValue(42))
+        assertEquals(JsonValue.Number("42"), schema.encodeToJsonValue(42))
     }
 
     // -- Key ordering --
@@ -402,7 +402,7 @@ class SchemaValueEncodingTest {
     data class Ordered(val z: Int, val m: Int, val a: Int, val q: Int, val b: Int)
 
     @Test
-    fun `record encodeToSchemaValue preserves schema-defined key order`() {
+    fun `record encodeToJsonValue preserves schema-defined key order`() {
         val schema = Schema.record(
             Schema.field(Schema.int(), "z") { z },
             Schema.field(Schema.int(), "m") { m },
@@ -412,12 +412,12 @@ class SchemaValueEncodingTest {
             ::Ordered
         )
 
-        val obj = schema.encodeToSchemaValue(Ordered(1, 2, 3, 4, 5)) as SchemaValue.Obj
+        val obj = schema.encodeToJsonValue(Ordered(1, 2, 3, 4, 5)) as JsonValue.Obj
         assertEquals(listOf("z", "m", "a", "q", "b"), obj.entries.keys.toList())
     }
 
     @Test
-    fun `record encodeToSchemaValue to JSON string preserves key order`() {
+    fun `record encodeToJsonValue to JSON string preserves key order`() {
         val schema = Schema.record(
             Schema.field(Schema.int(), "z") { z },
             Schema.field(Schema.int(), "m") { m },
@@ -427,12 +427,12 @@ class SchemaValueEncodingTest {
             ::Ordered
         )
 
-        val json = schema.encodeToSchemaValue(Ordered(1, 2, 3, 4, 5)).encodeToJsonString()
+        val json = schema.encodeToJsonValue(Ordered(1, 2, 3, 4, 5)).encodeToJsonString()
         assertEquals("""{"z":1,"m":2,"a":3,"q":4,"b":5}""", json)
     }
 
     @Test
-    fun `record encodeToSchemaValue to pretty JSON string preserves key order`() {
+    fun `record encodeToJsonValue to pretty JSON string preserves key order`() {
         val schema = Schema.record(
             Schema.field(Schema.int(), "z") { z },
             Schema.field(Schema.int(), "m") { m },
@@ -443,7 +443,7 @@ class SchemaValueEncodingTest {
         )
 
         val prettyConfig = JsonEncodingConfig(printConfig = JsonEncodingConfig.PrintConfig.pretty())
-        val json = schema.encodeToSchemaValue(Ordered(1, 2, 3, 4, 5)).encodeToJsonString(prettyConfig)
+        val json = schema.encodeToJsonValue(Ordered(1, 2, 3, 4, 5)).encodeToJsonString(prettyConfig)
         val expected = "{\n  \"z\": 1,\n  \"m\": 2,\n  \"a\": 3,\n  \"q\": 4,\n  \"b\": 5\n}"
         assertEquals(expected, json)
     }
