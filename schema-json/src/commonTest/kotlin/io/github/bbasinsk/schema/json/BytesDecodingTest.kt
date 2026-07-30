@@ -22,37 +22,65 @@ class BytesDecodingTest {
     fun `false`() = assertEquals(SchemaValue.Bool(false), parse("false"))
 
     @Test
-    fun `positive integer`() = assertEquals(SchemaValue.Integer(42), parse("42"))
+    fun `positive integer`() = assertEquals(SchemaValue.Number("42"), parse("42"))
 
     @Test
-    fun `negative integer`() = assertEquals(SchemaValue.Integer(-7), parse("-7"))
+    fun `negative integer`() = assertEquals(SchemaValue.Number("-7"), parse("-7"))
 
     @Test
-    fun `zero integer`() = assertEquals(SchemaValue.Integer(0), parse("0"))
+    fun `zero integer`() = assertEquals(SchemaValue.Number("0"), parse("0"))
 
     @Test
-    fun `Long MAX_VALUE`() = assertEquals(SchemaValue.Integer(Long.MAX_VALUE), parse("${Long.MAX_VALUE}"))
+    fun `Long MAX_VALUE`() = assertEquals(SchemaValue.Number(Long.MAX_VALUE.toString()), parse("${Long.MAX_VALUE}"))
 
     @Test
-    fun `Long MIN_VALUE`() = assertEquals(SchemaValue.Integer(Long.MIN_VALUE), parse("${Long.MIN_VALUE}"))
+    fun `Long MIN_VALUE`() = assertEquals(SchemaValue.Number(Long.MIN_VALUE.toString()), parse("${Long.MIN_VALUE}"))
 
     @Test
-    fun `positive decimal`() = assertEquals(SchemaValue.Decimal(3.14), parse("3.14"))
+    fun `positive decimal`() = assertEquals(SchemaValue.Number("3.14"), parse("3.14"))
 
     @Test
-    fun `negative decimal`() = assertEquals(SchemaValue.Decimal(-2.5), parse("-2.5"))
+    fun `negative decimal`() = assertEquals(SchemaValue.Number("-2.5"), parse("-2.5"))
 
     @Test
-    fun `zero decimal`() = assertEquals(SchemaValue.Decimal(0.0), parse("0.0"))
+    fun `zero decimal`() = assertEquals(SchemaValue.Number("0.0"), parse("0.0"))
 
     @Test
-    fun `scientific notation lowercase e`() = assertEquals(SchemaValue.Decimal(1e10), parse("1e10"))
+    fun `scientific notation lowercase e`() = assertEquals(SchemaValue.Number("1e10"), parse("1e10"))
 
     @Test
-    fun `scientific notation uppercase E`() = assertEquals(SchemaValue.Decimal(1E10), parse("1E10"))
+    fun `scientific notation uppercase E`() = assertEquals(SchemaValue.Number("1E10"), parse("1E10"))
 
     @Test
-    fun `scientific notation negative exponent`() = assertEquals(SchemaValue.Decimal(1.5e-3), parse("1.5e-3"))
+    fun `scientific notation negative exponent`() = assertEquals(SchemaValue.Number("1.5e-3"), parse("1.5e-3"))
+
+    @Test
+    fun `integer beyond Long range keeps its digits`() =
+        assertEquals(SchemaValue.Number("12345678901234567890"), parse("12345678901234567890"))
+
+    @Test
+    fun `high-precision decimal keeps its digits`() =
+        assertEquals(SchemaValue.Number("3.141592653589793238462643"), parse("3.141592653589793238462643"))
+
+    @Test
+    fun `leading zeros are rejected`() {
+        assertFailsWith<IllegalArgumentException> { parse("007") }
+    }
+
+    @Test
+    fun `trailing dot is rejected`() {
+        assertFailsWith<IllegalArgumentException> { parse("1.") }
+    }
+
+    @Test
+    fun `bare minus is rejected`() {
+        assertFailsWith<IllegalArgumentException> { parse("-") }
+    }
+
+    @Test
+    fun `empty exponent is rejected`() {
+        assertFailsWith<IllegalArgumentException> { parse("1e") }
+    }
 
     @Test
     fun `simple string`() = assertEquals(SchemaValue.Str("hello"), parse("\"hello\""))
@@ -111,7 +139,7 @@ class BytesDecodingTest {
 
     @Test
     fun `array of integers`() = assertEquals(
-        SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2), SchemaValue.Integer(3))),
+        SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"), SchemaValue.Number("3"))),
         parse("[1,2,3]")
     )
 
@@ -119,8 +147,8 @@ class BytesDecodingTest {
     fun `nested array`() = assertEquals(
         SchemaValue.Arr(
             listOf(
-                SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
-                SchemaValue.Arr(listOf(SchemaValue.Integer(3)))
+                SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"))),
+                SchemaValue.Arr(listOf(SchemaValue.Number("3")))
             )
         ),
         parse("[[1,2],[3]]")
@@ -130,7 +158,7 @@ class BytesDecodingTest {
     fun `mixed type array`() = assertEquals(
         SchemaValue.Arr(
             listOf(
-                SchemaValue.Integer(1),
+                SchemaValue.Number("1"),
                 SchemaValue.Str("two"),
                 SchemaValue.Bool(true),
                 SchemaValue.Null
@@ -146,7 +174,7 @@ class BytesDecodingTest {
 
     @Test
     fun `simple object`() = assertEquals(
-        SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1), "y" to SchemaValue.Integer(2))),
+        SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1"), "y" to SchemaValue.Number("2"))),
         parse("""{"x":1,"y":2}""")
     )
 
@@ -155,7 +183,7 @@ class BytesDecodingTest {
         SchemaValue.Obj(
             mapOf(
                 "point" to SchemaValue.Obj(
-                    mapOf("x" to SchemaValue.Integer(1), "y" to SchemaValue.Integer(2))
+                    mapOf("x" to SchemaValue.Number("1"), "y" to SchemaValue.Number("2"))
                 )
             )
         ),
@@ -166,7 +194,7 @@ class BytesDecodingTest {
     fun `object with array field`() = assertEquals(
         SchemaValue.Obj(
             mapOf(
-                "items" to SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2)))
+                "items" to SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2")))
             )
         ),
         parse("""{"items":[1,2]}""")
@@ -175,14 +203,14 @@ class BytesDecodingTest {
     // Whitespace
 
     @Test
-    fun `leading whitespace`() = assertEquals(SchemaValue.Integer(42), parse("  42"))
+    fun `leading whitespace`() = assertEquals(SchemaValue.Number("42"), parse("  42"))
 
     @Test
-    fun `trailing whitespace`() = assertEquals(SchemaValue.Integer(42), parse("42  "))
+    fun `trailing whitespace`() = assertEquals(SchemaValue.Number("42"), parse("42  "))
 
     @Test
     fun `newlines in object`() = assertEquals(
-        SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1), "b" to SchemaValue.Integer(2))),
+        SchemaValue.Obj(mapOf("a" to SchemaValue.Number("1"), "b" to SchemaValue.Number("2"))),
         parse("{\n  \"a\": 1,\n  \"b\": 2\n}")
     )
 
@@ -192,7 +220,7 @@ class BytesDecodingTest {
     fun `trailing comma in array`() {
         val config = JsonDecodingConfig(allowTrailingCommas = true)
         assertEquals(
-            SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
+            SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"))),
             parse("[1,2,]", config)
         )
     }
@@ -201,7 +229,7 @@ class BytesDecodingTest {
     fun `trailing comma in object`() {
         val config = JsonDecodingConfig(allowTrailingCommas = true)
         assertEquals(
-            SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1))),
+            SchemaValue.Obj(mapOf("a" to SchemaValue.Number("1"))),
             parse("""{"a":1,}""", config)
         )
     }
@@ -218,14 +246,14 @@ class BytesDecodingTest {
     @Test
     fun `comment before value`() {
         val config = JsonDecodingConfig(allowComments = true)
-        assertEquals(SchemaValue.Integer(42), parse("// comment\n42", config))
+        assertEquals(SchemaValue.Number("42"), parse("// comment\n42", config))
     }
 
     @Test
     fun `comment after value in object`() {
         val config = JsonDecodingConfig(allowComments = true)
         assertEquals(
-            SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1))),
+            SchemaValue.Obj(mapOf("a" to SchemaValue.Number("1"))),
             parse("""{"a":1}// trailing""", config)
         )
     }
@@ -305,16 +333,16 @@ class BytesDecodingTest {
             mapOf(
                 "type" to SchemaValue.Str("Branch"),
                 "left" to SchemaValue.Obj(
-                    mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Integer(1))
+                    mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("1"))
                 ),
                 "right" to SchemaValue.Obj(
                     mapOf(
                         "type" to SchemaValue.Str("Branch"),
                         "left" to SchemaValue.Obj(
-                            mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Integer(2))
+                            mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("2"))
                         ),
                         "right" to SchemaValue.Obj(
-                            mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Integer(3))
+                            mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("3"))
                         )
                     )
                 )

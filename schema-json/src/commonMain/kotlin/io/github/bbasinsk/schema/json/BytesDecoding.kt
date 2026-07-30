@@ -123,48 +123,29 @@ private class JsonParser(private val buffer: ByteArray, private val config: Json
         return buffer.decodeToString(start, pos)
     }
 
-    private fun parseNumber(): SchemaValue {
+    // RFC 8259 `number` grammar: -?(0|[1-9][0-9]*)(.[0-9]+)?([eE][+-]?[0-9]+)?
+    private fun parseNumber(): SchemaValue.Number {
         val start = pos
-        var isDecimal = false
         if (pos < buffer.size && buffer[pos] == MINUS) pos++
-        while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
+        require(pos < buffer.size && buffer[pos] in B_0..B_9) { invalidNumberMessage(start) }
+        if (buffer[pos] == B_0) pos++
+        else while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
         if (pos < buffer.size && buffer[pos] == DOT) {
-            isDecimal = true
             pos++
+            require(pos < buffer.size && buffer[pos] in B_0..B_9) { invalidNumberMessage(start) }
             while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
         }
         if (pos < buffer.size && (buffer[pos] == B_e || buffer[pos] == B_E)) {
-            isDecimal = true
             pos++
             if (pos < buffer.size && (buffer[pos] == PLUS || buffer[pos] == MINUS)) pos++
+            require(pos < buffer.size && buffer[pos] in B_0..B_9) { invalidNumberMessage(start) }
             while (pos < buffer.size && buffer[pos] in B_0..B_9) pos++
         }
-        require(pos > start) { "Expected number" }
-        if (!isDecimal) {
-            val longValue = parseLongDirect(start, pos)
-            if (longValue != null) return SchemaValue.Integer(longValue)
-        }
-        val token = buffer.decodeToString(start, pos)
-        val doubleValue = token.toDoubleOrNull()
-            ?: throw IllegalArgumentException("Invalid number: '$token'")
-        return SchemaValue.Decimal(doubleValue)
+        return SchemaValue.Number(buffer.decodeToString(start, pos))
     }
 
-    private fun parseLongDirect(start: Int, end: Int): Long? {
-        var i = start
-        val negative = buffer[i] == MINUS
-        if (negative) i++
-        if (i == end) return null
-        var result = 0L
-        while (i < end) {
-            val digit = buffer[i] - B_0
-            if (digit < 0 || digit > 9) return null
-            if (result < Long.MIN_VALUE / 10) return null
-            result = result * 10 - digit
-            i++
-        }
-        return if (negative) result else if (result == Long.MIN_VALUE) null else -result
-    }
+    private fun invalidNumberMessage(start: Int): String =
+        "Invalid number: '${buffer.decodeToString(start, minOf(pos + 1, buffer.size))}'"
 
     private fun parseObject(): SchemaValue.Obj {
         pos++ // consume '{'

@@ -24,7 +24,7 @@ class SchemaValueEncodingTest {
 
     @Test
     fun `dynamic passes through`() {
-        val sv = SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1)))
+        val sv = SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1")))
         assertEquals(sv, Schema.dynamic().encodeToSchemaValue(sv))
     }
 
@@ -50,22 +50,22 @@ class SchemaValueEncodingTest {
 
     @Test
     fun `int encodes to Integer`() {
-        assertEquals(SchemaValue.Integer(42L), Schema.int().encodeToSchemaValue(42))
+        assertEquals(SchemaValue.Number("42"), Schema.int().encodeToSchemaValue(42))
     }
 
     @Test
     fun `long encodes to Integer`() {
-        assertEquals(SchemaValue.Integer(100L), Schema.long().encodeToSchemaValue(100L))
+        assertEquals(SchemaValue.Number("100"), Schema.long().encodeToSchemaValue(100L))
     }
 
     @Test
     fun `float encodes to Decimal`() {
-        assertEquals(SchemaValue.Decimal(1.5), Schema.float().encodeToSchemaValue(1.5f))
+        assertEquals(SchemaValue.Number("1.5"), Schema.float().encodeToSchemaValue(1.5f))
     }
 
     @Test
     fun `double encodes to Decimal`() {
-        assertEquals(SchemaValue.Decimal(3.14), Schema.double().encodeToSchemaValue(3.14))
+        assertEquals(SchemaValue.Number("3.14"), Schema.double().encodeToSchemaValue(3.14))
     }
 
     enum class Color { RED, GREEN, BLUE }
@@ -81,7 +81,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `optional non-null encodes value`() {
         assertEquals(
-            SchemaValue.Integer(5L),
+            SchemaValue.Number("5"),
             Schema.int().optional().encodeToSchemaValue(5)
         )
     }
@@ -97,7 +97,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `default encodes value`() {
         assertEquals(
-            SchemaValue.Integer(7L),
+            SchemaValue.Number("7"),
             Schema.int().default(0).encodeToSchemaValue(7)
         )
     }
@@ -105,7 +105,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `collection encodes to Arr`() {
         assertEquals(
-            SchemaValue.Arr(listOf(SchemaValue.Integer(1L), SchemaValue.Integer(2L), SchemaValue.Integer(3L))),
+            SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"), SchemaValue.Number("3"))),
             Schema.list(Schema.int()).encodeToSchemaValue(listOf(1, 2, 3))
         )
     }
@@ -121,7 +121,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `stringMap encodes to Obj`() {
         assertEquals(
-            SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1L), "b" to SchemaValue.Integer(2L))),
+            SchemaValue.Obj(mapOf("a" to SchemaValue.Number("1"), "b" to SchemaValue.Number("2"))),
             Schema.stringMap(Schema.int()).encodeToSchemaValue(mapOf("a" to 1, "b" to 2))
         )
     }
@@ -137,7 +137,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `record encodes to Obj`() {
         assertEquals(
-            SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1L), "y" to SchemaValue.Integer(2L))),
+            SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1"), "y" to SchemaValue.Number("2"))),
             pointSchema.encodeToSchemaValue(Point(1, 2))
         )
     }
@@ -189,7 +189,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `union encodes with discriminator`() {
         assertEquals(
-            SchemaValue.Obj(mapOf("type" to SchemaValue.Str("Circle"), "radius" to SchemaValue.Integer(5L))),
+            SchemaValue.Obj(mapOf("type" to SchemaValue.Str("Circle"), "radius" to SchemaValue.Number("5"))),
             shapeSchema.encodeToSchemaValue(Shape.Circle(5))
         )
     }
@@ -200,8 +200,8 @@ class SchemaValueEncodingTest {
             SchemaValue.Obj(
                 mapOf(
                     "type" to SchemaValue.Str("Rect"),
-                    "w" to SchemaValue.Integer(3L),
-                    "h" to SchemaValue.Integer(4L)
+                    "w" to SchemaValue.Number("3"),
+                    "h" to SchemaValue.Number("4")
                 )
             ),
             shapeSchema.encodeToSchemaValue(Shape.Rect(3, 4))
@@ -224,19 +224,19 @@ class SchemaValueEncodingTest {
     @Test
     fun `lazy encodes through delegate`() {
         val schema = Schema.lazy { Schema.int() }
-        assertEquals(SchemaValue.Integer(10L), schema.encodeToSchemaValue(10))
+        assertEquals(SchemaValue.Number("10"), schema.encodeToSchemaValue(10))
     }
 
     @Test
     fun `metadata passes through to inner schema`() {
         val schema = Schema.int().description("some number")
-        assertEquals(SchemaValue.Integer(99L), schema.encodeToSchemaValue(99))
+        assertEquals(SchemaValue.Number("99"), schema.encodeToSchemaValue(99))
     }
 
     @Test
     fun `orElse encodes via preferred schema`() {
         val schema = Schema.int().orElse(Schema.string()) { it.toInt() }
-        assertEquals(SchemaValue.Integer(42L), schema.encodeToSchemaValue(42))
+        assertEquals(SchemaValue.Number("42"), schema.encodeToSchemaValue(42))
     }
 
     @Test
@@ -266,10 +266,10 @@ class SchemaValueEncodingTest {
                 mapOf(
                     "type" to SchemaValue.Str("Branch"),
                     "left" to SchemaValue.Obj(
-                        mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Integer(1L))
+                        mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("1"))
                     ),
                     "right" to SchemaValue.Obj(
-                        mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Integer(2L))
+                        mapOf("type" to SchemaValue.Str("Leaf"), "value" to SchemaValue.Number("2"))
                     )
                 )
             ),
@@ -299,7 +299,7 @@ class SchemaValueEncodingTest {
         )
 
         assertEquals(
-            SchemaValue.Obj(mapOf("kind" to SchemaValue.Str("Circle"), "radius" to SchemaValue.Integer(5L))),
+            SchemaValue.Obj(mapOf("kind" to SchemaValue.Str("Circle"), "radius" to SchemaValue.Number("5"))),
             schema.encodeToSchemaValue(Shape.Circle(5))
         )
     }
@@ -309,8 +309,8 @@ class SchemaValueEncodingTest {
         assertEquals(
             SchemaValue.Arr(
                 listOf(
-                    SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1L), "y" to SchemaValue.Integer(2L))),
-                    SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(3L), "y" to SchemaValue.Integer(4L)))
+                    SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1"), "y" to SchemaValue.Number("2"))),
+                    SchemaValue.Obj(mapOf("x" to SchemaValue.Number("3"), "y" to SchemaValue.Number("4")))
                 )
             ),
             Schema.list(pointSchema).encodeToSchemaValue(listOf(Point(1, 2), Point(3, 4)))
@@ -394,7 +394,7 @@ class SchemaValueEncodingTest {
     @Test
     fun `orElse fallback encodes via preferred schema`() {
         val schema = Schema.int().orElse(Schema.string()) { it.toInt() }
-        assertEquals(SchemaValue.Integer(42L), schema.encodeToSchemaValue(42))
+        assertEquals(SchemaValue.Number("42"), schema.encodeToSchemaValue(42))
     }
 
     // -- Key ordering --

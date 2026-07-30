@@ -7,12 +7,14 @@ import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.json.JsonEncodingConfig
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonString
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.JsonUnquotedLiteral
 import kotlinx.serialization.json.jsonObject
 import kotlin.io.encoding.Base64
 import kotlin.io.encoding.ExperimentalEncodingApi
@@ -123,13 +125,8 @@ private fun encodeDynamic(value: SchemaValue, config: JsonEncodingConfig): JsonE
     when (value) {
         is SchemaValue.Null -> JsonNull
         is SchemaValue.Bool -> JsonPrimitive(value.value)
-        is SchemaValue.Integer -> JsonPrimitive(value.value)
-        is SchemaValue.Decimal -> {
-            if (value.value.isNaN() || value.value.isInfinite()) {
-                require(config.allowSpecialFloatingPointValues) { "Non-finite double value in SchemaValue.Decimal: ${value.value}" }
-            }
-            JsonPrimitive(value.value)
-        }
+        // Validated in Number's init, so the literal is a real JSON number, never "null".
+        is SchemaValue.Number -> @OptIn(ExperimentalSerializationApi::class) JsonUnquotedLiteral(value.literal)
         is SchemaValue.Str -> JsonPrimitive(value.value)
         is SchemaValue.Arr -> JsonArray(value.values.map { encodeDynamic(it, config) })
         is SchemaValue.Obj -> JsonObject(value.entries.mapValues { encodeDynamic(it.value, config) })

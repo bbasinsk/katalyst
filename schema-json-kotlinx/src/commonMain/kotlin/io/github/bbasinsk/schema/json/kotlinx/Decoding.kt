@@ -202,14 +202,8 @@ private fun decodeDynamic(json: JsonElement): SchemaValue =
         is JsonPrimitive -> when {
             json.isString -> SchemaValue.Str(json.content)
             json.content == "true" || json.content == "false" -> SchemaValue.Bool(json.content.toBooleanStrict())
-            // Attempt numeric parsing: decimal-like (contains '.' or 'e') -> Double, otherwise Long -> Double.
-            // Falls back to Str for values kotlinx.serialization's parser would never produce from valid JSON,
-            // but could appear via programmatic JsonPrimitive construction.
-            json.content.contains('.') || json.content.contains('e', ignoreCase = true) ->
-                json.content.toDoubleOrNull()?.let { SchemaValue.Decimal(it) }
-                    ?: SchemaValue.Str(json.content)
-            else -> json.content.toLongOrNull()?.let { SchemaValue.Integer(it) }
-                ?: json.content.toDoubleOrNull()?.let { SchemaValue.Decimal(it) }
-                ?: SchemaValue.Str(json.content)
+            // JsonPrimitive.content preserves the source literal, so numbers round-trip digit-exact.
+            // Falls back to Str for non-RFC-8259 content that only programmatic construction can produce.
+            else -> SchemaValue.Number.parseOrNull(json.content) ?: SchemaValue.Str(json.content)
         }
     }

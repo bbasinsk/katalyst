@@ -267,7 +267,7 @@ class SchemaValueDecodingTest {
         val value = SchemaValue.Obj(
             mapOf(
                 "name" to SchemaValue.Str("test"),
-                "count" to SchemaValue.Integer(42),
+                "count" to SchemaValue.Number("42"),
                 "active" to SchemaValue.Bool(true)
             )
         )

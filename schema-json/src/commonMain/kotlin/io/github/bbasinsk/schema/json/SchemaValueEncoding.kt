@@ -30,10 +30,10 @@ private fun <A> Schema.Primitive<A>.encodePrimitiveToSchemaValue(value: A): Sche
     when (this) {
         is Schema.Primitive.Boolean -> SchemaValue.Bool(value as kotlin.Boolean)
         is Schema.Primitive.String -> SchemaValue.Str(value as kotlin.String)
-        is Schema.Primitive.Int -> SchemaValue.Integer((value as kotlin.Int).toLong())
-        is Schema.Primitive.Long -> SchemaValue.Integer(value as kotlin.Long)
-        is Schema.Primitive.Float -> SchemaValue.Decimal((value as kotlin.Float).toDouble())
-        is Schema.Primitive.Double -> SchemaValue.Decimal(value as kotlin.Double)
+        is Schema.Primitive.Int -> SchemaValue.Number.of(value as kotlin.Int)
+        is Schema.Primitive.Long -> SchemaValue.Number.of(value as kotlin.Long)
+        is Schema.Primitive.Float -> SchemaValue.Number.of(value as kotlin.Float)
+        is Schema.Primitive.Double -> SchemaValue.Number.of(value as kotlin.Double)
         is Schema.Primitive.Enumeration<*> -> SchemaValue.Str(value.toString())
     }
 

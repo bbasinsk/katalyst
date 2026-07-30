@@ -60,23 +60,13 @@ private fun <A> Validation.Companion.decodePrimitive(
         is Schema.Primitive.Boolean ->
             if (value is SchemaValue.Bool) valid(value.value as A) else invalid(error)
         is Schema.Primitive.Int ->
-            if (value is SchemaValue.Integer && value.value in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong()) {
-                valid(value.value.toInt() as A)
-            } else {
-                invalid(error)
-            }
+            (value as? SchemaValue.Number)?.toIntOrNull()?.let { valid(it as A) } ?: invalid(error)
         is Schema.Primitive.Long ->
-            if (value is SchemaValue.Integer) valid(value.value as A) else invalid(error)
-        is Schema.Primitive.Double -> when (value) {
-            is SchemaValue.Decimal -> valid(value.value as A)
-            is SchemaValue.Integer -> valid(value.value.toDouble() as A)
-            else -> invalid(error)
-        }
-        is Schema.Primitive.Float -> when (value) {
-            is SchemaValue.Decimal -> valid(value.value.toFloat() as A)
-            is SchemaValue.Integer -> valid(value.value.toFloat() as A)
-            else -> invalid(error)
-        }
+            (value as? SchemaValue.Number)?.toLongOrNull()?.let { valid(it as A) } ?: invalid(error)
+        is Schema.Primitive.Double ->
+            (value as? SchemaValue.Number)?.toDoubleOrNull()?.let { valid(it as A) } ?: invalid(error)
+        is Schema.Primitive.Float ->
+            (value as? SchemaValue.Number)?.toFloatOrNull()?.let { valid(it as A) } ?: invalid(error)
         is Schema.Primitive.String ->
             if (value is SchemaValue.Str) valid(value.value as A) else invalid(error)
         is Schema.Primitive.Enumeration<*> ->
@@ -215,8 +205,7 @@ private fun <A> Validation.Companion.decodeUnion(
 private fun SchemaValue.toFoundString(): String = when (this) {
     is SchemaValue.Null -> "null"
     is SchemaValue.Bool -> value.toString()
-    is SchemaValue.Integer -> value.toString()
-    is SchemaValue.Decimal -> value.toString()
+    is SchemaValue.Number -> literal
     is SchemaValue.Str -> "\"$value\""
     is SchemaValue.Arr -> "Array"
     is SchemaValue.Obj -> "Object"

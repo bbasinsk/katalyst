@@ -26,32 +26,32 @@ class SchemaValueJsonEncodingTest {
 
     @Test
     fun `integer encodes to number`() {
-        assertEquals("42", SchemaValue.Integer(42L).encodeToJsonString())
+        assertEquals("42", SchemaValue.Number("42").encodeToJsonString())
     }
 
     @Test
     fun `integer zero`() {
-        assertEquals("0", SchemaValue.Integer(0L).encodeToJsonString())
+        assertEquals("0", SchemaValue.Number("0").encodeToJsonString())
     }
 
     @Test
     fun `integer negative`() {
-        assertEquals("-1", SchemaValue.Integer(-1L).encodeToJsonString())
+        assertEquals("-1", SchemaValue.Number("-1").encodeToJsonString())
     }
 
     @Test
     fun `long max value`() {
-        assertEquals(Long.MAX_VALUE.toString(), SchemaValue.Integer(Long.MAX_VALUE).encodeToJsonString())
+        assertEquals(Long.MAX_VALUE.toString(), SchemaValue.Number(Long.MAX_VALUE.toString()).encodeToJsonString())
     }
 
     @Test
     fun `long min value`() {
-        assertEquals(Long.MIN_VALUE.toString(), SchemaValue.Integer(Long.MIN_VALUE).encodeToJsonString())
+        assertEquals(Long.MIN_VALUE.toString(), SchemaValue.Number(Long.MIN_VALUE.toString()).encodeToJsonString())
     }
 
     @Test
     fun `decimal encodes to number`() {
-        assertEquals("3.14", SchemaValue.Decimal(3.14).encodeToJsonString())
+        assertEquals("3.14", SchemaValue.Number("3.14").encodeToJsonString())
     }
 
     @Test
@@ -126,7 +126,7 @@ class SchemaValueJsonEncodingTest {
         assertEquals(
             "[1,2,3]",
             SchemaValue.Arr(
-                listOf(SchemaValue.Integer(1), SchemaValue.Integer(2), SchemaValue.Integer(3))
+                listOf(SchemaValue.Number("1"), SchemaValue.Number("2"), SchemaValue.Number("3"))
             ).encodeToJsonString()
         )
     }
@@ -138,7 +138,7 @@ class SchemaValueJsonEncodingTest {
         assertEquals(
             "{\"a\":1,\"b\":\"x\"}",
             SchemaValue.Obj(
-                mapOf("a" to SchemaValue.Integer(1), "b" to SchemaValue.Str("x"))
+                mapOf("a" to SchemaValue.Number("1"), "b" to SchemaValue.Str("x"))
             ).encodeToJsonString()
         )
     }
@@ -151,8 +151,8 @@ class SchemaValueJsonEncodingTest {
             "[{\"x\":1},{\"x\":2}]",
             SchemaValue.Arr(
                 listOf(
-                    SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1))),
-                    SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(2)))
+                    SchemaValue.Obj(mapOf("x" to SchemaValue.Number("1"))),
+                    SchemaValue.Obj(mapOf("x" to SchemaValue.Number("2")))
                 )
             ).encodeToJsonString()
         )
@@ -164,7 +164,7 @@ class SchemaValueJsonEncodingTest {
             "{\"items\":[1,2],\"name\":\"test\"}",
             SchemaValue.Obj(
                 mapOf(
-                    "items" to SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
+                    "items" to SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"))),
                     "name" to SchemaValue.Str("test")
                 )
             ).encodeToJsonString()
@@ -180,7 +180,7 @@ class SchemaValueJsonEncodingTest {
         assertEquals(
             "{\n  \"a\": 1,\n  \"b\": \"x\"\n}",
             SchemaValue.Obj(
-                mapOf("a" to SchemaValue.Integer(1), "b" to SchemaValue.Str("x"))
+                mapOf("a" to SchemaValue.Number("1"), "b" to SchemaValue.Str("x"))
             ).encodeToJsonString(prettyConfig)
         )
     }
@@ -190,7 +190,7 @@ class SchemaValueJsonEncodingTest {
         assertEquals(
             "[\n  1,\n  2,\n  3\n]",
             SchemaValue.Arr(
-                listOf(SchemaValue.Integer(1), SchemaValue.Integer(2), SchemaValue.Integer(3))
+                listOf(SchemaValue.Number("1"), SchemaValue.Number("2"), SchemaValue.Number("3"))
             ).encodeToJsonString(prettyConfig)
         )
     }
@@ -201,7 +201,7 @@ class SchemaValueJsonEncodingTest {
             "{\n  \"items\": [\n    1,\n    2\n  ],\n  \"name\": \"test\"\n}",
             SchemaValue.Obj(
                 mapOf(
-                    "items" to SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
+                    "items" to SchemaValue.Arr(listOf(SchemaValue.Number("1"), SchemaValue.Number("2"))),
                     "name" to SchemaValue.Str("test")
                 )
             ).encodeToJsonString(prettyConfig)
@@ -214,44 +214,37 @@ class SchemaValueJsonEncodingTest {
         assertEquals("{}", SchemaValue.Obj(emptyMap()).encodeToJsonString(prettyConfig))
     }
 
-    // -- Special floats --
+    // -- Special floats: not JSON numbers, unconstructible --
 
     @Test
-    fun `NaN throws by default`() {
-        assertFailsWith<IllegalArgumentException> {
-            SchemaValue.Decimal(Double.NaN).encodeToJsonString()
-        }
+    fun `NaN is not constructible`() {
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number.of(Double.NaN) }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number("NaN") }
     }
 
     @Test
-    fun `Infinity throws by default`() {
-        assertFailsWith<IllegalArgumentException> {
-            SchemaValue.Decimal(Double.POSITIVE_INFINITY).encodeToJsonString()
-        }
+    fun `Infinity is not constructible`() {
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number.of(Double.POSITIVE_INFINITY) }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number.of(Double.NEGATIVE_INFINITY) }
+    }
+
+    // -- Literal fidelity --
+
+    @Test
+    fun `number literal round-trips digit-exact`() {
+        assertEquals("12345678901234567890", SchemaValue.Number("12345678901234567890").encodeToJsonString())
+        assertEquals("3.141592653589793238462643", SchemaValue.Number("3.141592653589793238462643").encodeToJsonString())
+        assertEquals("1E10", SchemaValue.Number("1E10").encodeToJsonString())
+        assertEquals("-0.5", SchemaValue.Number("-0.5").encodeToJsonString())
     }
 
     @Test
-    fun `negative Infinity throws by default`() {
-        assertFailsWith<IllegalArgumentException> {
-            SchemaValue.Decimal(Double.NEGATIVE_INFINITY).encodeToJsonString()
-        }
-    }
-
-    @Test
-    fun `NaN allowed with config`() {
-        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
-        assertEquals("NaN", SchemaValue.Decimal(Double.NaN).encodeToJsonString(config))
-    }
-
-    @Test
-    fun `Infinity allowed with config`() {
-        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
-        assertEquals("Infinity", SchemaValue.Decimal(Double.POSITIVE_INFINITY).encodeToJsonString(config))
-    }
-
-    @Test
-    fun `negative Infinity allowed with config`() {
-        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
-        assertEquals("-Infinity", SchemaValue.Decimal(Double.NEGATIVE_INFINITY).encodeToJsonString(config))
+    fun `invalid number literals are rejected at construction`() {
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number("007") }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number("1.") }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number(".5") }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number("-") }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number("1e") }
+        assertFailsWith<IllegalArgumentException> { SchemaValue.Number("") }
     }
 }
