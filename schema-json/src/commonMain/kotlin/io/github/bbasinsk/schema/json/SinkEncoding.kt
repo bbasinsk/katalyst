@@ -2,8 +2,8 @@
 
 package io.github.bbasinsk.schema.json
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.SchemaValue
 import kotlinx.io.Sink
 import kotlinx.io.writeString
 import kotlin.io.encoding.Base64
@@ -13,7 +13,7 @@ fun <A> Schema<A>.encodeToSink(value: A, sink: Sink, config: JsonEncodingConfig)
     encodeToSink(value, sink, config, depth = 0)
 }
 
-fun SchemaValue.encodeToSink(sink: Sink, config: JsonEncodingConfig) {
+fun JsonValue.encodeToSink(sink: Sink, config: JsonEncodingConfig) {
     encodeDynamicToSink(this, sink, config, depth = 0)
 }
 
@@ -25,7 +25,7 @@ private fun Sink.writeIndent(print: JsonEncodingConfig.PrintConfig, depth: Int) 
 private fun <A> Schema<A>.encodeToSink(value: A, sink: Sink, config: JsonEncodingConfig, depth: Int) {
     when (this) {
         is Schema.Empty -> sink.writeString("null")
-        is Schema.Dynamic -> encodeDynamicToSink(value as SchemaValue, sink, config, depth)
+        is Schema.Dynamic -> encodeDynamicToSink(value as JsonValue, sink, config, depth)
         is Schema.Bytes -> sink.writeJsonString(Base64.encode(value as ByteArray))
         is Schema.Primitive -> encodePrimitive(value, sink, config)
         is Schema.Lazy -> schema().encodeToSink(value, sink, config, depth)
@@ -186,20 +186,14 @@ private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Si
     }
 }
 
-private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEncodingConfig, depth: Int) {
+private fun encodeDynamicToSink(value: JsonValue, sink: Sink, config: JsonEncodingConfig, depth: Int) {
     val print = config.printConfig
     when (value) {
-        is SchemaValue.Null -> sink.writeString("null")
-        is SchemaValue.Bool -> sink.writeString(value.value.toString())
-        is SchemaValue.Integer -> sink.writeString(value.value.toString())
-        is SchemaValue.Decimal -> {
-            if (value.value.isNaN() || value.value.isInfinite()) {
-                require(config.allowSpecialFloatingPointValues) { "Non-finite double value in SchemaValue.Decimal: ${value.value}" }
-            }
-            sink.writeJsonDouble(value.value)
-        }
-        is SchemaValue.Str -> sink.writeJsonString(value.value)
-        is SchemaValue.Arr -> {
+        is JsonValue.Null -> sink.writeString("null")
+        is JsonValue.Bool -> sink.writeString(value.value.toString())
+        is JsonValue.Number -> sink.writeString(value.literal)
+        is JsonValue.Str -> sink.writeJsonString(value.value)
+        is JsonValue.Arr -> {
             sink.writeString("[")
             if (value.values.isNotEmpty()) {
                 value.values.forEachIndexed { i, item ->
@@ -211,7 +205,7 @@ private fun encodeDynamicToSink(value: SchemaValue, sink: Sink, config: JsonEnco
             }
             sink.writeString("]")
         }
-        is SchemaValue.Obj -> {
+        is JsonValue.Obj -> {
             sink.writeString("{")
             if (value.entries.isNotEmpty()) {
                 var first = true

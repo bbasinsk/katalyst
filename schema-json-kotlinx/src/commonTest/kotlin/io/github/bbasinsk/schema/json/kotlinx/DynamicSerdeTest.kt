@@ -1,7 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
+import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
-import io.github.bbasinsk.schema.SchemaValue
 import io.github.bbasinsk.schema.json.JsonEncodingConfig
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.validation.Validation
@@ -14,13 +14,13 @@ class DynamicSerdeTest {
 
     private val schema = Schema.dynamic()
 
-    private fun roundTrip(value: SchemaValue) {
+    private fun roundTrip(value: JsonValue) {
         val encoded = schema.encodeToJsonString(value)
         val decoded = schema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
-    private fun assertEncodingsMatch(value: SchemaValue, config: JsonEncodingConfig = JsonEncodingConfig()) {
+    private fun assertEncodingsMatch(value: JsonValue, config: JsonEncodingConfig = JsonEncodingConfig()) {
         val fromElement = schema.encodeToJsonElement(value, config).toString()
         val fromSink = schema.encodeToJsonString(value, config)
         assertEquals(fromElement, fromSink)
@@ -29,69 +29,69 @@ class DynamicSerdeTest {
     // Round-trip all 7 variants
 
     @Test
-    fun `null round-trip`() = roundTrip(SchemaValue.Null)
+    fun `null round-trip`() = roundTrip(JsonValue.Null)
 
     @Test
-    fun `bool true round-trip`() = roundTrip(SchemaValue.Bool(true))
+    fun `bool true round-trip`() = roundTrip(JsonValue.Bool(true))
 
     @Test
-    fun `bool false round-trip`() = roundTrip(SchemaValue.Bool(false))
+    fun `bool false round-trip`() = roundTrip(JsonValue.Bool(false))
 
     @Test
-    fun `integer round-trip`() = roundTrip(SchemaValue.Integer(42))
+    fun `integer round-trip`() = roundTrip(JsonValue.Number("42"))
 
     @Test
-    fun `negative integer round-trip`() = roundTrip(SchemaValue.Integer(-100))
+    fun `negative integer round-trip`() = roundTrip(JsonValue.Number("-100"))
 
     @Test
-    fun `decimal round-trip`() = roundTrip(SchemaValue.Decimal(3.14))
+    fun `decimal round-trip`() = roundTrip(JsonValue.Number("3.14"))
 
     @Test
-    fun `string round-trip`() = roundTrip(SchemaValue.Str("hello"))
+    fun `string round-trip`() = roundTrip(JsonValue.Str("hello"))
 
     @Test
-    fun `empty string round-trip`() = roundTrip(SchemaValue.Str(""))
+    fun `empty string round-trip`() = roundTrip(JsonValue.Str(""))
 
     @Test
-    fun `empty array round-trip`() = roundTrip(SchemaValue.Arr(emptyList()))
+    fun `empty array round-trip`() = roundTrip(JsonValue.Arr(emptyList()))
 
     @Test
     fun `array round-trip`() = roundTrip(
-        SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Str("two"), SchemaValue.Bool(true)))
+        JsonValue.Arr(listOf(JsonValue.Number("1"), JsonValue.Str("two"), JsonValue.Bool(true)))
     )
 
     @Test
-    fun `empty object round-trip`() = roundTrip(SchemaValue.Obj(emptyMap()))
+    fun `empty object round-trip`() = roundTrip(JsonValue.Obj(emptyMap()))
 
     @Test
     fun `object round-trip`() = roundTrip(
-        SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1), "b" to SchemaValue.Str("hello")))
+        JsonValue.Obj(mapOf("a" to JsonValue.Number("1"), "b" to JsonValue.Str("hello")))
     )
 
     // Nested structures
 
     @Test
     fun `nested object with array round-trip`() = roundTrip(
-        SchemaValue.Obj(
+        JsonValue.Obj(
             mapOf(
-                "name" to SchemaValue.Str("test"),
-                "items" to SchemaValue.Arr(
+                "name" to JsonValue.Str("test"),
+                "items" to JsonValue.Arr(
                     listOf(
-                        SchemaValue.Obj(mapOf("id" to SchemaValue.Integer(1))),
-                        SchemaValue.Obj(mapOf("id" to SchemaValue.Integer(2)))
+                        JsonValue.Obj(mapOf("id" to JsonValue.Number("1"))),
+                        JsonValue.Obj(mapOf("id" to JsonValue.Number("2")))
                     )
                 ),
-                "meta" to SchemaValue.Null
+                "meta" to JsonValue.Null
             )
         )
     )
 
     @Test
     fun `array of objects round-trip`() = roundTrip(
-        SchemaValue.Arr(
+        JsonValue.Arr(
             listOf(
-                SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1), "y" to SchemaValue.Integer(2))),
-                SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(3), "y" to SchemaValue.Integer(4)))
+                JsonValue.Obj(mapOf("x" to JsonValue.Number("1"), "y" to JsonValue.Number("2"))),
+                JsonValue.Obj(mapOf("x" to JsonValue.Number("3"), "y" to JsonValue.Number("4")))
             )
         )
     )
@@ -101,41 +101,41 @@ class DynamicSerdeTest {
     @Test
     fun `integer 42 decodes as Integer not Decimal`() {
         val decoded = schema.decodeFromJsonString("42", Json.Default)
-        assertEquals(Validation.valid(SchemaValue.Integer(42)), decoded)
+        assertEquals(Validation.valid(JsonValue.Number("42")), decoded)
     }
 
     @Test
     fun `decimal 3-14 decodes as Decimal`() {
         val decoded = schema.decodeFromJsonString("3.14", Json.Default)
-        assertEquals(Validation.valid(SchemaValue.Decimal(3.14)), decoded)
+        assertEquals(Validation.valid(JsonValue.Number("3.14")), decoded)
     }
 
     @Test
     fun `scientific notation decodes as Decimal`() {
         val decoded = schema.decodeFromJsonString("1e10", Json.Default)
-        assertEquals(Validation.valid(SchemaValue.Decimal(1e10)), decoded)
+        assertEquals(Validation.valid(JsonValue.Number("1e10")), decoded)
     }
 
     // Encoding output
 
     @Test
     fun `null encodes to null`() {
-        assertEquals("null", schema.encodeToJsonString(SchemaValue.Null))
+        assertEquals("null", schema.encodeToJsonString(JsonValue.Null))
     }
 
     @Test
     fun `integer encodes without decimal point`() {
-        assertEquals("42", schema.encodeToJsonString(SchemaValue.Integer(42)))
+        assertEquals("42", schema.encodeToJsonString(JsonValue.Number("42")))
     }
 
     @Test
     fun `decimal encodes with decimal point`() {
-        assertEquals("3.14", schema.encodeToJsonString(SchemaValue.Decimal(3.14)))
+        assertEquals("3.14", schema.encodeToJsonString(JsonValue.Number("3.14")))
     }
 
     // Dynamic as record field
 
-    data class Wrapper(val name: String, val data: SchemaValue)
+    data class Wrapper(val name: String, val data: JsonValue)
 
     private val wrapperSchema = with(Schema) {
         record(
@@ -147,7 +147,7 @@ class DynamicSerdeTest {
 
     @Test
     fun `dynamic as record field round-trip`() {
-        val value = Wrapper("test", SchemaValue.Obj(mapOf("key" to SchemaValue.Integer(42))))
+        val value = Wrapper("test", JsonValue.Obj(mapOf("key" to JsonValue.Number("42"))))
         val encoded = wrapperSchema.encodeToJsonString(value)
         val decoded = wrapperSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
@@ -158,7 +158,7 @@ class DynamicSerdeTest {
     @Test
     fun `list of dynamic round-trip`() {
         val listSchema = Schema.list(Schema.dynamic())
-        val value = listOf(SchemaValue.Integer(1), SchemaValue.Str("two"), SchemaValue.Null)
+        val value = listOf(JsonValue.Number("1"), JsonValue.Str("two"), JsonValue.Null)
         val encoded = listSchema.encodeToJsonString(value)
         val decoded = listSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
@@ -169,7 +169,7 @@ class DynamicSerdeTest {
     @Test
     fun `optional dynamic present round-trip`() {
         val optSchema = Schema.dynamic().optional()
-        val value = SchemaValue.Str("hello")
+        val value = JsonValue.Str("hello")
         val encoded = optSchema.encodeToJsonString(value)
         val decoded = optSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
@@ -185,7 +185,7 @@ class DynamicSerdeTest {
 
     @Test
     fun `optional dynamic field omitted when null with explicitNulls false`() {
-        data class OptWrapper(val name: String, val data: SchemaValue?)
+        data class OptWrapper(val name: String, val data: JsonValue?)
 
         val optWrapperSchema = with(Schema) {
             record(
@@ -202,46 +202,46 @@ class DynamicSerdeTest {
         )
         assertEquals(
             """{"name":"test","data":null}""",
-            optWrapperSchema.encodeToJsonString(OptWrapper("test", SchemaValue.Null), config)
+            optWrapperSchema.encodeToJsonString(OptWrapper("test", JsonValue.Null), config)
         )
     }
 
     // Sink encoding matches element encoding
 
     @Test
-    fun `sink encoding matches - null`() = assertEncodingsMatch(SchemaValue.Null)
+    fun `sink encoding matches - null`() = assertEncodingsMatch(JsonValue.Null)
 
     @Test
-    fun `sink encoding matches - bool`() = assertEncodingsMatch(SchemaValue.Bool(true))
+    fun `sink encoding matches - bool`() = assertEncodingsMatch(JsonValue.Bool(true))
 
     @Test
-    fun `sink encoding matches - integer`() = assertEncodingsMatch(SchemaValue.Integer(42))
+    fun `sink encoding matches - integer`() = assertEncodingsMatch(JsonValue.Number("42"))
 
     @Test
-    fun `sink encoding matches - decimal`() = assertEncodingsMatch(SchemaValue.Decimal(3.14))
+    fun `sink encoding matches - decimal`() = assertEncodingsMatch(JsonValue.Number("3.14"))
 
     @Test
-    fun `sink encoding matches - string`() = assertEncodingsMatch(SchemaValue.Str("hello"))
+    fun `sink encoding matches - string`() = assertEncodingsMatch(JsonValue.Str("hello"))
 
     @Test
-    fun `sink encoding matches - string with escapes`() = assertEncodingsMatch(SchemaValue.Str("say \"hi\"\nand\\tab"))
+    fun `sink encoding matches - string with escapes`() = assertEncodingsMatch(JsonValue.Str("say \"hi\"\nand\\tab"))
 
     @Test
     fun `sink encoding matches - array`() = assertEncodingsMatch(
-        SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2)))
+        JsonValue.Arr(listOf(JsonValue.Number("1"), JsonValue.Number("2")))
     )
 
     @Test
     fun `sink encoding matches - object`() = assertEncodingsMatch(
-        SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1), "b" to SchemaValue.Str("two")))
+        JsonValue.Obj(mapOf("a" to JsonValue.Number("1"), "b" to JsonValue.Str("two")))
     )
 
     @Test
     fun `sink encoding matches - nested`() = assertEncodingsMatch(
-        SchemaValue.Obj(
+        JsonValue.Obj(
             mapOf(
-                "arr" to SchemaValue.Arr(listOf(SchemaValue.Obj(mapOf("x" to SchemaValue.Integer(1))))),
-                "nil" to SchemaValue.Null
+                "arr" to JsonValue.Arr(listOf(JsonValue.Obj(mapOf("x" to JsonValue.Number("1"))))),
+                "nil" to JsonValue.Null
             )
         )
     )
@@ -250,22 +250,22 @@ class DynamicSerdeTest {
 
     private val pretty = JsonEncodingConfig(printConfig = JsonEncodingConfig.PrintConfig.pretty())
 
-    private fun assertPrettyPrint(value: SchemaValue, expected: String) {
+    private fun assertPrettyPrint(value: JsonValue, expected: String) {
         assertEquals(expected, schema.encodeToJsonString(value, pretty))
     }
 
     @Test
     fun `pretty - object`() = assertPrettyPrint(
-        SchemaValue.Obj(mapOf("a" to SchemaValue.Integer(1), "b" to SchemaValue.Str("two"))),
+        JsonValue.Obj(mapOf("a" to JsonValue.Number("1"), "b" to JsonValue.Str("two"))),
         "{\n  \"a\": 1,\n  \"b\": \"two\"\n}"
     )
 
     @Test
     fun `pretty - nested`() = assertPrettyPrint(
-        SchemaValue.Obj(
+        JsonValue.Obj(
             mapOf(
-                "items" to SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
-                "meta" to SchemaValue.Obj(mapOf("key" to SchemaValue.Str("val")))
+                "items" to JsonValue.Arr(listOf(JsonValue.Number("1"), JsonValue.Number("2"))),
+                "meta" to JsonValue.Obj(mapOf("key" to JsonValue.Str("val")))
             )
         ),
         "{\n  \"items\": [\n    1,\n    2\n  ],\n  \"meta\": {\n    \"key\": \"val\"\n  }\n}"
@@ -273,24 +273,24 @@ class DynamicSerdeTest {
 
     @Test
     fun `pretty - primitives unchanged`() {
-        assertEquals("42", schema.encodeToJsonString(SchemaValue.Integer(42), pretty))
-        assertEquals("\"hello\"", schema.encodeToJsonString(SchemaValue.Str("hello"), pretty))
-        assertEquals("true", schema.encodeToJsonString(SchemaValue.Bool(true), pretty))
-        assertEquals("null", schema.encodeToJsonString(SchemaValue.Null, pretty))
+        assertEquals("42", schema.encodeToJsonString(JsonValue.Number("42"), pretty))
+        assertEquals("\"hello\"", schema.encodeToJsonString(JsonValue.Str("hello"), pretty))
+        assertEquals("true", schema.encodeToJsonString(JsonValue.Bool(true), pretty))
+        assertEquals("null", schema.encodeToJsonString(JsonValue.Null, pretty))
     }
 
     @Test
-    fun `pretty - empty array`() = assertPrettyPrint(SchemaValue.Arr(emptyList()), "[]")
+    fun `pretty - empty array`() = assertPrettyPrint(JsonValue.Arr(emptyList()), "[]")
 
     @Test
-    fun `pretty - empty object`() = assertPrettyPrint(SchemaValue.Obj(emptyMap()), "{}")
+    fun `pretty - empty object`() = assertPrettyPrint(JsonValue.Obj(emptyMap()), "{}")
 
     @Test
     fun `pretty - nested object round-trips`() {
-        val value = SchemaValue.Obj(
+        val value = JsonValue.Obj(
             mapOf(
-                "items" to SchemaValue.Arr(listOf(SchemaValue.Integer(1), SchemaValue.Integer(2))),
-                "meta" to SchemaValue.Obj(mapOf("key" to SchemaValue.Str("val")))
+                "items" to JsonValue.Arr(listOf(JsonValue.Number("1"), JsonValue.Number("2"))),
+                "meta" to JsonValue.Obj(mapOf("key" to JsonValue.Str("val")))
             )
         )
         val prettyJson = schema.encodeToJsonString(value, pretty)
@@ -301,78 +301,64 @@ class DynamicSerdeTest {
     // Edge cases
 
     @Test
-    fun `long max value round-trip`() = roundTrip(SchemaValue.Integer(Long.MAX_VALUE))
+    fun `long max value round-trip`() = roundTrip(JsonValue.Number(Long.MAX_VALUE.toString()))
 
     @Test
-    fun `long min value round-trip`() = roundTrip(SchemaValue.Integer(Long.MIN_VALUE))
+    fun `long min value round-trip`() = roundTrip(JsonValue.Number(Long.MIN_VALUE.toString()))
 
     @Test
     fun `zero as integer`() {
         val decoded = schema.decodeFromJsonString("0", Json.Default)
-        assertEquals(Validation.valid(SchemaValue.Integer(0)), decoded)
+        assertEquals(Validation.valid(JsonValue.Number("0")), decoded)
     }
 
     @Test
     fun `zero as decimal`() {
         val decoded = schema.decodeFromJsonString("0.0", Json.Default)
-        assertEquals(Validation.valid(SchemaValue.Decimal(0.0)), decoded)
+        assertEquals(Validation.valid(JsonValue.Number("0.0")), decoded)
     }
 
     @Test
     fun `null inside array round-trip`() = roundTrip(
-        SchemaValue.Arr(listOf(SchemaValue.Null, SchemaValue.Integer(1)))
+        JsonValue.Arr(listOf(JsonValue.Null, JsonValue.Number("1")))
     )
 
     @Test
     fun `special characters in object keys round-trip`() = roundTrip(
-        SchemaValue.Obj(
+        JsonValue.Obj(
             mapOf(
-                "key with spaces" to SchemaValue.Integer(1),
-                "key\"with\"quotes" to SchemaValue.Integer(2),
-                "key\nwith\nnewlines" to SchemaValue.Integer(3),
-                "" to SchemaValue.Integer(4)
+                "key with spaces" to JsonValue.Number("1"),
+                "key\"with\"quotes" to JsonValue.Number("2"),
+                "key\nwith\nnewlines" to JsonValue.Number("3"),
+                "" to JsonValue.Number("4")
             )
         )
     )
 
     @Test
     fun `null as record field value round-trip`() {
-        val value = Wrapper("test", SchemaValue.Null)
+        val value = Wrapper("test", JsonValue.Null)
         val encoded = wrapperSchema.encodeToJsonString(value)
         val decoded = wrapperSchema.decodeFromJsonString(encoded, Json.Default)
         assertEquals(Validation.valid(value), decoded)
     }
 
     @Test
-    fun `NaN decimal encoding throws by default`() {
-        val result = runCatching { schema.encodeToJsonString(SchemaValue.Decimal(Double.NaN)) }
-        assertTrue(result.isFailure, "Expected encoding NaN to throw")
+    fun `non-finite doubles are not constructible as numbers`() {
+        assertTrue(runCatching { JsonValue.Number.of(Double.NaN) }.isFailure)
+        assertTrue(runCatching { JsonValue.Number.of(Double.POSITIVE_INFINITY) }.isFailure)
+        assertTrue(runCatching { JsonValue.Number.of(Double.NEGATIVE_INFINITY) }.isFailure)
     }
 
     @Test
-    fun `Positive Infinity decimal encoding throws by default`() {
-        val result = runCatching { schema.encodeToJsonString(SchemaValue.Decimal(Double.POSITIVE_INFINITY)) }
-        assertTrue(result.isFailure, "Expected encoding +Infinity to throw")
-    }
+    fun `number literal round-trips digit-exact through JsonElement`() {
+        val big = JsonValue.Number("12345678901234567890")
+        assertEquals("12345678901234567890", schema.encodeToJsonString(big))
+        assertEquals(Validation.valid(big), schema.decodeFromJsonString("12345678901234567890", Json.Default))
 
-    @Test
-    fun `Negative Infinity decimal encoding throws by default`() {
-        val result = runCatching { schema.encodeToJsonString(SchemaValue.Decimal(Double.NEGATIVE_INFINITY)) }
-        assertTrue(result.isFailure, "Expected encoding -Infinity to throw")
-    }
-
-    @Test
-    fun `NaN decimal encoding succeeds with allowSpecialFloatingPointValues`() {
-        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
-        val result = schema.encodeToJsonString(SchemaValue.Decimal(Double.NaN), config)
-        assertEquals("NaN", result)
-    }
-
-    @Test
-    fun `Infinity decimal encoding succeeds with allowSpecialFloatingPointValues`() {
-        val config = JsonEncodingConfig(allowSpecialFloatingPointValues = true)
-        assertEquals("Infinity", schema.encodeToJsonString(SchemaValue.Decimal(Double.POSITIVE_INFINITY), config))
-        assertEquals("-Infinity", schema.encodeToJsonString(SchemaValue.Decimal(Double.NEGATIVE_INFINITY), config))
+        val precise = JsonValue.Number("3.141592653589793238462643")
+        assertEquals("3.141592653589793238462643", schema.encodeToJsonString(precise))
+        assertEquals(Validation.valid(precise), schema.decodeFromJsonString("3.141592653589793238462643", Json.Default))
     }
 
 }
