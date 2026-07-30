@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.5.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.10...katalyst-v0.5.0) (2026-07-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **schema:** literal-preserving JsonValue numbers ([#114](https://github.com/bbasinsk/katalyst/issues/114))
+
+### Features
+
+* **schema:** literal-preserving JsonValue numbers ([#114](https://github.com/bbasinsk/katalyst/issues/114)) ([8540452](https://github.com/bbasinsk/katalyst/commit/8540452b08c7a9f1d5b0ac5529c59aca98cc54f5))
+
 ## [0.4.10](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.9...katalyst-v0.4.10) (2026-04-29)
 
 
