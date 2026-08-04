@@ -123,7 +123,7 @@ fun <A> ParamsSchema<A>.parse(
     rawQueryParams: Map<String, List<String>>,
 ): A {
     return when (this) {
-        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders[name] }
+        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders.headerValues(name) }
         is ParamsSchema.QuerySchema -> this.param.parse { name ->
             rawQueryParams[name].takeIf { it != listOf("") } // handle `?name=` as null
         }
@@ -176,6 +176,9 @@ fun <A> ParamsSchema<A>.parse(
         }
     }
 }
+
+private fun Map<String, List<String>>.headerValues(name: String): List<String>? =
+    entries.firstOrNull { (headerName) -> headerName.equals(name, ignoreCase = true) }?.value
 
 data class RenderedParams(
     val pathSegments: List<String>,

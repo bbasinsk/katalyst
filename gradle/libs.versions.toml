@@ -23,6 +23,7 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 
 ktor2-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor2" }
 ktor2-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor2" }
+ktor2-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor2" }
 
 ktor3-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor3" }
 ktor3-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor3" }

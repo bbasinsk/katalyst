@@ -3,6 +3,7 @@ package io.github.bbasinsk.http.ktor3
 import io.github.bbasinsk.http.ContentType as KatalystContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.Response
+import io.github.bbasinsk.http.header
 import io.github.bbasinsk.http.query
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.java.instant
@@ -21,6 +22,28 @@ class KtorAdapterTest {
     val json = Json {
         ignoreUnknownKeys = true
         encodeDefaults = false
+    }
+
+    @Test
+    fun headerParameterNamesAreCaseInsensitiveAndMissingValuesReturnBadRequest() = testApplication {
+        val api = Http.get { Root / "recipe" }
+            .header { schema("Content-Location") { string() } }
+            .output { status(Ok) { plain { string() } } }
+
+        application {
+            endpoints {
+                handle(api) { request -> Response.success(request.params) }
+            }
+        }
+
+        val parsed = client.get("/recipe") {
+            header("content-location", "https://example.com/recipe")
+        }
+        val missing = client.get("/recipe")
+
+        assertEquals(HttpStatusCode.OK, parsed.status)
+        assertEquals("https://example.com/recipe", parsed.bodyAsText())
+        assertEquals(HttpStatusCode.BadRequest, missing.status)
     }
 
     @Test
