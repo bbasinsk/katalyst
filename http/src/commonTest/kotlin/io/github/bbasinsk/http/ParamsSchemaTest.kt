@@ -12,6 +12,22 @@ import kotlin.uuid.Uuid
 class ParamsSchemaTest {
 
     @Test
+    fun `it parses header names case insensitively`() {
+        val http = Http
+            .get { Root / "recipe" }
+            .header { schema("Content-Location") { string() } }
+
+        val found = http.params.parseCatching(
+            path = listOf("recipe"),
+            headers = mapOf("content-location" to listOf("https://example.com/recipe")),
+            queryParams = emptyMap()
+        ).getOrThrow()
+
+        val (contentLocation) = tupleValues(found)
+        assertEquals("https://example.com/recipe", contentLocation)
+    }
+
+    @Test
     fun `it parses list query param`() {
         val http = Http
             .get { Root / "eval" / "invocations" }

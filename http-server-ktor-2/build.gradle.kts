@@ -27,6 +27,11 @@ kotlin {
                 implementation(libs.kotlin.test)
             }
         }
+        val jvmTest by getting {
+            dependencies {
+                implementation(libs.ktor2.server.test.host)
+            }
+        }
     }
 }
 

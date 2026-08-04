@@ -86,7 +86,9 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
         .map { it.decodeURLPart() }
     val headers = call.request.headers.entries().associate { it.key to it.value }
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
-    val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
+    val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrElse {
+        return@interceptor call.respond(HttpStatusCode.BadRequest)
+    }
 
     val auth: Auth = when (val result = handleAuth(endpoint.api.auth, endpoint.authHandler, call.request.headers, call.request.cookies, query)) {
         is AuthResult.Success -> result.principal

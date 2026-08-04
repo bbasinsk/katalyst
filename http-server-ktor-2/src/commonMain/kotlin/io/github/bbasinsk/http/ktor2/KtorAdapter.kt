@@ -94,7 +94,9 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         val rawPath = context.request.path().split("/").filter { it.isNotBlank() }
         val headers = context.request.headers.entries().associate { it.key to it.value }
         val query = context.request.queryParameters.entries().associate { it.key to it.value }
-        val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrThrow()
+        val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrElse {
+            return@interceptor call.respond(HttpStatusCode.BadRequest)
+        }
 
         val input = call.receiveRequest(endpoint.api.input)
             .getOrElse { errors ->
