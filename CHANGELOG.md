@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.0...katalyst-v0.5.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **http:** handle invalid request parameters ([#116](https://github.com/bbasinsk/katalyst/issues/116)) ([2776c1e](https://github.com/bbasinsk/katalyst/commit/2776c1ef3914fea7467b6aa1e61b00f5d24922de))
+
 ## [0.5.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.4.10...katalyst-v0.5.0) (2026-07-30)
 
 
