@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.1...katalyst-v0.5.2) (2026-08-19)
+
+
+### Bug Fixes
+
+* **build:** publish KLIBs with Kotlin 2.2 ([#118](https://github.com/bbasinsk/katalyst/issues/118)) ([304b35e](https://github.com/bbasinsk/katalyst/commit/304b35ef6240413d83498c4066414c463b6a59d9))
+
 ## [0.5.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.0...katalyst-v0.5.1) (2026-08-04)
 
 
