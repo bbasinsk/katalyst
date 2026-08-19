@@ -14,7 +14,6 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
-import io.ktor.server.http.HttpRequestLifecycle
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import kotlinx.coroutines.currentCoroutineContext
@@ -32,9 +31,6 @@ fun main() {
         install(CallLogging)
         install(ContentNegotiation) {
             json()
-        }
-        install(HttpRequestLifecycle) {
-            cancelCallOnClose = true
         }
 
         val domainService = {
