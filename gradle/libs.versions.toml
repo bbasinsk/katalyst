@@ -1,8 +1,9 @@
 [versions]
 agp = "9.0.0"
-kotlin = "2.3.0"
+# KLIB consumers include mobile's Datadog-aligned Kotlin 2.2 build, so publish with its compiler.
+kotlin = "2.2.21"
 ktor2="2.3.13"
-ktor3="3.4.0"
+ktor3="3.3.3"
 kotlinx-coroutines = "1.9.0"
 kotlinx-serialization = "1.7.3"
 vanniktech-maven-publish = "0.36.0"

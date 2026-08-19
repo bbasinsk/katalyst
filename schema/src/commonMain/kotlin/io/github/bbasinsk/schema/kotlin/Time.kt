@@ -12,5 +12,6 @@ fun Schema.Companion.duration() =
 fun Schema.Companion.durationUnit() =
     enumeration<DurationUnit>()
 
+@OptIn(kotlin.time.ExperimentalTime::class)
 fun Schema.Companion.instant() =
     string().transform({ Instant.parse(it) }) { it.toString() }

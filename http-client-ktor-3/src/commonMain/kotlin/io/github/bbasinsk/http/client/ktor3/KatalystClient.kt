@@ -39,7 +39,7 @@ import io.ktor.http.Parameters
 import io.ktor.http.ParametersBuilder
 import io.ktor.http.appendPathSegments
 import io.ktor.utils.io.ByteReadChannel
-import io.ktor.utils.io.readLine
+import io.ktor.utils.io.readUTF8Line
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.jvm.JvmName
 import kotlinx.coroutines.CompletableDeferred
@@ -270,7 +270,7 @@ private suspend fun <O> streamEvents(
     }
 
     while (!channel.isClosedForRead) {
-        val line = channel.readLine() ?: break
+        val line = channel.readUTF8Line() ?: break
 
         when {
             line.isEmpty() -> flushEvent()
