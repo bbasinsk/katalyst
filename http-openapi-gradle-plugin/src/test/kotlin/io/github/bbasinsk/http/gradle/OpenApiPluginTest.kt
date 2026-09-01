@@ -1,9 +1,11 @@
 package io.github.bbasinsk.http.gradle
 
+import io.github.bbasinsk.http.HttpEndpointGroup
 import java.io.File
 import java.nio.file.Path
 import kotlin.io.path.createDirectories
 import kotlin.io.path.createTempDirectory
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.Test
 import kotlin.test.assertFalse
@@ -12,9 +14,9 @@ import org.gradle.testkit.runner.GradleRunner
 
 class OpenApiPluginTest {
     @Test
-    fun `endpoint discovery loads project classes with runtime dependencies`() {
-        val root = createTempDirectory("openapi-runtime-classpath")
+    fun `endpoint discovery loads project classes with runtime dependencies`() = withTempProject { root ->
         val kotlinVersion = requireNotNull(System.getProperty("kotlinVersion"))
+        val httpClasspath = File(HttpEndpointGroup::class.java.protectionDomain.codeSource.location.toURI()).absolutePath
         root.write(
             "settings.gradle.kts",
             """
@@ -66,7 +68,10 @@ class OpenApiPluginTest {
                 kotlin("jvm") version "$kotlinVersion"
                 id("io.github.bbasinsk.http-openapi")
             }
-            dependencies { implementation(project(":feature")) }
+            dependencies {
+                implementation(project(":feature"))
+                implementation(files("${httpClasspath.replace("\\", "\\\\")}"))
+            }
             openApi {
                 info {
                     title = "Test API"
@@ -75,22 +80,41 @@ class OpenApiPluginTest {
             }
             """.trimIndent(),
         )
+        root.write(
+            "app/src/main/kotlin/example/app/PingEndpoints.kt",
+            """
+            package example.app
+
+            import io.github.bbasinsk.http.*
+
+            object PingEndpoints : HttpEndpointGroup("Ping") {
+                val ping = http { get { Root / "ping" } }
+            }
+            """.trimIndent(),
+        )
 
         val result = GradleRunner.create()
             .withProjectDir(root.toFile())
             .withArguments(":app:generateOpenApi", "--stacktrace")
-            .withPluginClasspath(
-                System.getProperty("java.class.path")
-                    .split(File.pathSeparator)
-                    .map(::File)
-            )
+            .withPluginClasspath()
             .build()
 
         assertFalse(
             result.output.contains("Failed to load class example.feature.RuntimeLinked"),
             result.output,
         )
-        assertTrue(root.resolve("app/build/generated/openapi/openapi.json").toFile().isFile)
+        val spec = root.resolve("app/build/generated/openapi/openapi.json")
+        assertTrue(spec.toFile().isFile)
+        assertTrue(spec.readText().contains("\"/ping\""))
+    }
+
+    private fun withTempProject(block: (Path) -> Unit) {
+        val root = createTempDirectory("openapi-runtime-classpath")
+        try {
+            block(root)
+        } finally {
+            root.toFile().deleteRecursively()
+        }
     }
 
     private fun Path.write(relativePath: String, content: String) {

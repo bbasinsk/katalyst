@@ -1,7 +1,12 @@
+import org.gradle.plugin.devel.tasks.PluginUnderTestMetadata
 import org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType
 
 plugins {
     id("katalyst.gradle-plugin")
+}
+
+val kotlinPluginUnderTestClasspath by configurations.creating {
+    isCanBeConsumed = false
 }
 
 dependencies {
@@ -11,8 +16,10 @@ dependencies {
     implementation(gradleApi())
     compileOnly(libs.kotlin.multiplatform)
     testImplementation(gradleTestKit())
-    testImplementation(kotlin("test"))
-    testImplementation(libs.kotlin.multiplatform)
+    testImplementation(kotlin("test-junit5"))
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.4")
+    add(kotlinPluginUnderTestClasspath.name, libs.kotlin.multiplatform)
 }
 
 gradlePlugin {
@@ -24,6 +31,10 @@ gradlePlugin {
             description = "Generate OpenAPI specs from Katalyst HTTP endpoints at build time"
         }
     }
+}
+
+tasks.named<PluginUnderTestMetadata>("pluginUnderTestMetadata") {
+    pluginClasspath.from(kotlinPluginUnderTestClasspath)
 }
 
 tasks.test {
