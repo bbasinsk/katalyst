@@ -41,15 +41,18 @@ class OpenApiPlugin : Plugin<Project> {
                 project.extensions.findByType(KotlinJvmProjectExtension::class.java)?.let { kotlinExt ->
                     val mainSourceSet = kotlinExt.target.compilations.getByName("main")
                     task.classpath.from(mainSourceSet.output.classesDirs)
-                    task.classpath.from(mainSourceSet.compileDependencyFiles)
+                    task.classpath.from(
+                        project.configurations.getByName(mainSourceSet.runtimeDependencyConfigurationName)
+                    )
 
-                    // Only scan user and project-dependency classes for endpoint groups
+                    // Runtime dependencies link scanned classes; only compile-visible projects contribute endpoints.
                     task.scanClasspath.from(mainSourceSet.output.classesDirs)
-                    val projectDependencyJars = project.configurations.getByName(mainSourceSet.compileDependencyConfigurationName)
-                        .incoming.artifactView { view ->
-                            view.componentFilter { it is ProjectComponentIdentifier }
-                        }.files
-                    task.scanClasspath.from(projectDependencyJars)
+                    val compileProjectDependencyJars =
+                        project.configurations.getByName(mainSourceSet.compileDependencyConfigurationName)
+                            .incoming.artifactView { view ->
+                                view.componentFilter { it is ProjectComponentIdentifier }
+                            }.files
+                    task.scanClasspath.from(compileProjectDependencyJars)
 
                     task.dependsOn(mainSourceSet.compileTaskProvider)
                 } ?: run {
