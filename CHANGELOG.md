@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.2...katalyst-v0.5.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **openapi:** load scanned classes with runtime dependencies ([#120](https://github.com/bbasinsk/katalyst/issues/120)) ([f7dfe0c](https://github.com/bbasinsk/katalyst/commit/f7dfe0c8289ee9599563f99ec9c97581da6883b6))
+
 ## [0.5.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.1...katalyst-v0.5.2) (2026-08-19)
 
 
