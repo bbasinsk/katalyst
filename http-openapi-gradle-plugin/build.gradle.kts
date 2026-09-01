@@ -10,6 +10,9 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(gradleApi())
     compileOnly(libs.kotlin.multiplatform)
+    testImplementation(gradleTestKit())
+    testImplementation(kotlin("test"))
+    testImplementation(libs.kotlin.multiplatform)
 }
 
 gradlePlugin {
@@ -21,6 +24,11 @@ gradlePlugin {
             description = "Generate OpenAPI specs from Katalyst HTTP endpoints at build time"
         }
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
+    systemProperty("kotlinVersion", libs.versions.kotlin.get())
 }
 
 tasks.withType<GenerateModuleMetadata> {

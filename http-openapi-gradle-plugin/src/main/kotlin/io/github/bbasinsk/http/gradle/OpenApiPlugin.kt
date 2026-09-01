@@ -41,7 +41,9 @@ class OpenApiPlugin : Plugin<Project> {
                 project.extensions.findByType(KotlinJvmProjectExtension::class.java)?.let { kotlinExt ->
                     val mainSourceSet = kotlinExt.target.compilations.getByName("main")
                     task.classpath.from(mainSourceSet.output.classesDirs)
-                    task.classpath.from(mainSourceSet.compileDependencyFiles)
+                    task.classpath.from(
+                        project.configurations.getByName(mainSourceSet.runtimeDependencyConfigurationName)
+                    )
 
                     // Only scan user and project-dependency classes for endpoint groups
                     task.scanClasspath.from(mainSourceSet.output.classesDirs)
