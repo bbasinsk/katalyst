@@ -1,11 +1,15 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.kotlin.duration
 import io.github.bbasinsk.schema.orElse
+import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.json.Json
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class JsonSchemaTest {
     // https://avro.apache.org/docs/current/specification/
@@ -19,6 +23,66 @@ class JsonSchemaTest {
         assertEquals("""{"type":"number"}""", Schema.double().toJsonSchema().encodeToJsonString())
         assertEquals("""{"type":"number"}""", Schema.float().toJsonSchema().encodeToJsonString())
         assertEquals("""{"type":"string"}""", Schema.string().toJsonSchema().encodeToJsonString())
+    }
+
+    @Test
+    fun `duration schema emits ISO duration format`() {
+        assertEquals(
+            Json.parseToJsonElement("""{"type":"string","format":"duration"}"""),
+            Schema.duration().toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `format and description compose in either order`() {
+        val expected = Json.parseToJsonElement(
+            """{"type":"string","description":"ISO duration","format":"duration"}"""
+        )
+
+        assertEquals(
+            expected,
+            Schema.string().format("duration").description("ISO duration").toJsonSchema().encodeToJsonElement()
+        )
+        assertEquals(
+            expected,
+            Schema.string().description("ISO duration").format("duration").toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `nullable transformed fields preserve format and description`() {
+        data class Durations(val before: Duration?, val after: Duration?)
+
+        val schema = Schema.record(
+            Schema.field(
+                Schema.duration().description("ISO duration").optional(),
+                "before"
+            ) { before },
+            Schema.field(
+                Schema.string().description("ISO duration")
+                    .transform({ Duration.parseIsoString(it) }) { it.toIsoString() }
+                    .optional().format("duration"),
+                "after"
+            ) { after },
+            ::Durations
+        )
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "before": {"type": ["string", "null"], "description": "ISO duration", "format": "duration"},
+                    "after": {"type": ["string", "null"], "description": "ISO duration", "format": "duration"}
+                  },
+                  "required": ["before", "after"],
+                  "additionalProperties": false
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
     }
 
     @Test
@@ -314,6 +378,30 @@ class JsonSchemaTest {
                   "anyOf": [
                     {"type": "number"},
                     {"type": "string"},
+                    {"type": "null"}
+                  ]
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `optional orElse preserves outer and branch metadata`() {
+        val schema = Schema.duration().description("ISO duration")
+            .orElse(Schema.int().description("Seconds")) { it.seconds }
+            .format("duration").description("Delay").optional()
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "description": "Delay",
+                  "format": "duration",
+                  "anyOf": [
+                    {"type": "string", "description": "ISO duration", "format": "duration"},
+                    {"type": "integer", "description": "Seconds"},
                     {"type": "null"}
                   ]
                 }

@@ -60,6 +60,7 @@ sealed interface Schema<A> {
     fun optional(): Schema<A?> = Optional(this)
     fun default(default: A): Schema<A> = Default(this, default)
     fun description(description: String) = Metadata(this, FieldMetadata(description = description))
+    fun format(format: String) = Metadata(this, FieldMetadata(format = format))
 
     fun isPrimitive(): Boolean = when (this) {
         is Bytes -> true

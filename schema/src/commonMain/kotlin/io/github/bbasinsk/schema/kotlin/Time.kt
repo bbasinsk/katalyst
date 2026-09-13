@@ -7,7 +7,7 @@ import kotlin.time.DurationUnit
 import kotlin.time.Instant
 
 fun Schema.Companion.duration() =
-    string().transform({ Duration.parseIsoString(it) }) { it.toIsoString() }
+    string().format("duration").transform({ Duration.parseIsoString(it) }) { it.toIsoString() }
 
 fun Schema.Companion.durationUnit() =
     enumeration<DurationUnit>()

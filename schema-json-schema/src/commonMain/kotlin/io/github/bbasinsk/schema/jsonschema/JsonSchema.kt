@@ -44,7 +44,8 @@ data class JsonSchema(
 data class JsonOptions(
     val description: String? = null,
     val optional: Boolean = false,
-    val unionKey: Pair<String, JsonSchema>? = null
+    val unionKey: Pair<String, JsonSchema>? = null,
+    val format: String? = null
 )
 
 fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
@@ -125,10 +126,19 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
     return when (this) {
         is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
         is Schema.Dynamic -> JsonSchema(description = options.description)
-        is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description).orNull(options)
+        is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description, format = options.format).orNull(options)
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
-        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs, resolver, unrollState)
+        is Schema.Metadata -> this.schema.toJsonSchemaImpl(
+            options.copy(
+                description = this.metadata.description ?: options.description,
+                format = this.metadata.format ?: options.format
+            ),
+            definitions,
+            inlineRefs,
+            resolver,
+            unrollState
+        )
 
         is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
         is Schema.OrElse<A, *> -> {
@@ -136,7 +146,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 this.preferred.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
                 this.fallback.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
             ) + listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional })
-            JsonSchema(anyOf = branches, description = options.description)
+            JsonSchema(anyOf = branches, description = options.description, format = options.format)
         }
 
         is Primitive ->
@@ -146,11 +156,12 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 is Primitive.Float -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
                 is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
                 is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
-                is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description).orNull(options)
+                is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description, format = options.format).orNull(options)
                 is Primitive.Enumeration<*> -> JsonSchema(
                     type = listOf("string"),
                     enum = values.map { it.toString() },
-                    description = options.description
+                    description = options.description,
+                    format = options.format
                 ).orNull(options)
             }
 
