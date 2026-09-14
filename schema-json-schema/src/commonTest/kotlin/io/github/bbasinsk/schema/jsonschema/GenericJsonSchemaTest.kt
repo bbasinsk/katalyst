@@ -217,15 +217,20 @@ class GenericJsonSchemaTest {
     }
 
     @Test
-    fun `unrolled nullable union retains annotations on its reference`() {
-        val json = Schema.variant(Schema.something)
-            .description("A variant").format("variant-v1").optional()
-            .toJsonSchema(maxRecursionDepth = 1)
+    fun `unrolled union reference annotations preserve nullability`() {
+        val schema = Schema.variant(Schema.something)
+            .description("A variant").format("variant-v1")
+        val required = schema.toJsonSchema(maxRecursionDepth = 1)
+        val reference = required.anyOf!!.single()
 
-        assertEquals("A variant", json.description)
-        assertEquals("variant-v1", json.format)
-        assertTrue(json.anyOf!!.any { it.ref != null })
-        assertTrue(json.anyOf!!.any { it.type == listOf("null") })
+        assertEquals("A variant", required.description)
+        assertEquals("variant-v1", required.format)
+        assertTrue(reference.ref != null)
+
+        val optional = schema.optional().toJsonSchema(maxRecursionDepth = 1)
+        assertEquals("A variant", optional.description)
+        assertEquals("variant-v1", optional.format)
+        assertEquals(listOf(reference, JsonSchema(type = listOf("null"))), optional.anyOf)
     }
 
     @Test

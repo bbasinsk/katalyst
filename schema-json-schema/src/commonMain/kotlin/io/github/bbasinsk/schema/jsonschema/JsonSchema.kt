@@ -66,8 +66,15 @@ private fun JsonSchema.orNull(options: JsonOptions): JsonSchema =
     }
 
 private fun JsonSchema.withAnnotations(options: JsonOptions): JsonSchema =
-    if (options.description == null && options.format == null) this
-    else copy(description = options.description ?: description, format = options.format ?: format)
+    when {
+        options.description == null && options.format == null -> this
+        ref != null -> JsonSchema(
+            description = options.description ?: description,
+            format = options.format ?: format,
+            anyOf = listOf(JsonSchema(ref = ref)),
+        )
+        else -> copy(description = options.description ?: description, format = options.format ?: format)
+    }
 
 
 // Identity-based collections using === (needed because Schema types are data classes)

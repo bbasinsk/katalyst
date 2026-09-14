@@ -117,7 +117,7 @@ class JsonSchemaTest {
     }
 
     @Test
-    fun `annotations on shared record and union references stay local`() {
+    fun `annotated shared record and union references are wrapped and stay local`() {
         val record = Schema.recordSmall()
         val union = Schema.person()
         val records = Schema.record(
@@ -136,14 +136,22 @@ class JsonSchemaTest {
         listOf(records, unions).forEach { schema ->
             val json = schema.toJsonSchema()
             val properties = json.properties!!
-            assertEquals("Left value", properties.getValue("left").description)
-            assertEquals("left", properties.getValue("left").format)
-            assertEquals("Right value", properties.getValue("right").description)
-            assertEquals("right", properties.getValue("right").format)
             val plain = properties.getValue("plain")
+            val sharedRef = plain.ref!!
+            listOf(
+                Triple("left", "Left value", "left"),
+                Triple("right", "Right value", "right"),
+            ).forEach { (name, description, format) ->
+                val annotated = properties.getValue(name)
+                assertEquals(description, annotated.description)
+                assertEquals(format, annotated.format)
+                assertEquals(listOf(JsonSchema(ref = sharedRef)), annotated.anyOf)
+                assertNull(annotated.ref)
+            }
             assertNull(plain.description)
             assertNull(plain.format)
-            val shared = json.defs!!.getValue(plain.ref!!.substringAfterLast('/'))
+            assertNull(plain.anyOf)
+            val shared = json.defs!!.getValue(sharedRef.substringAfterLast('/'))
             assertNull(shared.description)
             assertNull(shared.format)
         }
