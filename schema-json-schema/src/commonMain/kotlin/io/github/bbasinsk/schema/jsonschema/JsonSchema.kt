@@ -68,6 +68,7 @@ private fun JsonSchema.orNull(options: JsonOptions): JsonSchema =
 private fun JsonSchema.withAnnotations(options: JsonOptions): JsonSchema =
     when {
         options.description == null && options.format == null -> this
+        // OpenAI Responses rejects annotation siblings on $ref. Keep the reference standalone inside anyOf.
         ref != null -> JsonSchema(
             description = options.description ?: description,
             format = options.format ?: format,
