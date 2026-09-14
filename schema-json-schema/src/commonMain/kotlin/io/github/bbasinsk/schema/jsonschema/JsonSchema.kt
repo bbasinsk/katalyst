@@ -57,28 +57,18 @@ fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
-private fun JsonSchema.orNull(metadata: JsonOptions): JsonSchema = orNullType(metadata)
+private fun JsonSchema.orNull(options: JsonOptions): JsonSchema =
+    when {
+        !options.optional -> this
+        type != null -> copy(type = type + "null")
+        anyOf != null -> copy(anyOf = anyOf + JsonSchema(type = listOf("null")))
+        else -> JsonSchema(anyOf = listOf(this, JsonSchema(type = listOf("null"))))
+    }
 
 private fun JsonSchema.withAnnotations(options: JsonOptions): JsonSchema =
     if (options.description == null && options.format == null) this
     else copy(description = options.description ?: description, format = options.format ?: format)
 
-// Was previously used for maybe OpenAI to support nullable objects
-private fun JsonSchema.orNullAnyOf(metadata: JsonOptions): JsonSchema =
-    when {
-        metadata.optional -> copy(
-            type = null,
-            anyOf = listOf(JsonSchema(type = type), JsonSchema(type = listOf("null")))
-        )
-
-        else -> this
-    }
-
-private fun JsonSchema.orNullType(metadata: JsonOptions): JsonSchema =
-    when {
-        metadata.optional -> copy(type = type?.plus("null"))
-        else -> this
-    }
 
 // Identity-based collections using === (needed because Schema types are data classes)
 private class IdentitySet<T> {
@@ -191,11 +181,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             val typeName = resolver.resolve(this, this.metadata)
 
             if (unrollState != null) {
-                fun refOrNullable(defName: String): JsonSchema {
-                    val ref = JsonSchema(ref = "#/${'$'}defs/$defName")
-                    return (if (options.optional) JsonSchema(anyOf = listOf(ref, JsonSchema(type = listOf("null")))) else ref)
-                        .withAnnotations(options)
-                }
+                fun refOrNullable(defName: String): JsonSchema =
+                    JsonSchema(ref = "#/${'$'}defs/$defName").orNull(options).withAnnotations(options)
 
                 // Back-reference: during level generation, recursive refs point one level down
                 val refTarget = unrollState.refTargets[this]
@@ -220,7 +207,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
             // Non-recursive or no unrolling: existing behavior
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options)
+                definitions[typeName] = JsonSchema(type = listOf("object"))
                 val computedUnionSchema = JsonSchema(
                     anyOf = unsafeCases.map { case ->
                         case.schema.toJsonSchemaImpl(
@@ -230,19 +217,20 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                             resolver = resolver,
                             unrollState = unrollState,
                         )
-                    }.plus(listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional }))
+                    }
                 )
                 definitions[typeName] = computedUnionSchema
             }
             val unionSchema = definitions[typeName]!!
             return (if (inlineRefs) unionSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName"))
+                .orNull(options)
                 .withAnnotations(options)
         }
 
         is Schema.Record<*> -> {
             val typeName = resolver.resolve(this, this.metadata)
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive records
+                definitions[typeName] = JsonSchema(type = listOf("object")) // temporary placeholder for recursive records
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
                 val properties = unionKeyProperty + unsafeFields.associate { field ->
@@ -255,11 +243,12 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                     required = properties
                         .map { it.key },
                     additionalProperties = false,
-                ).orNull(options)
+                )
                 definitions[typeName] = computedRecordSchema
             }
             val recordSchema = definitions[typeName]!!
             return (if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName"))
+                .orNull(options)
                 .withAnnotations(options)
         }
     }

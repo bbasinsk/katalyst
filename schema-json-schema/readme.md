@@ -18,7 +18,8 @@ Format and description annotations compose in either order and survive transform
 When annotations repeat on the same schema, the last call wins, including overrides of built-in formats.
 Format annotations apply to the annotated node, including composite and unconstrained schemas.
 Collection descriptions, formats, and nullability do not apply to items. Annotate the item schema separately.
-Record and union reference annotations stay beside `$ref`, not in shared `$defs`.
+Record and union annotations stay at each use site, not in shared `$defs`.
+Definitions do not inherit a reference's nullability. Optional references use `anyOf` with a null branch, independent of field order.
 The built-in Kotlin `duration()`, `instant()`, and `uuid()` codecs include `duration`, `date-time`, and `uuid` formats, respectively.
 For `orElse`, annotations on the combined schema remain beside `anyOf`. Branch annotations remain on their branches.
 

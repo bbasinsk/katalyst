@@ -10,6 +10,7 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
@@ -408,43 +409,8 @@ class JsonSchemaTest {
     }
 
     @Test
-    fun `nullable record type is object or null`() {
-        data class WithNullableRecordField(
-            val record: RecordSmall?
-        )
-
-        val schema = Schema.record(
-            Schema.field(Schema.recordSmall().optional(), "record") { record },
-            ::WithNullableRecordField
-        )
-
-        val expected = Json.parseToJsonElement(
-            $$"""
-            {
-              "type": "object",
-              "properties": {
-                "record": {
-                  "$ref": "#/$defs/io.github.bbasinsk.schema.jsonschema.RecordSmall"
-                }
-              },
-              "required": ["record"],
-              "additionalProperties": false,
-              "$defs": {
-                "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
-                  "type": ["object", "null"],
-                  "properties": {
-                    "a": {"type": "integer"},
-                    "b": {"type": "string"}
-                  },
-                  "required": ["a", "b"],
-                  "additionalProperties": false
-                }
-              }
-            }
-            """.trimIndent()
-        )
-
-        assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+    fun `shared record nullability is independent of field order`() {
+        assertSharedNullability(Schema.recordSmall())
     }
 
     @Test
@@ -545,60 +511,35 @@ class JsonSchemaTest {
     }
 
     @Test
-    fun `nullable union adds subtype of null type`() {
-        data class WithNullableUnionField(
-            val person: Person?
-        )
+    fun `shared union nullability is independent of field order`() {
+        assertSharedNullability(Schema.person())
+    }
 
-        val schema = Schema.record(
-            Schema.field(Schema.person().optional(), "person") { person },
-            ::WithNullableUnionField
-        )
+    private inline fun <reified A> assertSharedNullability(schema: Schema<A>) {
+        val required = Schema.field<Pair<A, A?>, A>(schema, "required") { first }
+        val optional = Schema.field<Pair<A, A?>, A?>(
+            schema.optional().description("Optional value").format("optional-value"), "optional"
+        ) { second }
 
-        val expected = Json.parseToJsonElement(
-            """
-            {
-              "type": "object",
-              "properties": {
-                "person": {
-                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Person"
-                }
-              },
-              "additionalProperties": false,
-              "required": ["person"],
-              "${'$'}defs": {
-                "io.github.bbasinsk.schema.jsonschema.Person": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "description": "A customer description",
-                      "properties": {
-                        "type": {"enum": ["Customer"]},
-                        "id": {"type": "integer"},
-                        "email": {"type": ["string", "null"]}
-                      },
-                      "additionalProperties": false,
-                      "required": ["type","id","email"]
-                    },
-                    {
-                      "type": "object",
-                      "description": "An employee description",
-                      "properties": {
-                        "type": {"enum": ["Employee"]},
-                        "id": {"type": "integer"}
-                      },
-                      "additionalProperties": false,
-                      "required": ["type","id"]
-                    },
-                    {"type": "null"}
-                  ]
-                }
-              }
+        listOf(false, true).forEach { optionalFirst ->
+            val mixed: Schema<Pair<A, A?>> = if (optionalFirst) {
+                Schema.record(optional, required) { optionalValue, requiredValue -> Pair(requiredValue, optionalValue) }
+            } else {
+                Schema.record(required, optional, ::Pair)
             }
-            """.trimIndent()
-        )
-
-        assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+            val json = mixed.toJsonSchema()
+            val requiredRef = json.properties!!.getValue("required").ref!!
+            val nullable = json.properties!!.getValue("optional")
+            assertEquals(
+                listOf(JsonSchema(ref = requiredRef), JsonSchema(type = listOf("null"))),
+                nullable.anyOf
+            )
+            assertEquals("Optional value", nullable.description)
+            assertEquals("optional-value", nullable.format)
+            val shared = json.defs!!.getValue(requiredRef.substringAfterLast('/'))
+            assertFalse("null" in shared.type.orEmpty())
+            assertFalse(shared.anyOf.orEmpty().any { it.type == listOf("null") })
+        }
     }
 }
 
