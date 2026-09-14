@@ -7,5 +7,6 @@ data class Field<A, B>(
 )
 
 data class FieldMetadata(
-    val description: String? = null
+    val description: String? = null,
+    val format: String? = null
 )

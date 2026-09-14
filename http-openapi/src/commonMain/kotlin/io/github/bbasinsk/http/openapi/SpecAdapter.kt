@@ -364,7 +364,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
         is Schema.Lazy<A> -> schema().toSchemaObjectImpl(field, outputOptions, resolver, unrollState)
 
         is Schema.Metadata -> schema.toSchemaObjectImpl(
-            field = field.copy(description = this.metadata.description),
+            field = field.copy(description = field.description ?: this.metadata.description),
             outputOptions = outputOptions,
             resolver = resolver,
             unrollState = unrollState

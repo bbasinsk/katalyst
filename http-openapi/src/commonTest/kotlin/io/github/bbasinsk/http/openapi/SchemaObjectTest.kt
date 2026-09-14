@@ -5,6 +5,7 @@ import io.github.bbasinsk.schema.Schema.Companion.field
 import io.github.bbasinsk.schema.Schema.Companion.int
 import io.github.bbasinsk.schema.Schema.Companion.record
 import io.github.bbasinsk.schema.Schema.Companion.string
+import io.github.bbasinsk.schema.kotlin.duration
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.encodeToJsonElement
@@ -126,6 +127,23 @@ class SchemaObjectTest {
             }
             """.trimIndent(),
             OpenApiJson.encodeToString(schema.toSchemaObject())
+        )
+    }
+
+    @Test
+    fun `format metadata does not erase duration descriptions`() {
+        assertEquals(
+            SchemaObject(type = "string", nullable = true, description = "ISO duration"),
+            Schema.duration().description("ISO duration").optional().toSchemaObject()
+        )
+    }
+
+    @Test
+    fun `later descriptions override wrapped descriptions`() {
+        assertEquals(
+            SchemaObject(type = "string", nullable = true, description = "Updated duration"),
+            Schema.duration().description("Original duration")
+                .optional().description("Updated duration").toSchemaObject()
         )
     }
 }

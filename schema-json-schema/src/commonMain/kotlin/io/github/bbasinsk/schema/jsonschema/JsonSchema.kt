@@ -44,7 +44,8 @@ data class JsonSchema(
 data class JsonOptions(
     val description: String? = null,
     val optional: Boolean = false,
-    val unionKey: Pair<String, JsonSchema>? = null
+    val unionKey: Pair<String, JsonSchema>? = null,
+    val format: String? = null
 )
 
 fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
@@ -56,24 +57,18 @@ fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
-private fun JsonSchema.orNull(metadata: JsonOptions): JsonSchema = orNullType(metadata)
-
-// Was previously used for maybe OpenAI to support nullable objects
-private fun JsonSchema.orNullAnyOf(metadata: JsonOptions): JsonSchema =
+private fun JsonSchema.orNull(options: JsonOptions): JsonSchema =
     when {
-        metadata.optional -> copy(
-            type = null,
-            anyOf = listOf(JsonSchema(type = type), JsonSchema(type = listOf("null")))
-        )
-
-        else -> this
+        !options.optional -> this
+        type != null -> copy(type = type + "null")
+        anyOf != null -> copy(anyOf = anyOf + JsonSchema(type = listOf("null")))
+        else -> JsonSchema(anyOf = listOf(this, JsonSchema(type = listOf("null"))))
     }
 
-private fun JsonSchema.orNullType(metadata: JsonOptions): JsonSchema =
-    when {
-        metadata.optional -> copy(type = type?.plus("null"))
-        else -> this
-    }
+private fun JsonSchema.withAnnotations(options: JsonOptions): JsonSchema =
+    if (options.description == null && options.format == null) this
+    else copy(description = options.description ?: description, format = options.format ?: format)
+
 
 // Identity-based collections using === (needed because Schema types are data classes)
 private class IdentitySet<T> {
@@ -123,12 +118,21 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
     unrollState: UnrollState? = null,
 ): JsonSchema {
     return when (this) {
-        is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
-        is Schema.Dynamic -> JsonSchema(description = options.description)
-        is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description).orNull(options)
+        is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description, format = options.format)
+        is Schema.Dynamic -> JsonSchema(description = options.description, format = options.format)
+        is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description, format = options.format).orNull(options)
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
-        is Schema.Metadata -> this.schema.toJsonSchemaImpl(options.copy(description = this.metadata.description), definitions, inlineRefs, resolver, unrollState)
+        is Schema.Metadata -> this.schema.toJsonSchemaImpl(
+            options.copy(
+                description = options.description ?: this.metadata.description,
+                format = options.format ?: this.metadata.format
+            ),
+            definitions,
+            inlineRefs,
+            resolver,
+            unrollState
+        )
 
         is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
         is Schema.OrElse<A, *> -> {
@@ -136,21 +140,22 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 this.preferred.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
                 this.fallback.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
             ) + listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional })
-            JsonSchema(anyOf = branches, description = options.description)
+            JsonSchema(anyOf = branches, description = options.description, format = options.format)
         }
 
         is Primitive ->
             when (this) {
-                is Primitive.Boolean -> JsonSchema(type = listOf("boolean"), description = options.description).orNull(options)
-                is Primitive.Double -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
-                is Primitive.Float -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
-                is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
-                is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
-                is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description).orNull(options)
+                is Primitive.Boolean -> JsonSchema(type = listOf("boolean"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Double -> JsonSchema(type = listOf("number"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Float -> JsonSchema(type = listOf("number"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description, format = options.format).orNull(options)
+                is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description, format = options.format).orNull(options)
                 is Primitive.Enumeration<*> -> JsonSchema(
                     type = listOf("string"),
                     enum = values.map { it.toString() },
-                    description = options.description
+                    description = options.description,
+                    format = options.format
                 ).orNull(options)
             }
 
@@ -161,21 +166,23 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
         is Schema.Collection<*> -> JsonSchema(
             type = listOf("array"),
-            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+            description = options.description,
+            format = options.format,
+            items = itemSchema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState)
         ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
             type = listOf("object"),
+            description = options.description,
+            format = options.format,
         ).orNull(options)
 
         is Schema.Union<*> -> {
             val typeName = resolver.resolve(this, this.metadata)
 
             if (unrollState != null) {
-                fun refOrNullable(defName: String): JsonSchema {
-                    val ref = JsonSchema(ref = "#/${'$'}defs/$defName")
-                    return if (options.optional) JsonSchema(anyOf = listOf(ref, JsonSchema(type = listOf("null")))) else ref
-                }
+                fun refOrNullable(defName: String): JsonSchema =
+                    JsonSchema(ref = "#/${'$'}defs/$defName").orNull(options).withAnnotations(options)
 
                 // Back-reference: during level generation, recursive refs point one level down
                 val refTarget = unrollState.refTargets[this]
@@ -200,7 +207,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
             // Non-recursive or no unrolling: existing behavior
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options)
+                definitions[typeName] = JsonSchema(type = listOf("object"))
                 val computedUnionSchema = JsonSchema(
                     anyOf = unsafeCases.map { case ->
                         case.schema.toJsonSchemaImpl(
@@ -210,18 +217,20 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                             resolver = resolver,
                             unrollState = unrollState,
                         )
-                    }.plus(listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional }))
+                    }
                 )
                 definitions[typeName] = computedUnionSchema
             }
             val unionSchema = definitions[typeName]!!
-            return if (inlineRefs) unionSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
+            return (if (inlineRefs) unionSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName"))
+                .orNull(options)
+                .withAnnotations(options)
         }
 
         is Schema.Record<*> -> {
             val typeName = resolver.resolve(this, this.metadata)
             if (!definitions.containsKey(typeName)) {
-                definitions[typeName] = JsonSchema(type = listOf("object")).orNull(options) // temporary placeholder for recursive records
+                definitions[typeName] = JsonSchema(type = listOf("object")) // temporary placeholder for recursive records
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
                 val properties = unionKeyProperty + unsafeFields.associate { field ->
@@ -234,12 +243,13 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                     required = properties
                         .map { it.key },
                     additionalProperties = false,
-                    description = options.description
-                ).orNull(options)
+                )
                 definitions[typeName] = computedRecordSchema
             }
             val recordSchema = definitions[typeName]!!
-            return if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
+            return (if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName"))
+                .orNull(options)
+                .withAnnotations(options)
         }
     }
 }

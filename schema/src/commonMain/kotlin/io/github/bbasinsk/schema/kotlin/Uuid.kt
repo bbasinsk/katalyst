@@ -8,6 +8,6 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 fun Schema.Companion.uuid() =
-    string().transform(
+    string().format("uuid").transform(
         decode = { Uuid.parse(it) }
     ) { it.toString() }

@@ -1,11 +1,19 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.kotlin.duration
+import io.github.bbasinsk.schema.kotlin.instant
+import io.github.bbasinsk.schema.kotlin.uuid
 import io.github.bbasinsk.schema.orElse
+import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.json.Json
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
 
 class JsonSchemaTest {
     // https://avro.apache.org/docs/current/specification/
@@ -19,6 +27,162 @@ class JsonSchemaTest {
         assertEquals("""{"type":"number"}""", Schema.double().toJsonSchema().encodeToJsonString())
         assertEquals("""{"type":"number"}""", Schema.float().toJsonSchema().encodeToJsonString())
         assertEquals("""{"type":"string"}""", Schema.string().toJsonSchema().encodeToJsonString())
+    }
+
+    @Test
+    fun `duration schema emits ISO duration format`() {
+        assertEquals(
+            Json.parseToJsonElement("""{"type":"string","format":"duration"}"""),
+            Schema.duration().toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    @OptIn(kotlin.time.ExperimentalTime::class, kotlin.uuid.ExperimentalUuidApi::class)
+    fun `instant and UUID codecs emit standard formats`() {
+        assertEquals(JsonSchema(type = listOf("string"), format = "date-time"), Schema.instant().toJsonSchema())
+        assertEquals(JsonSchema(type = listOf("string"), format = "uuid"), Schema.uuid().toJsonSchema())
+    }
+
+    @Test
+    fun `format and description compose in either order`() {
+        val expected = Json.parseToJsonElement(
+            """{"type":"string","description":"ISO duration","format":"duration"}"""
+        )
+
+        assertEquals(
+            expected,
+            Schema.string().format("duration").description("ISO duration").toJsonSchema().encodeToJsonElement()
+        )
+        assertEquals(
+            expected,
+            Schema.string().description("ISO duration").format("duration").toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `later annotations override built-in and wrapped annotations`() {
+        val schema = Schema.duration().description("Original duration")
+            .optional()
+            .format("custom-duration").description("Updated duration")
+
+        assertEquals(
+            JsonSchema(type = listOf("string", "null"), description = "Updated duration", format = "custom-duration"),
+            schema.toJsonSchema()
+        )
+    }
+
+    @Test
+    fun `nonstring primitives retain format annotations`() {
+        listOf(
+            Schema.boolean() to "flag",
+            Schema.int() to "int32",
+            Schema.long() to "int64",
+            Schema.float() to "float",
+            Schema.double() to "double"
+        ).forEach { (schema, format) ->
+            assertEquals(format, schema.format(format).toJsonSchema().format)
+        }
+    }
+
+    @Test
+    fun `collection annotations do not override item annotations or nullability`() {
+        val schema = Schema.list(Schema.duration().description("Item duration"))
+            .description("Durations").format("duration-list").optional()
+
+        assertEquals(
+            JsonSchema(
+                type = listOf("array", "null"),
+                description = "Durations",
+                format = "duration-list",
+                items = JsonSchema(type = listOf("string"), description = "Item duration", format = "duration")
+            ),
+            schema.toJsonSchema()
+        )
+    }
+
+    @Test
+    fun `composite and unconstrained schemas retain annotations`() {
+        listOf(
+            Schema.recordSmall(),
+            Schema.person(),
+            Schema.stringMap(Schema.string()),
+            Schema.dynamic(),
+            Schema.empty()
+        ).forEach { schema ->
+            val json = schema.description("Annotated value").format("custom").toJsonSchema()
+            assertEquals("Annotated value", json.description)
+            assertEquals("custom", json.format)
+        }
+    }
+
+    @Test
+    fun `annotations on shared record and union references stay local`() {
+        val record = Schema.recordSmall()
+        val union = Schema.person()
+        val records = Schema.record(
+            Schema.field(record.description("Left value").format("left"), "left") { first },
+            Schema.field(record.description("Right value").format("right"), "right") { second },
+            Schema.field(record, "plain") { third },
+            ::Triple
+        )
+        val unions = Schema.record(
+            Schema.field(union.description("Left value").format("left"), "left") { first },
+            Schema.field(union.description("Right value").format("right"), "right") { second },
+            Schema.field(union, "plain") { third },
+            ::Triple
+        )
+
+        listOf(records, unions).forEach { schema ->
+            val json = schema.toJsonSchema()
+            val properties = json.properties!!
+            assertEquals("Left value", properties.getValue("left").description)
+            assertEquals("left", properties.getValue("left").format)
+            assertEquals("Right value", properties.getValue("right").description)
+            assertEquals("right", properties.getValue("right").format)
+            val plain = properties.getValue("plain")
+            assertNull(plain.description)
+            assertNull(plain.format)
+            val shared = json.defs!!.getValue(plain.ref!!.substringAfterLast('/'))
+            assertNull(shared.description)
+            assertNull(shared.format)
+        }
+    }
+
+    @Test
+    fun `nullable transformed fields preserve format and description`() {
+        data class Durations(val before: Duration?, val after: Duration?)
+
+        val schema = Schema.record(
+            Schema.field(
+                Schema.duration().description("ISO duration").optional(),
+                "before"
+            ) { before },
+            Schema.field(
+                Schema.string().description("ISO duration")
+                    .transform({ Duration.parseIsoString(it) }) { it.toIsoString() }
+                    .optional().format("duration"),
+                "after"
+            ) { after },
+            ::Durations
+        )
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "before": {"type": ["string", "null"], "description": "ISO duration", "format": "duration"},
+                    "after": {"type": ["string", "null"], "description": "ISO duration", "format": "duration"}
+                  },
+                  "required": ["before", "after"],
+                  "additionalProperties": false
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
     }
 
     @Test
@@ -245,43 +409,8 @@ class JsonSchemaTest {
     }
 
     @Test
-    fun `nullable record type is object or null`() {
-        data class WithNullableRecordField(
-            val record: RecordSmall?
-        )
-
-        val schema = Schema.record(
-            Schema.field(Schema.recordSmall().optional(), "record") { record },
-            ::WithNullableRecordField
-        )
-
-        val expected = Json.parseToJsonElement(
-            $$"""
-            {
-              "type": "object",
-              "properties": {
-                "record": {
-                  "$ref": "#/$defs/io.github.bbasinsk.schema.jsonschema.RecordSmall"
-                }
-              },
-              "required": ["record"],
-              "additionalProperties": false,
-              "$defs": {
-                "io.github.bbasinsk.schema.jsonschema.RecordSmall": {
-                  "type": ["object", "null"],
-                  "properties": {
-                    "a": {"type": "integer"},
-                    "b": {"type": "string"}
-                  },
-                  "required": ["a", "b"],
-                  "additionalProperties": false
-                }
-              }
-            }
-            """.trimIndent()
-        )
-
-        assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+    fun `shared record nullability is independent of field order`() {
+        assertSharedNullability(Schema.recordSmall())
     }
 
     @Test
@@ -314,6 +443,30 @@ class JsonSchemaTest {
                   "anyOf": [
                     {"type": "number"},
                     {"type": "string"},
+                    {"type": "null"}
+                  ]
+                }
+                """.trimIndent()
+            ),
+            schema.toJsonSchema().encodeToJsonElement()
+        )
+    }
+
+    @Test
+    fun `optional orElse preserves outer and branch metadata`() {
+        val schema = Schema.duration().description("ISO duration")
+            .orElse(Schema.int().description("Seconds")) { it.seconds }
+            .format("duration").description("Delay").optional()
+
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                {
+                  "description": "Delay",
+                  "format": "duration",
+                  "anyOf": [
+                    {"type": "string", "description": "ISO duration", "format": "duration"},
+                    {"type": "integer", "description": "Seconds"},
                     {"type": "null"}
                   ]
                 }
@@ -358,60 +511,35 @@ class JsonSchemaTest {
     }
 
     @Test
-    fun `nullable union adds subtype of null type`() {
-        data class WithNullableUnionField(
-            val person: Person?
-        )
+    fun `shared union nullability is independent of field order`() {
+        assertSharedNullability(Schema.person())
+    }
 
-        val schema = Schema.record(
-            Schema.field(Schema.person().optional(), "person") { person },
-            ::WithNullableUnionField
-        )
+    private inline fun <reified A> assertSharedNullability(schema: Schema<A>) {
+        val required = Schema.field<Pair<A, A?>, A>(schema, "required") { first }
+        val optional = Schema.field<Pair<A, A?>, A?>(
+            schema.optional().description("Optional value").format("optional-value"), "optional"
+        ) { second }
 
-        val expected = Json.parseToJsonElement(
-            """
-            {
-              "type": "object",
-              "properties": {
-                "person": {
-                  "${'$'}ref": "#/${'$'}defs/io.github.bbasinsk.schema.jsonschema.Person"
-                }
-              },
-              "additionalProperties": false,
-              "required": ["person"],
-              "${'$'}defs": {
-                "io.github.bbasinsk.schema.jsonschema.Person": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "description": "A customer description",
-                      "properties": {
-                        "type": {"enum": ["Customer"]},
-                        "id": {"type": "integer"},
-                        "email": {"type": ["string", "null"]}
-                      },
-                      "additionalProperties": false,
-                      "required": ["type","id","email"]
-                    },
-                    {
-                      "type": "object",
-                      "description": "An employee description",
-                      "properties": {
-                        "type": {"enum": ["Employee"]},
-                        "id": {"type": "integer"}
-                      },
-                      "additionalProperties": false,
-                      "required": ["type","id"]
-                    },
-                    {"type": "null"}
-                  ]
-                }
-              }
+        listOf(false, true).forEach { optionalFirst ->
+            val mixed: Schema<Pair<A, A?>> = if (optionalFirst) {
+                Schema.record(optional, required) { optionalValue, requiredValue -> Pair(requiredValue, optionalValue) }
+            } else {
+                Schema.record(required, optional, ::Pair)
             }
-            """.trimIndent()
-        )
-
-        assertEquals(expected, schema.toJsonSchema().encodeToJsonElement().also { println(it) })
+            val json = mixed.toJsonSchema()
+            val requiredRef = json.properties!!.getValue("required").ref!!
+            val nullable = json.properties!!.getValue("optional")
+            assertEquals(
+                listOf(JsonSchema(ref = requiredRef), JsonSchema(type = listOf("null"))),
+                nullable.anyOf
+            )
+            assertEquals("Optional value", nullable.description)
+            assertEquals("optional-value", nullable.format)
+            val shared = json.defs!!.getValue(requiredRef.substringAfterLast('/'))
+            assertFalse("null" in shared.type.orEmpty())
+            assertFalse(shared.anyOf.orEmpty().any { it.type == listOf("null") })
+        }
     }
 }
 
