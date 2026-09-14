@@ -50,6 +50,46 @@ class JsonSchemaTest {
     }
 
     @Test
+    fun `later annotations override built-in and wrapped annotations`() {
+        val schema = Schema.duration().description("Original duration")
+            .optional()
+            .format("custom-duration").description("Updated duration")
+
+        assertEquals(
+            JsonSchema(type = listOf("string", "null"), description = "Updated duration", format = "custom-duration"),
+            schema.toJsonSchema()
+        )
+    }
+
+    @Test
+    fun `nonstring primitives retain format annotations`() {
+        listOf(
+            Schema.boolean() to "flag",
+            Schema.int() to "int32",
+            Schema.long() to "int64",
+            Schema.float() to "float",
+            Schema.double() to "double"
+        ).forEach { (schema, format) ->
+            assertEquals(format, schema.format(format).toJsonSchema().format)
+        }
+    }
+
+    @Test
+    fun `collection annotations do not override item annotations or nullability`() {
+        val schema = Schema.list(Schema.duration().description("Item duration"))
+            .description("Durations").optional()
+
+        assertEquals(
+            JsonSchema(
+                type = listOf("array", "null"),
+                description = "Durations",
+                items = JsonSchema(type = listOf("string"), description = "Item duration", format = "duration")
+            ),
+            schema.toJsonSchema()
+        )
+    }
+
+    @Test
     fun `nullable transformed fields preserve format and description`() {
         data class Durations(val before: Duration?, val after: Duration?)
 

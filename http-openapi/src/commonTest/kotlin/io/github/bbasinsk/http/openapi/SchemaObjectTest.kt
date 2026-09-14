@@ -137,6 +137,15 @@ class SchemaObjectTest {
             Schema.duration().description("ISO duration").optional().toSchemaObject()
         )
     }
+
+    @Test
+    fun `later descriptions override wrapped descriptions`() {
+        assertEquals(
+            SchemaObject(type = "string", nullable = true, description = "Updated duration"),
+            Schema.duration().description("Original duration")
+                .optional().description("Updated duration").toSchemaObject()
+        )
+    }
 }
 
 data class OptionalRecord(

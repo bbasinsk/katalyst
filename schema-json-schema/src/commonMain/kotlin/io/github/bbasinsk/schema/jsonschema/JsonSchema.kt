@@ -131,8 +131,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
         is Schema.Metadata -> this.schema.toJsonSchemaImpl(
             options.copy(
-                description = this.metadata.description ?: options.description,
-                format = this.metadata.format ?: options.format
+                description = options.description ?: this.metadata.description,
+                format = options.format ?: this.metadata.format
             ),
             definitions,
             inlineRefs,
@@ -151,11 +151,11 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
         is Primitive ->
             when (this) {
-                is Primitive.Boolean -> JsonSchema(type = listOf("boolean"), description = options.description).orNull(options)
-                is Primitive.Double -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
-                is Primitive.Float -> JsonSchema(type = listOf("number"), description = options.description).orNull(options)
-                is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
-                is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description).orNull(options)
+                is Primitive.Boolean -> JsonSchema(type = listOf("boolean"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Double -> JsonSchema(type = listOf("number"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Float -> JsonSchema(type = listOf("number"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description, format = options.format).orNull(options)
+                is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description, format = options.format).orNull(options)
                 is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description, format = options.format).orNull(options)
                 is Primitive.Enumeration<*> -> JsonSchema(
                     type = listOf("string"),
@@ -172,7 +172,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
         is Schema.Collection<*> -> JsonSchema(
             type = listOf("array"),
-            items = itemSchema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+            description = options.description,
+            items = itemSchema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState)
         ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
