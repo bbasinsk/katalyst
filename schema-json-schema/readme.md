@@ -16,9 +16,10 @@ val schema = Schema.string()
 This schema emits `type: ["string", "null"]`, `format: "duration"`, and the description.
 Format and description annotations compose in either order and survive transforms and optional wrappers.
 When annotations repeat on the same schema, the last call wins, including overrides of built-in formats.
-Formats are emitted for all primitive types and byte arrays.
-Annotate a collection's item schema to set its format. Collection descriptions and nullability do not apply to its items.
-The built-in `io.github.bbasinsk.schema.kotlin.duration()` codec includes `format: "duration"`.
+Format annotations apply to the annotated node, including composite and unconstrained schemas.
+Collection descriptions, formats, and nullability do not apply to items. Annotate the item schema separately.
+Record and union reference annotations stay beside `$ref`, not in shared `$defs`.
+The built-in Kotlin `duration()`, `instant()`, and `uuid()` codecs include `duration`, `date-time`, and `uuid` formats, respectively.
 For `orElse`, annotations on the combined schema remain beside `anyOf`. Branch annotations remain on their branches.
 
 Format metadata does not change parsing, encoding, or validation.

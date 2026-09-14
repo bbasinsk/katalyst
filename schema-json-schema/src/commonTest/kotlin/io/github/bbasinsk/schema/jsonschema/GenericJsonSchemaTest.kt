@@ -217,6 +217,18 @@ class GenericJsonSchemaTest {
     }
 
     @Test
+    fun `unrolled nullable union retains annotations on its reference`() {
+        val json = Schema.variant(Schema.something)
+            .description("A variant").format("variant-v1").optional()
+            .toJsonSchema(maxRecursionDepth = 1)
+
+        assertEquals("A variant", json.description)
+        assertEquals("variant-v1", json.format)
+        assertTrue(json.anyOf!!.any { it.ref != null })
+        assertTrue(json.anyOf!!.any { it.type == listOf("null") })
+    }
+
+    @Test
     fun `non-recursive union unchanged with maxRecursionDepth`() {
         // Shape is a non-recursive union (Circle | Square) — should produce same output with or without maxRecursionDepth
         val withoutUnroll = ShapeWrapper.schema.toJsonSchema().encodeToJsonElement()

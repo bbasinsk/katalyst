@@ -14,4 +14,4 @@ fun Schema.Companion.durationUnit() =
 
 @OptIn(kotlin.time.ExperimentalTime::class)
 fun Schema.Companion.instant() =
-    string().transform({ Instant.parse(it) }) { it.toString() }
+    string().format("date-time").transform({ Instant.parse(it) }) { it.toString() }

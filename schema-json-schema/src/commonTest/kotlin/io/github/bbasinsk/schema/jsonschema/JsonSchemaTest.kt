@@ -2,12 +2,15 @@ package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.kotlin.duration
+import io.github.bbasinsk.schema.kotlin.instant
+import io.github.bbasinsk.schema.kotlin.uuid
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import kotlinx.serialization.json.Json
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -31,6 +34,13 @@ class JsonSchemaTest {
             Json.parseToJsonElement("""{"type":"string","format":"duration"}"""),
             Schema.duration().toJsonSchema().encodeToJsonElement()
         )
+    }
+
+    @Test
+    @OptIn(kotlin.time.ExperimentalTime::class, kotlin.uuid.ExperimentalUuidApi::class)
+    fun `instant and UUID codecs emit standard formats`() {
+        assertEquals(JsonSchema(type = listOf("string"), format = "date-time"), Schema.instant().toJsonSchema())
+        assertEquals(JsonSchema(type = listOf("string"), format = "uuid"), Schema.uuid().toJsonSchema())
     }
 
     @Test
@@ -77,16 +87,65 @@ class JsonSchemaTest {
     @Test
     fun `collection annotations do not override item annotations or nullability`() {
         val schema = Schema.list(Schema.duration().description("Item duration"))
-            .description("Durations").optional()
+            .description("Durations").format("duration-list").optional()
 
         assertEquals(
             JsonSchema(
                 type = listOf("array", "null"),
                 description = "Durations",
+                format = "duration-list",
                 items = JsonSchema(type = listOf("string"), description = "Item duration", format = "duration")
             ),
             schema.toJsonSchema()
         )
+    }
+
+    @Test
+    fun `composite and unconstrained schemas retain annotations`() {
+        listOf(
+            Schema.recordSmall(),
+            Schema.person(),
+            Schema.stringMap(Schema.string()),
+            Schema.dynamic(),
+            Schema.empty()
+        ).forEach { schema ->
+            val json = schema.description("Annotated value").format("custom").toJsonSchema()
+            assertEquals("Annotated value", json.description)
+            assertEquals("custom", json.format)
+        }
+    }
+
+    @Test
+    fun `annotations on shared record and union references stay local`() {
+        val record = Schema.recordSmall()
+        val union = Schema.person()
+        val records = Schema.record(
+            Schema.field(record.description("Left value").format("left"), "left") { first },
+            Schema.field(record.description("Right value").format("right"), "right") { second },
+            Schema.field(record, "plain") { third },
+            ::Triple
+        )
+        val unions = Schema.record(
+            Schema.field(union.description("Left value").format("left"), "left") { first },
+            Schema.field(union.description("Right value").format("right"), "right") { second },
+            Schema.field(union, "plain") { third },
+            ::Triple
+        )
+
+        listOf(records, unions).forEach { schema ->
+            val json = schema.toJsonSchema()
+            val properties = json.properties!!
+            assertEquals("Left value", properties.getValue("left").description)
+            assertEquals("left", properties.getValue("left").format)
+            assertEquals("Right value", properties.getValue("right").description)
+            assertEquals("right", properties.getValue("right").format)
+            val plain = properties.getValue("plain")
+            assertNull(plain.description)
+            assertNull(plain.format)
+            val shared = json.defs!!.getValue(plain.ref!!.substringAfterLast('/'))
+            assertNull(shared.description)
+            assertNull(shared.format)
+        }
     }
 
     @Test

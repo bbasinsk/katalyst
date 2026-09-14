@@ -59,6 +59,10 @@ fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
 
 private fun JsonSchema.orNull(metadata: JsonOptions): JsonSchema = orNullType(metadata)
 
+private fun JsonSchema.withAnnotations(options: JsonOptions): JsonSchema =
+    if (options.description == null && options.format == null) this
+    else copy(description = options.description ?: description, format = options.format ?: format)
+
 // Was previously used for maybe OpenAI to support nullable objects
 private fun JsonSchema.orNullAnyOf(metadata: JsonOptions): JsonSchema =
     when {
@@ -124,8 +128,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
     unrollState: UnrollState? = null,
 ): JsonSchema {
     return when (this) {
-        is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description)
-        is Schema.Dynamic -> JsonSchema(description = options.description)
+        is Schema.Empty -> JsonSchema(type = listOf("null"), description = options.description, format = options.format)
+        is Schema.Dynamic -> JsonSchema(description = options.description, format = options.format)
         is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description, format = options.format).orNull(options)
 
         is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
@@ -173,11 +177,14 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         is Schema.Collection<*> -> JsonSchema(
             type = listOf("array"),
             description = options.description,
+            format = options.format,
             items = itemSchema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState)
         ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
             type = listOf("object"),
+            description = options.description,
+            format = options.format,
         ).orNull(options)
 
         is Schema.Union<*> -> {
@@ -186,7 +193,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             if (unrollState != null) {
                 fun refOrNullable(defName: String): JsonSchema {
                     val ref = JsonSchema(ref = "#/${'$'}defs/$defName")
-                    return if (options.optional) JsonSchema(anyOf = listOf(ref, JsonSchema(type = listOf("null")))) else ref
+                    return (if (options.optional) JsonSchema(anyOf = listOf(ref, JsonSchema(type = listOf("null")))) else ref)
+                        .withAnnotations(options)
                 }
 
                 // Back-reference: during level generation, recursive refs point one level down
@@ -227,7 +235,8 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 definitions[typeName] = computedUnionSchema
             }
             val unionSchema = definitions[typeName]!!
-            return if (inlineRefs) unionSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
+            return (if (inlineRefs) unionSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName"))
+                .withAnnotations(options)
         }
 
         is Schema.Record<*> -> {
@@ -246,12 +255,12 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                     required = properties
                         .map { it.key },
                     additionalProperties = false,
-                    description = options.description
                 ).orNull(options)
                 definitions[typeName] = computedRecordSchema
             }
             val recordSchema = definitions[typeName]!!
-            return if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName")
+            return (if (inlineRefs) recordSchema.also { definitions.remove(typeName) } else JsonSchema(ref = "#/${'$'}defs/$typeName"))
+                .withAnnotations(options)
         }
     }
 }
