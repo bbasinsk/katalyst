@@ -6,10 +6,40 @@ import io.github.bbasinsk.schema.kotlin.uuid
 import io.github.bbasinsk.tuple.tupleValues
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class ParamsSchemaTest {
+
+    @Test
+    fun `it preserves nested parameter types and path consumption order`() {
+        val params: ParamsSchema<Pair<Pair<Pair<Int, Boolean>, String?>, Long>> =
+            (Root / "users" / param("id") { int() } / "active" / param("active") { boolean() } / "details")
+                .withQuery(param("search") { string().optional() })
+                .withHeader(param("X-Version") { long() })
+        val path = mutableListOf("users", "42", "active", "true", "details", "remaining")
+
+        val found = params.parse(
+            rawPath = path,
+            rawHeaders = mapOf("x-version" to listOf("99")),
+            rawQueryParams = emptyMap()
+        )
+
+        assertEquals(((42 to true) to null) to 99L, found)
+        assertEquals(listOf("remaining"), path)
+    }
+
+    @Test
+    fun `it rejects missing and invalid nullable path parameters`() {
+        val params = Root / param("id") { int().optional() } / param("active") { boolean().optional() }
+
+        for (path in listOf(emptyList(), listOf("invalid"), listOf("42"), listOf("42", "invalid"))) {
+            assertFailsWith<IllegalStateException> {
+                params.parse(path.toMutableList(), emptyMap(), emptyMap())
+            }
+        }
+    }
 
     @Test
     fun `it parses header names case insensitively`() {
