@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.3...katalyst-v0.6.0) (2026-09-14)
+
+
+### ⚠ BREAKING CHANGES
+
+* **http:** ParamsSchema.parse returns Validation<ParamError, A>, and parseCatching is removed. ParamSchema.parse requires a source and returns Validation. Parsing consumes schema path positions even on failure.
+
+### Features
+
+* **http:** accumulate parameter validation errors ([#123](https://github.com/bbasinsk/katalyst/issues/123)) ([5b745eb](https://github.com/bbasinsk/katalyst/commit/5b745ebdd087fa587a3a668573a0898c21683694))
+* **schema:** support JSON Schema format metadata ([#122](https://github.com/bbasinsk/katalyst/issues/122)) ([32c8ad3](https://github.com/bbasinsk/katalyst/commit/32c8ad3988cfbff8ddece86571e96b4d636d656b))
+
 ## [0.5.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.2...katalyst-v0.5.3) (2026-09-01)
 
 
