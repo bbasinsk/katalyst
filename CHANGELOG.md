@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.0...katalyst-v0.6.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* **schema:** wrap annotated JSON Schema references ([#125](https://github.com/bbasinsk/katalyst/issues/125)) ([10a3a06](https://github.com/bbasinsk/katalyst/commit/10a3a068e30da5072ca22768c2a6483ee247e9af))
+
 ## [0.6.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.3...katalyst-v0.6.0) (2026-09-14)
 
 
