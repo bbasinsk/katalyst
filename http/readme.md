@@ -27,6 +27,33 @@ Header values support the same `ParamSchema` combinators as path/query params â€
 
 The client automatically sends declared headers when you invoke `call()` / `stream()` â€” no extra configuration is needed. On the OpenAPI side, headers surface as `in: header` parameters.
 
+## Parameter Validation
+
+`ParamsSchema.parse(rawPath, rawHeaders, rawQueryParams)` returns `Validation<ParamError, A>`.
+It collects path, query, header, and list-item errors in schema order instead of throwing for malformed parameters.
+Replace `parseCatching` calls with `parse` and handle `Validation.Valid` or `Validation.Invalid`.
+For individual parameters, `ParamSchema.parse(source, getValue)` also returns validation and requires an explicit `ParamError.Source`.
+
+The parser consumes each schema path position from the mutable `rawPath`, even when validation fails.
+It leaves extra path segments untouched. Query and header optional/default decoding fallbacks remain unchanged.
+
+Ktor 2 and Ktor 3 return HTTP 400 with a JSON array of errors without calling the endpoint handler.
+Each error identifies its `source` (`Path`, `Query`, or `Header`), parameter `name`, and corrective `message`.
+`index` identifies a failing list item using a zero-based position, or is `null` for scalar parameters.
+Responses omit submitted values and decoder exception messages.
+
+Example errors for integer path parameter `id` and integer query parameter `page`:
+
+```json
+[
+  {"source":"Path","name":"id","message":"Provide a value of type Int.","index":null},
+  {"source":"Query","name":"page","message":"Provide a value of type Int.","index":null}
+]
+```
+
+Truncated matched paths report missing parameters with HTTP 400. Paths that match no route still return HTTP 404.
+Body validation remains separate and continues to return HTTP 422.
+
 ## Parameter and Body Metadata
 
 Any path, query, header, or body schema can be annotated with `.description()`, `.example()`, and `.deprecated()`. These show up in the generated OpenAPI spec and help API consumers understand each field:

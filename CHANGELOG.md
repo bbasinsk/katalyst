@@ -1,15 +1,5 @@
 # Changelog
 
-## Unreleased
-
-### Bug Fixes
-
-* **http:** remove unchecked casts from parameter parsing through typed schema implementations. Parsing behavior and `parseCatching` remain unchanged.
-
-### Breaking Changes
-
-* **http:** `ParamsSchema.parse` is now a member rather than an extension. Recompile consumers that call `parse` directly.
-
 ## [0.5.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.5.2...katalyst-v0.5.3) (2026-09-01)
 
 

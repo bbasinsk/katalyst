@@ -8,11 +8,11 @@ import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
+import io.github.bbasinsk.http.ParamError
 import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathParam
 import io.github.bbasinsk.http.PathSegment
 import io.github.bbasinsk.http.Request
-import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
 import io.github.bbasinsk.http.ResponseStatus
@@ -86,8 +86,8 @@ private fun <Path, Input, Error, Output, Auth> httpRoutingHandler(
         .map { it.decodeURLPart() }
     val headers = call.request.headers.entries().associate { it.key to it.value }
     val query = call.request.queryParameters.entries().associate { it.key to it.value }
-    val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrElse {
-        return@interceptor call.respond(HttpStatusCode.BadRequest)
+    val path: Path = endpoint.api.params.parse(rawPath.toMutableList(), headers, query).getOrElse { errors ->
+        return@interceptor call.respondJson(HttpStatusCode.BadRequest, Schema.list(ParamError.schema), errors)
     }
 
     val auth: Auth = when (val result = handleAuth(endpoint.api.auth, endpoint.authHandler, call.request.headers, call.request.cookies, query)) {
