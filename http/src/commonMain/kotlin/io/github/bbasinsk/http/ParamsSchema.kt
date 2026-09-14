@@ -3,6 +3,10 @@ package io.github.bbasinsk.http
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.encodePrimitiveString
+import io.github.bbasinsk.validation.Validation
+import io.github.bbasinsk.validation.filter
+import io.github.bbasinsk.validation.mapValid
+import io.github.bbasinsk.validation.zip
 import kotlin.jvm.JvmName
 
 // Marker interfaces for pattern matching
@@ -16,11 +20,49 @@ sealed interface PathParam {
 
 // A ParamSchema is a description of a Path, Query Parameters, and Headers.
 sealed interface ParamsSchema<A> {
-    data class Combine<A, B>(val left: ParamsSchema<A>, val right: ParamsSchema<B>) : ParamsSchema<Pair<A, B>>
-    // Combines EmptyPathSchema with query/header - type is B, not Pair<Unit, B>
-    data class CombineEmpty<B>(val path: EmptyPathSchema, val other: ParamsSchema<B>) : ParamsSchema<B>
-    data class HeaderSchema<A>(val param: ParamSchema<A>) : ParamsSchema<A>
-    data class QuerySchema<A>(val param: ParamSchema<A>) : ParamsSchema<A>
+    /** Consumes each schema path position, even on failure, and collects errors in schema order. */
+    fun parse(
+        rawPath: MutableList<String>,
+        rawHeaders: Map<String, List<String>>,
+        rawQueryParams: Map<String, List<String>>,
+    ): Validation<ParamError, A>
+
+    data class Combine<A, B>(val left: ParamsSchema<A>, val right: ParamsSchema<B>) : ParamsSchema<Pair<A, B>> {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, Pair<A, B>> =
+            left.parse(rawPath, rawHeaders, rawQueryParams) zip right.parse(rawPath, rawHeaders, rawQueryParams)
+    }
+
+    data class CombineEmpty<B>(val path: EmptyPathSchema, val other: ParamsSchema<B>) : ParamsSchema<B> {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, B> = Validation.build(
+            path.parse(rawPath, rawHeaders, rawQueryParams),
+            other.parse(rawPath, rawHeaders, rawQueryParams)
+        ) { _, value -> value }
+    }
+
+    data class HeaderSchema<A>(val param: ParamSchema<A>) : ParamsSchema<A> {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, A> = param.parse(ParamError.Source.Header) { name -> rawHeaders.headerValues(name) }
+    }
+
+    data class QuerySchema<A>(val param: ParamSchema<A>) : ParamsSchema<A> {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, A> =
+            param.parse(ParamError.Source.Query) { name -> rawQueryParams[name].takeIf { it != listOf("") } }
+    }
 
     fun pathSchemas(): List<ParamsSchema<*>> =
         when (this) {
@@ -44,15 +86,55 @@ sealed interface EmptyPathSchema : PathSchema<Unit> {
     data object Root : EmptyPathSchema
     data class Segment( val prefix: EmptyPathSchema, override val name: String) : EmptyPathSchema, PathSegment
 
+    override fun parse(
+        rawPath: MutableList<String>,
+        rawHeaders: Map<String, List<String>>,
+        rawQueryParams: Map<String, List<String>>,
+    ): Validation<ParamError, Unit> =
+        when (this) {
+            Root -> Validation.valid(Unit)
+            is Segment -> Validation.build(
+                prefix.parse(rawPath, rawHeaders, rawQueryParams),
+                rawPath.consumeSegment(name)
+            ) { _, _ -> Unit }
+        }
+
     operator fun div(segment: String): EmptyPathSchema = Segment(this, segment)
     operator fun <B> div(param: ParamSchema<B>): NonEmptyPathSchema.First<B> = NonEmptyPathSchema.First(this, param)
 }
 
 // Non-empty path state - has at least one param
 sealed interface NonEmptyPathSchema<A> : PathSchema<A> {
-    data class First<A>(val prefix: EmptyPathSchema, override val param: ParamSchema<A>) : NonEmptyPathSchema<A>, PathParam
-    data class Segment<A>(val prefix: NonEmptyPathSchema<A>, override val name: String) : NonEmptyPathSchema<A>, PathSegment
-    data class Next<A, B>(val prefix: NonEmptyPathSchema<A>, override val param: ParamSchema<B>) : NonEmptyPathSchema<Pair<A, B>>, PathParam
+    data class First<A>(val prefix: EmptyPathSchema, override val param: ParamSchema<A>) : NonEmptyPathSchema<A>, PathParam {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, A> = Validation.build(
+            prefix.parse(rawPath, rawHeaders, rawQueryParams),
+            param.parsePath(rawPath)
+        ) { _, value -> value }
+    }
+
+    data class Segment<A>(val prefix: NonEmptyPathSchema<A>, override val name: String) : NonEmptyPathSchema<A>, PathSegment {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, A> = Validation.build(
+            prefix.parse(rawPath, rawHeaders, rawQueryParams),
+            rawPath.consumeSegment(name)
+        ) { value, _ -> value }
+    }
+
+    data class Next<A, B>(val prefix: NonEmptyPathSchema<A>, override val param: ParamSchema<B>) : NonEmptyPathSchema<Pair<A, B>>, PathParam {
+        override fun parse(
+            rawPath: MutableList<String>,
+            rawHeaders: Map<String, List<String>>,
+            rawQueryParams: Map<String, List<String>>,
+        ): Validation<ParamError, Pair<A, B>> =
+            prefix.parse(rawPath, rawHeaders, rawQueryParams) zip param.parsePath(rawPath)
+    }
 
     operator fun div(segment: String): NonEmptyPathSchema<A> = Segment(this, segment)
     operator fun <B> div(param: ParamSchema<B>): NonEmptyPathSchema<Pair<A, B>> = Next(this, param)
@@ -92,89 +174,72 @@ fun ParamsSchema<*>.renderPath(): String =
         }
     }.joinToString(separator = "/", prefix = "/")
 
-fun <A> ParamsSchema<A>.parseCatching(
-    path: List<String>,
-    headers: Map<String, List<String>>,
-    queryParams: Map<String, List<String>>
-): Result<A> =
-    runCatching {
-        parse(path.toMutableList(), headers, queryParams)
-    }
-
-fun <A> ParamSchema<A>.parse(getValue: (String) -> List<String>?): A =
+fun <A> ParamSchema<A>.parse(
+    source: ParamError.Source,
+    getValue: (String) -> List<String>?
+): Validation<ParamError, A> =
     when (this) {
-        is ParamSchema.WithMetadata -> schema.parse(getValue)
-        is ParamSchema.Single -> when (val itemSchema = schema.collectionItemSchema()) {
-            null -> schema.decodePrimitiveString(getValue(name)?.firstOrNull()).getOrThrow()
-            else -> {
-                val values = getValue(name)
-                @Suppress("UNCHECKED_CAST") when (values) {
-                    null -> schema.decodePrimitiveString(null).getOrThrow()
-                    else -> values.map { itemSchema.decodePrimitiveString(it).getOrThrow() } as A
+        is ParamSchema.WithMetadata -> schema.parse(source, getValue)
+        is ParamSchema.Single -> {
+            val values = getValue(name)
+            val itemSchema = schema.collectionItemSchema()
+            if (itemSchema == null || values == null) {
+                schema.parseParameter(values?.firstOrNull(), source, name, null)
+            } else {
+                Validation.sequence(values.mapIndexed { index, value ->
+                    itemSchema.parseParameter(value, source, name, index)
+                }).mapValid {
+                    @Suppress("UNCHECKED_CAST")
+                    (it as A)
                 }
             }
         }
     }
 
-// TODO: Validation<A, B>?
-fun <A> ParamsSchema<A>.parse(
-    rawPath: MutableList<String>,
-    rawHeaders: Map<String, List<String>>,
-    rawQueryParams: Map<String, List<String>>,
-): A {
-    return when (this) {
-        is ParamsSchema.HeaderSchema -> this.param.parse { name -> rawHeaders.headerValues(name) }
-        is ParamsSchema.QuerySchema -> this.param.parse { name ->
-            rawQueryParams[name].takeIf { it != listOf("") } // handle `?name=` as null
-        }
+private fun MutableList<String>.consumeSegment(name: String): Validation<ParamError, Unit> =
+    if (removeFirstOrNull() == name) {
+        Validation.valid(Unit)
+    } else {
+        Validation.invalid(ParamError(ParamError.Source.Path, name, "Use '$name' at this path position.", null))
+    }
 
-        is ParamsSchema.Combine<*, *> -> {
-            val left = this.left.parse(rawPath, rawHeaders, rawQueryParams)
-            val right = this.right.parse(rawPath, rawHeaders, rawQueryParams)
-            return Pair(left, right) as A
-        }
+private fun <A> ParamSchema<A>.parsePath(rawPath: MutableList<String>): Validation<ParamError, A> {
+    val rawValue = rawPath.removeFirstOrNull()
+        ?: return Validation.invalid(
+            ParamError(ParamError.Source.Path, name(), "Provide a value for this path parameter.", null)
+        )
+    return schema().parseParameter(rawValue, ParamError.Source.Path, name(), null)
+        .filter({ schema().parameterError(ParamError.Source.Path, name(), null) }) { it != null }
+}
 
-        is ParamsSchema.CombineEmpty<*> -> {
-            path.parse(rawPath, rawHeaders, rawQueryParams) // Returns Unit, discarded
-            other.parse(rawPath, rawHeaders, rawQueryParams) as A
-        }
-
-        is EmptyPathSchema.Root -> Unit as A
-        is EmptyPathSchema.Segment -> {
-            prefix.parse(rawPath, rawHeaders, rawQueryParams)
-            if (rawPath.firstOrNull() == name) {
-                rawPath.removeFirst()
-            } else {
-                error("Expected segment $name but found ${rawPath.firstOrNull()}")
-            }
-            Unit as A
-        }
-
-        is NonEmptyPathSchema.First<*> -> {
-            prefix.parse(rawPath, rawHeaders, rawQueryParams)
-            (rawPath.removeFirstOrNull()
-                ?.let { rawValue -> param.schema().decodePrimitiveString(rawValue).getOrThrow() }
-                ?: error("Expected parameter ${param.name()}")) as A
-        }
-
-        is NonEmptyPathSchema.Segment<*> -> {
-            val prefixValue = prefix.parse(rawPath, rawHeaders, rawQueryParams)
-            if (rawPath.firstOrNull() == name) {
-                rawPath.removeFirst()
-            } else {
-                error("Expected segment $name but found ${rawPath.firstOrNull()}")
-            }
-            prefixValue as A
-        }
-
-        is NonEmptyPathSchema.Next<*, *> -> {
-            val prefixValue = prefix.parse(rawPath, rawHeaders, rawQueryParams)
-            val nextValue = rawPath.removeFirstOrNull()
-                ?.let { rawValue -> param.schema().decodePrimitiveString(rawValue).getOrThrow() }
-                ?: error("Expected parameter ${param.name()}")
-            Pair(prefixValue, nextValue) as A
+private fun <A> Schema<A>.parseParameter(
+    value: String?,
+    source: ParamError.Source,
+    name: String,
+    index: Int?
+): Validation<ParamError, A> =
+    Validation.fromResult(decodePrimitiveString(value)) {
+        if (value == null) {
+            ParamError(source, name, "Provide a value for this parameter.", index)
+        } else {
+            parameterError(source, name, index)
         }
     }
+
+private fun Schema<*>.parameterError(source: ParamError.Source, name: String, index: Int?): ParamError =
+    ParamError(source, name, "Provide a value of type ${parameterType()}.", index)
+
+private fun Schema<*>.parameterType(): String = when (this) {
+    is Schema.Primitive.Enumeration -> "${metadata.name} (${values.joinToString()})"
+    is Schema.Primitive.Boolean -> "Boolean (true or false)"
+    is Schema.Primitive -> name
+    is Schema.Transform<*, *> -> metadata.name
+    is Schema.Default -> schema.parameterType()
+    is Schema.Optional<*> -> schema.parameterType()
+    is Schema.Metadata -> schema.parameterType()
+    is Schema.Lazy -> schema().parameterType()
+    is Schema.OrElse<*, *> -> "${preferred.parameterType()} or ${fallback.parameterType()}"
+    else -> "a primitive parameter"
 }
 
 private fun Map<String, List<String>>.headerValues(name: String): List<String>? =

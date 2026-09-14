@@ -2,9 +2,9 @@ package io.github.bbasinsk.http.client.ktor3
 
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.header
-import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.http.query
 import io.github.bbasinsk.http.render
+import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -131,13 +131,12 @@ class ParamsRenderTest {
         assertEquals(listOf("orgs", "acme", "users", "7"), rendered.pathSegments)
         assertEquals(mapOf("page" to listOf("2")), rendered.queryParams)
 
-        // Now parse back
-        val parsed = api.params.parseCatching(
-            path = rendered.pathSegments.toMutableList(),
-            headers = rendered.headers,
-            queryParams = rendered.queryParams
-        ).getOrThrow()
+        val parsed = api.params.parse(
+            rawPath = rendered.pathSegments.toMutableList(),
+            rawHeaders = rendered.headers,
+            rawQueryParams = rendered.queryParams
+        )
 
-        assertEquals(originalParams, parsed)
+        assertEquals(Validation.valid(originalParams), parsed)
     }
 }

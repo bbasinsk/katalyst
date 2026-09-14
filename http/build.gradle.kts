@@ -24,6 +24,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 api(project(":schema"))
+                api(project(":validation"))
                 api(libs.kotlinx.coroutines.core)
             }
         }

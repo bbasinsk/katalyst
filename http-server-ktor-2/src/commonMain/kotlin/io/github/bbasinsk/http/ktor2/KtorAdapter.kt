@@ -5,16 +5,17 @@ import io.github.bbasinsk.http.ContentType
 import io.github.bbasinsk.http.Http
 import io.github.bbasinsk.http.HttpEndpoint
 import io.github.bbasinsk.http.HttpMethod
+import io.github.bbasinsk.http.ParamError
 import io.github.bbasinsk.http.ParamsSchema
 import io.github.bbasinsk.http.PathParam
 import io.github.bbasinsk.http.PathSegment
 import io.github.bbasinsk.http.Request
 import io.github.bbasinsk.http.Response
 import io.github.bbasinsk.http.ResponseSchema
-import io.github.bbasinsk.http.parseCatching
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.decodePrimitiveString
 import io.github.bbasinsk.schema.json.InvalidJson
+import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.kotlinx.decodeFromJsonElement
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.schema.transform
@@ -43,7 +44,6 @@ import kotlin.collections.filter
 import kotlin.collections.fold
 import kotlin.collections.mapNotNull
 import kotlin.collections.toMutableList
-import kotlin.getOrThrow
 import kotlin.let
 import kotlin.text.isNotBlank
 import kotlin.text.split
@@ -94,8 +94,12 @@ private fun <Path, Input, Error, Output> httpPipelineInterceptor(
         val rawPath = context.request.path().split("/").filter { it.isNotBlank() }
         val headers = context.request.headers.entries().associate { it.key to it.value }
         val query = context.request.queryParameters.entries().associate { it.key to it.value }
-        val path: Path = endpoint.api.params.parseCatching(rawPath.toMutableList(), headers, query).getOrElse {
-            return@interceptor call.respond(HttpStatusCode.BadRequest)
+        val path: Path = endpoint.api.params.parse(rawPath.toMutableList(), headers, query).getOrElse { errors ->
+            return@interceptor call.respondBytes(
+                Schema.list(ParamError.schema).encodeToJsonBytes(errors),
+                io.ktor.http.ContentType.Application.Json,
+                HttpStatusCode.BadRequest
+            )
         }
 
         val input = call.receiveRequest(endpoint.api.input)
