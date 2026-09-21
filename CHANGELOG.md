@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.2...katalyst-v0.6.3) (2026-09-21)
+
+
+### Bug Fixes
+
+* **ci:** skip obsolete Android SDK tools package ([#130](https://github.com/bbasinsk/katalyst/issues/130)) ([dd281c8](https://github.com/bbasinsk/katalyst/commit/dd281c865a5892165e1d133242f931792391c3c7))
+
 ## [0.6.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.1...katalyst-v0.6.2) (2026-09-21)
 
 
