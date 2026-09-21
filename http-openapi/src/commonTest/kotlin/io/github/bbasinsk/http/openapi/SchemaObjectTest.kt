@@ -51,17 +51,17 @@ class SchemaObjectTest {
                 {
                   "oneOf": [
                     {
-                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator"
+                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.CustomerWithDiscriminator"
                     },
                     {
-                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
+                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.EmployeeWithDiscriminator"
                     }
                   ],
                   "discriminator": {
                     "propertyName": "type",
                     "mapping": {
-                      "Customer": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.CustomerWithDiscriminator",
-                      "Employee": "#/components/schemas/io.github.bbasinsk.http.openapi.Human.EmployeeWithDiscriminator"
+                      "Customer": "#/components/schemas/io.github.bbasinsk.http.openapi.CustomerWithDiscriminator",
+                      "Employee": "#/components/schemas/io.github.bbasinsk.http.openapi.EmployeeWithDiscriminator"
                     }
                   }
                 }

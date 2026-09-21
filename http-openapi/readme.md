@@ -28,6 +28,15 @@ val json: String = OpenApiJson.encodeToString(spec)
 
 `OpenApiJson` is a `kotlinx.serialization.json.Json` instance configured to match the OpenAPI spec formatting (`prettyPrint`, `encodeDefaults`, `explicitNulls = false`).
 
+### Shared union cases
+
+Reference-based output names record cases after their declared DTO, not the enclosing union.
+Two unions that use the same record share its component and discriminator wrapper when their discriminator keys and case values match.
+Different discriminator keys or values use separate wrappers. Distinct DTO types keep separate components, even when their fields match.
+
+Regenerate clients after upgrading: union-local duplicate records disappear, and affected case references use the concrete DTO's canonical name.
+Payload fields and discriminator values do not change.
+
 ## Hosting the spec and UIs
 
 Katalyst does not auto-mount anything. The spec endpoint and its UIs are declared as regular `Http` values and registered with `handle(...)` — so they participate in the same auth, tagging, and routing machinery as the rest of your API.
