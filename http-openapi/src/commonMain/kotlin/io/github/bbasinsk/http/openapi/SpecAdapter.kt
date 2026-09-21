@@ -501,10 +501,11 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                         buildInlineUnion(unsafeCases)
                     }
                 } else {
-                    // New ref-based behavior for code generators
-                    val baseName = resolver.resolve(this, this.metadata)
+                    val caseRefs = unsafeCases.associate { case ->
+                        case.name to refPath(caseBaseName(case, resolver).withDiscriminator(key, case.name))
+                    }
                     val withDiscriminatorRefs = unsafeCases.map { case ->
-                        SchemaObject(ref = refPath("$baseName.${case.name}WithDiscriminator"))
+                        SchemaObject(ref = caseRefs.getValue(case.name))
                     }
 
                     if (outputOptions.useAnyOf) {
@@ -518,9 +519,7 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                             oneOf = withDiscriminatorRefs,
                             discriminator = DiscriminatorObject(
                                 propertyName = key,
-                                mapping = unsafeCases.associate { case ->
-                                    case.name to refPath("$baseName.${case.name}WithDiscriminator")
-                                }
+                                mapping = caseRefs
                             )
                         )
                     }
@@ -581,12 +580,9 @@ private fun Schema<*>.byRefName(
                         }
                         mainSchema + nestedSchemas
                     } else {
-                        // For ref mode, generate WithDiscriminator and base schemas
-                        val unionSpecificSchemas = unsafeCases.fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                            val baseSchemaName = "$unionName.${case.name}"
-                            val withDiscriminatorSchemaName = "${baseSchemaName}WithDiscriminator"
-
-                            val baseSchema = case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions, resolver)
+                        val caseSchemas = unsafeCases.fold(emptyMap<String, SchemaObject>()) { acc, case ->
+                            val baseSchemaName = caseBaseName(case, resolver)
+                            val withDiscriminatorSchemaName = baseSchemaName.withDiscriminator(key, case.name)
 
                             val discriminatorSchema = SchemaObject(
                                 type = "object",
@@ -606,17 +602,18 @@ private fun Schema<*>.byRefName(
                                 )
                             )
 
-                            acc + mapOf(
-                                baseSchemaName to baseSchema,
-                                withDiscriminatorSchemaName to withDiscriminatorSchema
-                            )
+                            val baseSchemas = case.schema.byRefName(nullable, outputOptions, resolver)
+                            acc + if (baseSchemaName in baseSchemas) {
+                                baseSchemas + (withDiscriminatorSchemaName to withDiscriminatorSchema)
+                            } else {
+                                baseSchemas + mapOf(
+                                    baseSchemaName to case.schema.toSchemaObjectImpl(FieldOptions(), outputOptions, resolver),
+                                    withDiscriminatorSchemaName to withDiscriminatorSchema
+                                )
+                            }
                         }
 
-                        val nestedSchemas = unsafeCases.fold(emptyMap<String, SchemaObject>()) { acc, case ->
-                            acc + case.schema.byRefName(nullable, outputOptions, resolver)
-                        }
-
-                        mainSchema + unionSpecificSchemas + nestedSchemas
+                        mainSchema + caseSchemas
                     }
                 }
             }
@@ -636,6 +633,29 @@ private fun Schema<*>.byRefName(
                 }
             }
         }
+    }
+
+private fun Schema<*>.referenceName(resolver: DefinitionNameResolver): String? =
+    when (this) {
+        is Schema.Record<*> -> resolver.resolve(this, metadata)
+        is Schema.Union<*> -> resolver.resolve(this, metadata)
+        is Schema.Lazy<*> -> schema().referenceName(resolver)
+        is Schema.Metadata<*> -> schema.referenceName(resolver)
+        is Schema.Default<*> -> schema.referenceName(resolver)
+        is Schema.Optional<*> -> schema.referenceName(resolver)
+        is Schema.OrElse<*, *> -> preferred.referenceName(resolver)
+        else -> null
+    }
+
+private fun Schema.Union<*>.caseBaseName(case: Case<*, *>, resolver: DefinitionNameResolver): String =
+    case.schema.referenceName(resolver) ?: "${resolver.resolve(this, metadata)}.${case.name}"
+
+private fun String.withDiscriminator(key: String, value: String): String =
+    if (key == "type" && value == substringBefore(".of.").substringAfterLast('.')) {
+        "${this}WithDiscriminator"
+    } else {
+        // Hex keeps arbitrary wire tags distinct and safe in component names and references.
+        "${this}WithDiscriminator.${key.encodeToByteArray().toHexString()}.${value.encodeToByteArray().toHexString()}"
     }
 
 private fun refPath(name: String): String = "#/components/schemas/$name"

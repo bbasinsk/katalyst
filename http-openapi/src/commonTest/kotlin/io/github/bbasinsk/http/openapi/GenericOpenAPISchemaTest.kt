@@ -81,25 +81,25 @@ class GenericOpenAPISchemaTest {
               "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree": {
                 "oneOf": [
                   {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.ValueWithDiscriminator"
+                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator"
                   },
                   {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.OptionalWithDiscriminator"
+                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator"
                   },
                   {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.ChoiceWithDiscriminator"
+                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator"
                   }
                 ],
                 "discriminator": {
                   "propertyName": "type",
                   "mapping": {
-                    "Value": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.ValueWithDiscriminator",
-                    "Optional": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.OptionalWithDiscriminator",
-                    "Choice": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.ChoiceWithDiscriminator"
+                    "Value": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator",
+                    "Optional": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator",
+                    "Choice": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator"
                   }
                 }
               },
-              "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.Value": {
+              "io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.Tree": {
                 "type": "object",
                 "properties": {
                   "value": {
@@ -110,7 +110,7 @@ class GenericOpenAPISchemaTest {
                   "value"
                 ]
               },
-              "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.ValueWithDiscriminator": {
+              "io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator": {
                 "allOf": [
                   {
                     "type": "object",
@@ -127,11 +127,11 @@ class GenericOpenAPISchemaTest {
                     ]
                   },
                   {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.Value"
+                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.Tree"
                   }
                 ]
               },
-              "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.Optional": {
+              "io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.Tree": {
                 "type": "object",
                 "properties": {
                   "variant": {
@@ -142,7 +142,7 @@ class GenericOpenAPISchemaTest {
                   "variant"
                 ]
               },
-              "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.OptionalWithDiscriminator": {
+              "io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator": {
                 "allOf": [
                   {
                     "type": "object",
@@ -159,11 +159,11 @@ class GenericOpenAPISchemaTest {
                     ]
                   },
                   {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.Optional"
+                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.Tree"
                   }
                 ]
               },
-              "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.Choice": {
+              "io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.Tree": {
                 "type": "object",
                 "properties": {
                   "options": {
@@ -177,7 +177,7 @@ class GenericOpenAPISchemaTest {
                   "options"
                 ]
               },
-              "io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.ChoiceWithDiscriminator": {
+              "io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.TreeWithDiscriminator": {
                 "allOf": [
                   {
                     "type": "object",
@@ -194,44 +194,8 @@ class GenericOpenAPISchemaTest {
                     ]
                   },
                   {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree.Choice"
+                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.Tree"
                   }
-                ]
-              },
-              "io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.Tree": {
-                "type": "object",
-                "properties": {
-                  "value": {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Tree"
-                  }
-                },
-                "required": [
-                  "value"
-                ]
-              },
-              "io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.Tree": {
-                "type": "object",
-                "properties": {
-                  "variant": {
-                    "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree"
-                  }
-                },
-                "required": [
-                  "variant"
-                ]
-              },
-              "io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.Tree": {
-                "type": "object",
-                "properties": {
-                  "options": {
-                    "type": "array",
-                    "items": {
-                      "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Tree"
-                    }
-                  }
-                },
-                "required": [
-                  "options"
                 ]
               }
             }
@@ -252,21 +216,21 @@ class GenericOpenAPISchemaTest {
         {
           "oneOf": [
             {
-              "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Person.ValueWithDiscriminator"
+              "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.PersonWithDiscriminator"
             },
             {
-              "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Person.OptionalWithDiscriminator"
+              "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.PersonWithDiscriminator"
             },
             {
-              "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Person.ChoiceWithDiscriminator"
+              "${'$'}ref": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.PersonWithDiscriminator"
             }
           ],
           "discriminator": {
             "propertyName": "type",
             "mapping": {
-              "Value": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Person.ValueWithDiscriminator",
-              "Optional": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Person.OptionalWithDiscriminator",
-              "Choice": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.of.io.github.bbasinsk.http.openapi.Person.ChoiceWithDiscriminator"
+              "Value": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Value.of.io.github.bbasinsk.http.openapi.PersonWithDiscriminator",
+              "Optional": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Optional.of.io.github.bbasinsk.http.openapi.PersonWithDiscriminator",
+              "Choice": "#/components/schemas/io.github.bbasinsk.http.openapi.Variant.Choice.of.io.github.bbasinsk.http.openapi.PersonWithDiscriminator"
             }
           }
         }
@@ -364,6 +328,37 @@ class GenericOpenAPISchemaTest {
         }
         require(spec.components.schemas.containsKey(pairDefinition)) {
             "Expected components to contain $pairDefinition but had ${spec.components.schemas.keys}"
+        }
+    }
+
+    @Test
+    fun `distinct generic union instantiations do not collapse in same spec`() {
+        val personHttp = Http.post { Root / "variant-person" }
+            .input { json { variant(person) } }
+            .output { status(Ok) { json { string() } } }
+        val treeHttp = Http.post { Root / "variant-tree" }
+            .input { json { tree } }
+            .output { status(Ok) { json { string() } } }
+
+        val spec = listOf(personHttp, treeHttp).toOpenApiSpec(info = Info(title = "API", version = "1.0.0"))
+        val schemas = spec.components.schemas
+
+        val prefix = "io.github.bbasinsk.http.openapi."
+        for (type in listOf("Person", "Tree")) {
+            val valueName = "${prefix}Variant.Value.of.$prefix$type"
+            val wrapperName = "${valueName}WithDiscriminator"
+            assertEquals(
+                "#/components/schemas/$prefix$type",
+                schemas.getValue(valueName).properties?.get("value")?.ref
+            )
+            assertEquals(
+                "#/components/schemas/$valueName",
+                schemas.getValue(wrapperName).allOf?.last()?.ref
+            )
+            assertEquals(
+                "#/components/schemas/$wrapperName",
+                schemas.getValue("${prefix}Variant.of.$prefix$type").discriminator?.mapping?.get("Value")
+            )
         }
     }
 }
