@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.1...katalyst-v0.6.2) (2026-09-21)
+
+
+### Bug Fixes
+
+* **openapi:** reuse shared union case schemas ([#128](https://github.com/bbasinsk/katalyst/issues/128)) ([b78da72](https://github.com/bbasinsk/katalyst/commit/b78da721401d3b03bcaff59e9ba9318b0b632124))
+
 ## [0.6.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.0...katalyst-v0.6.1) (2026-09-14)
 
 
