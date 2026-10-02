@@ -60,7 +60,8 @@ fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
 private fun JsonSchema.orNull(options: JsonOptions): JsonSchema =
     when {
         !options.optional -> this
-        type != null -> copy(type = type + "null")
+        // enum and type are independent assertions; appending "null" to type alone still rejects null.
+        type != null && enum == null -> copy(type = type + "null")
         anyOf != null -> copy(anyOf = anyOf + JsonSchema(type = listOf("null")))
         else -> JsonSchema(anyOf = listOf(this, JsonSchema(type = listOf("null"))))
     }
@@ -159,12 +160,9 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 is Primitive.Int -> JsonSchema(type = listOf("integer"), description = options.description, format = options.format).orNull(options)
                 is Primitive.Long -> JsonSchema(type = listOf("integer"), description = options.description, format = options.format).orNull(options)
                 is Primitive.String -> JsonSchema(type = listOf("string"), description = options.description, format = options.format).orNull(options)
-                is Primitive.Enumeration<*> -> JsonSchema(
-                    type = listOf("string"),
-                    enum = values.map { it.toString() },
-                    description = options.description,
-                    format = options.format
-                ).orNull(options)
+                is Primitive.Enumeration<*> -> JsonSchema(type = listOf("string"), enum = values.map { it.toString() })
+                    .orNull(options)
+                    .withAnnotations(options)
             }
 
         is Schema.Transform<*, *> -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
