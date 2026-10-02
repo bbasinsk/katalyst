@@ -55,7 +55,8 @@ implementation("io.github.bbasinsk:http-server-ktor-3:{{version}}")
 
 ### Build Requirements
 
-- JDK 17 (the convention plugins target Java 17 for Gradle compatibility).
+- JDK 21 runs Gradle (pinned in `gradle/gradle-daemon-jvm.properties`, as in CI); JDK 17 compiles (the convention plugins target Java 17 for Gradle compatibility).
+- Run `./gradlew build` before pushing: it is what CI runs, and it compiles native test sources that `jvmTest` and `jsNodeTest` skip.
 
 ### Basic Schema Definition
 
@@ -162,10 +163,11 @@ Katalyst's schema system enables:
 - Generating serializers/deserializers
 - Creating OpenAPI documentation
 - Validating inputs/outputs
+- Deriving patches: `schema.patchSchema()` describes partial edits of a value (keep, set, or edit per field), `applyPatch` applies one with typed failures, and `diff` computes one
 
 Supported types include:
 - Primitives: String, Int, Long, Float, Double, Boolean, ByteArray
-- Collections: List, Map
+- Collections: List, Map, and keyed lists (`Schema.keyedList(item) { it.id }`), which patches upsert and remove by key
 - Records (objects with fields)
 - Unions (oneOf)
 - Optional values

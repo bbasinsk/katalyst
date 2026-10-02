@@ -22,7 +22,8 @@ sealed interface Schema<A> {
     data class Optional<A>(val schema: Schema<A>) : Schema<A?>
     data class Metadata<A>(val schema: Schema<A>, val metadata: FieldMetadata) : Schema<A>
     data class Default<A>(val schema: Schema<A>, val default: A) : Schema<A>
-    data class Collection<A>(val itemSchema: Schema<A>) : Schema<List<A>>
+    /** A list. With a [key], items are unique by key and [Patch] upserts and removes them by key. */
+    data class Collection<A>(val itemSchema: Schema<A>, val key: ((A) -> String)? = null) : Schema<List<A>>
     data class StringMap<B>(val valueSchema: Schema<B>) : Schema<Map<String, B>>
 
     data class OrElse<A, B>(
@@ -126,6 +127,10 @@ sealed interface Schema<A> {
         fun float(): Primitive<Float> = Primitive.Float
 
         fun <A> list(schema: Schema<A>): Schema<List<A>> = Collection(schema)
+
+        /** A list whose items are identified by [key]. Encodes and renders exactly as [list]. */
+        fun <A> keyedList(item: Schema<A>, key: (A) -> String): Schema<List<A>> = Collection(item, key)
+
         fun <B> stringMap(valueSchema: Schema<B>): Schema<Map<String, B>> = StringMap(valueSchema)
 
         inline fun <reified A : Enum<A>> enumeration(): Primitive<A> =
