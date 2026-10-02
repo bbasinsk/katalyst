@@ -55,7 +55,8 @@ implementation("io.github.bbasinsk:http-server-ktor-3:{{version}}")
 
 ### Build Requirements
 
-- JDK 17 (the convention plugins target Java 17 for Gradle compatibility).
+- JDK 21 runs Gradle (pinned in `gradle/gradle-daemon-jvm.properties`, as in CI); JDK 17 compiles (the convention plugins target Java 17 for Gradle compatibility).
+- Run `./gradlew build` before pushing: it is what CI runs, and it compiles native test sources that `jvmTest` and `jsNodeTest` skip.
 
 ### Basic Schema Definition
 

@@ -129,7 +129,7 @@ class PatchTest {
     }
 
     @Test
-    fun `keyed list upserts in place, appends new keys in patch order and removes by key`() {
+    fun `keyed list upserts in place and appends new keys in patch order and removes by key`() {
         val before = Random(1).doc().copy(items = listOf(Item("a", "alpha", 0), Item("b", "beta", 0), Item("c", "gamma", 0)))
         val patch = Patch.Fields<Doc>(
             mapOf("items" to Patch.Items(upserts = listOf(Item("d", "delta", 0), Item("b", "beta", 1), Item("e", "epsilon", 0)), removals = listOf("a")))
@@ -255,7 +255,7 @@ class PatchTest {
     }
 
     @Test
-    fun `one model-written patch fixes the title, clears the scale, upserts an item and removes a member`() {
+    fun `one model-written patch fixes the title and clears the scale and upserts an item and removes a member`() {
         val patch = reportPatch(
             "title" to """{"op":"set","value":"Quarterly report"}""",
             "scale" to """{"op":"set","value":null}""",
