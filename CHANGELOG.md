@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.0...katalyst-v0.7.1) (2026-10-02)
+
+
+### Bug Fixes
+
+* **schema:** let nullable enumerations validate null ([#134](https://github.com/bbasinsk/katalyst/issues/134)) ([8ed1401](https://github.com/bbasinsk/katalyst/commit/8ed140149352c95d038c98fbfe6b8afbe192e17c))
+
 ## [0.7.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.3...katalyst-v0.7.0) (2026-10-02)
 
 
