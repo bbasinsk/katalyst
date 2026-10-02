@@ -162,10 +162,11 @@ Katalyst's schema system enables:
 - Generating serializers/deserializers
 - Creating OpenAPI documentation
 - Validating inputs/outputs
+- Deriving patches: `schema.patchSchema()` describes partial edits of a value (keep, set, or edit per field), `applyPatch` applies one with typed failures, and `diff` computes one
 
 Supported types include:
 - Primitives: String, Int, Long, Float, Double, Boolean, ByteArray
-- Collections: List, Map
+- Collections: List, Map, and keyed lists (`Schema.keyedList(item) { it.id }`), which patches upsert and remove by key
 - Records (objects with fields)
 - Unions (oneOf)
 - Optional values
