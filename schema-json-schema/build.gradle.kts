@@ -20,6 +20,11 @@ kotlin {
                 implementation(libs.kotlin.test)
             }
         }
+        val jvmTest by getting {
+            dependencies {
+                implementation("com.networknt:json-schema-validator:1.5.9")
+            }
+        }
     }
 }
 
