@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.3...katalyst-v0.7.0) (2026-10-02)
+
+
+### Features
+
+* **schema:** derive patches from schemas with keyed list upserts ([#132](https://github.com/bbasinsk/katalyst/issues/132)) ([92de376](https://github.com/bbasinsk/katalyst/commit/92de3768be4449a95c9e25d7a85a2b48fd7c1061))
+
 ## [0.6.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.6.2...katalyst-v0.6.3) (2026-09-21)
 
 
