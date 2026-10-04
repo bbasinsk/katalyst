@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.1...katalyst-v0.7.2) (2026-10-04)
+
+
+### Bug Fixes
+
+* **schema:** add omitDefaults to toJsonSchema to leave fields optional ([#136](https://github.com/bbasinsk/katalyst/issues/136)) ([14e47a7](https://github.com/bbasinsk/katalyst/commit/14e47a7762f0d3a8941ffe308bc473fca232e505))
+
 ## [0.7.1](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.0...katalyst-v0.7.1) (2026-10-02)
 
 
