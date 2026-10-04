@@ -26,3 +26,6 @@ For `orElse`, annotations on the combined schema remain beside `anyOf`. Branch a
 Format metadata does not change parsing, encoding, or validation.
 Consumer support depends on the JSON Schema dialect and validator.
 The OpenAPI converter does not emit custom format metadata.
+
+By default every record lists all its fields in `required`, as OpenAI strict mode demands.
+`toJsonSchema(omitDefaults = true)` leaves `.default()` and `.optional()` fields out of `required` at every depth, so a model can skip them; decoding fills in the default or `null`. Union discriminators stay required. Strict-mode providers reject these schemas.

@@ -48,12 +48,16 @@ data class JsonOptions(
     val format: String? = null
 )
 
-fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null): JsonSchema {
+/**
+ * With [omitDefaults], records leave fields that are not [Schema.isRequired] (`.default()`, `.optional()`) out of
+ * `required`, so a model may omit them; decoding fills in the default or `null`. OpenAI strict mode rejects such schemas.
+ */
+fun Schema<*>.toJsonSchema(maxRecursionDepth: Int? = null, omitDefaults: Boolean = false): JsonSchema {
     require(maxRecursionDepth == null || maxRecursionDepth >= 0) { "maxRecursionDepth must be non-negative, got $maxRecursionDepth" }
     val definitions = mutableMapOf<String, JsonSchema>()
     val resolver = DefinitionNameResolver()
     val unrollState = maxRecursionDepth?.let { UnrollState(maxDepth = it) }
-    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true, resolver, unrollState)
+    val schema = toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = true, resolver, omitDefaults, unrollState)
     return schema.copy(defs = definitions.takeIf { it.isNotEmpty() })
 }
 
@@ -124,6 +128,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
     definitions: MutableMap<String, JsonSchema>,
     inlineRefs: Boolean,
     resolver: DefinitionNameResolver,
+    omitDefaults: Boolean,
     unrollState: UnrollState? = null,
 ): JsonSchema {
     return when (this) {
@@ -131,7 +136,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
         is Schema.Dynamic -> JsonSchema(description = options.description, format = options.format)
         is Schema.Bytes -> JsonSchema(type = listOf("string"), contentEncoding = "base64", description = options.description, format = options.format).orNull(options)
 
-        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+        is Schema.Lazy -> this.schema().toJsonSchemaImpl(options, definitions, inlineRefs, resolver, omitDefaults, unrollState)
         is Schema.Metadata -> this.schema.toJsonSchemaImpl(
             options.copy(
                 description = options.description ?: this.metadata.description,
@@ -140,14 +145,15 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
             definitions,
             inlineRefs,
             resolver,
+            omitDefaults,
             unrollState
         )
 
-        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+        is Schema.Default -> this.schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, omitDefaults, unrollState)
         is Schema.OrElse<A, *> -> {
             val branches = listOf(
-                this.preferred.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
-                this.fallback.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState),
+                this.preferred.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, omitDefaults, unrollState),
+                this.fallback.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, omitDefaults, unrollState),
             ) + listOfNotNull(JsonSchema(type = listOf("null")).takeIf { options.optional })
             JsonSchema(anyOf = branches, description = options.description, format = options.format)
         }
@@ -165,16 +171,16 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                     .withAnnotations(options)
             }
 
-        is Schema.Transform<*, *> -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, unrollState)
+        is Schema.Transform<*, *> -> schema.toJsonSchemaImpl(options, definitions, inlineRefs, resolver, omitDefaults, unrollState)
 
         is Schema.Optional<*> ->
-            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs, resolver, unrollState)
+            schema.toJsonSchemaImpl(options.copy(optional = true), definitions, inlineRefs, resolver, omitDefaults, unrollState)
 
         is Schema.Collection<*> -> JsonSchema(
             type = listOf("array"),
             description = options.description,
             format = options.format,
-            items = itemSchema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, unrollState)
+            items = itemSchema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs, resolver, omitDefaults, unrollState)
         ).orNull(options)
 
         is Schema.StringMap<*> -> JsonSchema(
@@ -205,7 +211,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                 val cases = unsafeCases
                 val terminalCases = cases.filter { !containsReference(it.schema, this) }
                 if (terminalCases.size < cases.size) {
-                    generateUnrolledLevels(this, typeName, cases, terminalCases, definitions, resolver, unrollState)
+                    generateUnrolledLevels(this, typeName, cases, terminalCases, definitions, resolver, omitDefaults, unrollState)
                     unrollState.completedUnions.add(this)
                     return refOrNullable("${typeName}_${unrollState.maxDepth}")
                 }
@@ -221,6 +227,7 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                             definitions,
                             inlineRefs = true,
                             resolver = resolver,
+                            omitDefaults = omitDefaults,
                             unrollState = unrollState,
                         )
                     }
@@ -240,14 +247,15 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
 
                 val unionKeyProperty = options.unionKey?.let { mapOf(it) } ?: emptyMap()
                 val properties = unionKeyProperty + unsafeFields.associate { field ->
-                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver, unrollState = unrollState)
+                    field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver, omitDefaults = omitDefaults, unrollState = unrollState)
                 }
+
+                val omittable = if (omitDefaults) unsafeFields.filterNot { it.schema.isRequired() }.map { it.name }.toSet() else emptySet()
 
                 val computedRecordSchema = JsonSchema(
                     type = listOf("object"),
                     properties = properties,
-                    required = properties
-                        .map { it.key },
+                    required = properties.keys.filterNot { it in omittable },
                     additionalProperties = false,
                 )
                 definitions[typeName] = computedRecordSchema
@@ -267,6 +275,7 @@ private fun generateUnrolledLevels(
     terminalCases: List<Case<*, *>>,
     definitions: MutableMap<String, JsonSchema>,
     resolver: DefinitionNameResolver,
+    omitDefaults: Boolean,
     unrollState: UnrollState,
 ) {
     require(terminalCases.isNotEmpty()) { "Union '$typeName' has no terminal (non-recursive) cases and cannot be unrolled" }
@@ -286,6 +295,7 @@ private fun generateUnrolledLevels(
                     definitions,
                     inlineRefs = true,
                     resolver = resolver,
+                    omitDefaults = omitDefaults,
                     unrollState = unrollState,
                 )
             }
