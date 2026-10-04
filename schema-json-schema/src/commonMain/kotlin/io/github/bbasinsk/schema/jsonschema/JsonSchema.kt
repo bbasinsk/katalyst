@@ -250,12 +250,12 @@ private fun <A> Schema<A>.toJsonSchemaImpl(
                     field.name to field.schema.toJsonSchemaImpl(JsonOptions(), definitions, inlineRefs = false, resolver = resolver, omitDefaults = omitDefaults, unrollState = unrollState)
                 }
 
+                val omittable = if (omitDefaults) unsafeFields.filterNot { it.schema.isRequired() }.map { it.name }.toSet() else emptySet()
+
                 val computedRecordSchema = JsonSchema(
                     type = listOf("object"),
                     properties = properties,
-                    required = properties.keys.filter { name ->
-                        !omitDefaults || name == options.unionKey?.first || unsafeFields.none { it.name == name && !it.schema.isRequired() }
-                    },
+                    required = properties.keys.filterNot { it in omittable },
                     additionalProperties = false,
                 )
                 definitions[typeName] = computedRecordSchema
