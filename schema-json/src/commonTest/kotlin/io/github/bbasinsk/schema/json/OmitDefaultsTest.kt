@@ -1,13 +1,23 @@
 package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.orElse
+import io.github.bbasinsk.schema.transform
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class OmitDefaultsTest {
-    data class Entry(val tags: List<String>, val done: Boolean, val note: String?, val items: List<String>)
+    data class Entry(
+        val tags: List<String>,
+        val done: Boolean,
+        val note: String?,
+        val items: List<String>,
+        val labels: Set<String>,
+        val marks: Set<String>,
+        val count: Int,
+    )
 
     sealed interface Shape {
         data class Circle(val radius: Int, val filled: Boolean) : Shape
@@ -21,6 +31,10 @@ class OmitDefaultsTest {
         Schema.field(Schema.boolean().default(false).description("finished"), "done") { done },
         Schema.field(Schema.string().optional(), "note") { note },
         Schema.field(Schema.list(Schema.string()), "items") { items },
+        // Default outside the transform, then inside it.
+        Schema.field(Schema.list(Schema.string()).transform({ it.toSet() }, { it.toList() }).default(emptySet()), "labels") { labels },
+        Schema.field(Schema.list(Schema.string()).default(emptyList()).transform({ it.toSet() }, { it.toList() }), "marks") { marks },
+        Schema.field(Schema.int().default(0).orElse(Schema.string()) { it.toInt() }, "count") { count },
         ::Entry,
     )
 
@@ -45,11 +59,11 @@ class OmitDefaultsTest {
         ::Doc,
     )
 
-    private val bare = Entry(emptyList(), false, null, emptyList())
+    private val bare = Entry(emptyList(), false, null, emptyList(), emptySet(), emptySet(), 0)
     private val doc = Doc(
         title = "t",
         flag = false,
-        entries = listOf(bare, Entry(listOf("a"), true, "n", listOf("x"))),
+        entries = listOf(bare, Entry(listOf("a"), true, "n", listOf("x"), setOf("l"), setOf("m"), 2)),
         byName = mapOf("k" to bare),
         shape = Shape.Circle(1, false),
     )
@@ -57,7 +71,8 @@ class OmitDefaultsTest {
 
     @Test
     fun `omits fields at their default at every depth and keeps required and discriminator fields`() {
-        val expected = """{"title":"t","flag":false,"entries":[{"items":[]},{"tags":["a"],"done":true,"note":"n","items":["x"]}],""" +
+        val expected = """{"title":"t","flag":false,"entries":[{"items":[]},""" +
+            """{"tags":["a"],"done":true,"note":"n","items":["x"],"labels":["l"],"marks":["m"],"count":2}],""" +
             """"byName":{"k":{"items":[]}},"shape":{"type":"Circle","radius":1}}"""
         assertEquals(expected, docSchema.encodeToJsonString(doc, sparse))
         assertEquals(expected, docSchema.encodeToJsonValue(doc, sparse).encodeToJsonString())
