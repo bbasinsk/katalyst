@@ -7,6 +7,7 @@ import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.json.JsonEncodingConfig
 import io.github.bbasinsk.schema.json.encodeToJsonBytes
 import io.github.bbasinsk.schema.json.encodeToJsonString
+import io.github.bbasinsk.schema.json.skipsField
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -97,12 +98,10 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, config: JsonEncodingC
         this.unsafeFields.mapNotNull { field ->
             val schema = field.schema as Schema<Any?>
             val fieldValue = field.extract(value as A)
-            val encodedValue = schema.encodeToJsonElement(fieldValue, config)
-
-            if (!config.explicitNulls && fieldValue == null) {
+            if (config.skipsField(schema, fieldValue)) {
                 null
             } else {
-                field.name to encodedValue
+                field.name to schema.encodeToJsonElement(fieldValue, config)
             }
         }.toMap()
     )

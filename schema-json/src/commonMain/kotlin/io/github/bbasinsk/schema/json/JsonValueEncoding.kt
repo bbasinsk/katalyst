@@ -64,7 +64,7 @@ private fun <A> Schema.Record<A>.encodeRecordToJsonValue(value: Any?, config: Js
         unsafeFields.mapNotNull { field ->
             val schema = field.schema as Schema<Any?>
             val fieldValue = field.extract(value as A)
-            if (!config.explicitNulls && fieldValue == null) {
+            if (config.skipsField(schema, fieldValue)) {
                 null
             } else {
                 field.name to schema.encodeToJsonValue(fieldValue, config)

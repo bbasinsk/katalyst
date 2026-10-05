@@ -117,7 +117,7 @@ private fun <A> Schema.Record<A>.encodeRecord(value: Any?, sink: Sink, config: J
     for (field in unsafeFields) {
         val schema = field.schema as Schema<Any?>
         val fieldValue = field.extract(value as A)
-        if (!config.explicitNulls && fieldValue == null) continue
+        if (config.skipsField(schema, fieldValue)) continue
         if (!first) sink.writeString(",")
         first = false
         sink.writeIndent(print, depth + 1)
@@ -158,7 +158,7 @@ private fun encodeRecordFieldsInline(schema: Schema<Any?>, value: Any?, sink: Si
                 }
                 val fieldSchema = field.schema as Schema<Any?>
                 val fieldValue = field.extract(value)
-                if (!config.explicitNulls && fieldValue == null) continue
+                if (config.skipsField(fieldSchema, fieldValue)) continue
                 sink.writeString(",")
                 sink.writeIndent(print, depth)
                 sink.writeJsonString(field.name)
