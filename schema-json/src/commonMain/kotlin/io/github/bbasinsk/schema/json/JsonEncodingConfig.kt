@@ -4,10 +4,10 @@ import io.github.bbasinsk.schema.Schema
 
 data class JsonEncodingConfig(
     val explicitNulls: Boolean = true,
-    val allowSpecialFloatingPointValues: Boolean = false,
-    val printConfig: PrintConfig = PrintConfig.compact,
     /** Leave out record fields declared with `.default()` whose value equals that default. */
     val omitDefaults: Boolean = false,
+    val allowSpecialFloatingPointValues: Boolean = false,
+    val printConfig: PrintConfig = PrintConfig.compact
 ) {
     data class PrintConfig(
         val newLine: String,
