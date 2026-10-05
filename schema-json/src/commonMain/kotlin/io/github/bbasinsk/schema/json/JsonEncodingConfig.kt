@@ -25,9 +25,13 @@ data class JsonEncodingConfig(
 fun JsonEncodingConfig.skipsField(schema: Schema<*>, value: Any?): Boolean =
     (!explicitNulls && value == null) || (omitDefaults && schema.isAtDefault(value))
 
+@Suppress("UNCHECKED_CAST")
 private fun Schema<*>.isAtDefault(value: Any?): Boolean = when (this) {
     is Schema.Default -> value == default
     is Schema.Metadata -> schema.isAtDefault(value)
     is Schema.Lazy -> schema().isAtDefault(value)
+    // Compared in the encoded space: an absent field decodes the inner default back through `decode`.
+    is Schema.Transform<*, *> -> schema.isAtDefault((encode as (Any?) -> Any?)(value))
+    is Schema.OrElse<*, *> -> preferred.isAtDefault(value)
     else -> false
 }
