@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.2...katalyst-v0.7.3) (2026-10-05)
+
+
+### Bug Fixes
+
+* **schema:** add omitDefaults to JsonEncodingConfig to skip default fields ([#138](https://github.com/bbasinsk/katalyst/issues/138)) ([3226e25](https://github.com/bbasinsk/katalyst/commit/3226e25d780a729fc3c3dea3c1b22ee7627eb544))
+
 ## [0.7.2](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.1...katalyst-v0.7.2) (2026-10-04)
 
 
