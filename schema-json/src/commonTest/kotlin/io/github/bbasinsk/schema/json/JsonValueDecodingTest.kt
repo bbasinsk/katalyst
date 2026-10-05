@@ -140,6 +140,13 @@ class JsonValueDecodingTest {
     }
 
     @Test
+    fun `set encodes as a list and drops duplicates on decode`() {
+        val schema = Schema.set(Schema.string())
+        assertEquals("""["b","a"]""", schema.encodeToJsonString(setOf("b", "a")))
+        assertEquals(Validation.valid(setOf("b", "a")), schema.decodeFromJsonString("""["b","a","b"]"""))
+    }
+
+    @Test
     fun `round-trip byteArray`() {
         val schema = Schema.byteArray()
         val original = "hello bytes".encodeToByteArray()

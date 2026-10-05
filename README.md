@@ -167,7 +167,7 @@ Katalyst's schema system enables:
 
 Supported types include:
 - Primitives: String, Int, Long, Float, Double, Boolean, ByteArray
-- Collections: List, Map, and keyed lists (`Schema.keyedList(item) { it.id }`), which patches upsert and remove by key
+- Collections: List, Set (`Schema.set(item)`, a list that drops duplicates on decode), Map, and keyed lists (`Schema.keyedList(item) { it.id }`), which patches upsert and remove by key
 - Records (objects with fields)
 - Unions (oneOf)
 - Optional values

@@ -131,6 +131,9 @@ sealed interface Schema<A> {
         /** A list whose items are identified by [key]. Encodes and renders exactly as [list]. */
         fun <A> keyedList(item: Schema<A>, key: (A) -> String): Schema<List<A>> = Collection(item, key)
 
+        /** A set, encoded and rendered as a [list]. Decoding drops duplicate items; patches replace the whole set. */
+        inline fun <reified A> set(item: Schema<A>): Schema<Set<A>> = list(item).transform({ it.toSet() }, { it.toList() })
+
         fun <B> stringMap(valueSchema: Schema<B>): Schema<Map<String, B>> = StringMap(valueSchema)
 
         inline fun <reified A : Enum<A>> enumeration(): Primitive<A> =
