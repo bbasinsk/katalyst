@@ -2,6 +2,7 @@ package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.Schema
 import io.github.bbasinsk.schema.Schema.Companion.case
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform

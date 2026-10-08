@@ -5,6 +5,7 @@ import io.github.bbasinsk.schema.Schema.Companion.field
 import io.github.bbasinsk.schema.Schema.Companion.int
 import io.github.bbasinsk.schema.Schema.Companion.record
 import io.github.bbasinsk.schema.Schema.Companion.string
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.kotlin.duration
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json

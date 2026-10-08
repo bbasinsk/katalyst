@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.schema.json.Segment

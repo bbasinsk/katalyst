@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.json.kotlinx
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.InvalidJson
 import io.github.bbasinsk.schema.json.encodeToJsonString
 import io.github.bbasinsk.schema.transform
@@ -333,12 +334,6 @@ class PrimitiveSerdeTest {
     fun `default deserializes with specified default`() {
         val schema = Schema.int().default(42)
         assertEquals(Validation.valid(42), schema.decodeFromJsonString("null", Json.Default))
-    }
-
-    @Test
-    fun `default serializes with null`() {
-        val schema = Schema.int().optional().default(42)
-        assertEquals("null", schema.encodeToJsonString(null))
     }
 
     @Test

@@ -4,6 +4,7 @@ package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.JsonValue
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.orElse
 import io.github.bbasinsk.schema.transform
 import kotlin.io.encoding.Base64

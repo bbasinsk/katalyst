@@ -1,5 +1,6 @@
 package io.github.bbasinsk.schema
 
+import kotlin.jvm.JvmName
 
 sealed interface Schema<A> {
 
@@ -58,8 +59,12 @@ sealed interface Schema<A> {
         fun unsafeConstruct(values: List<Any?>): A
     }
 
+    /**
+     * Allows `null`. Decoders read a missing or `null` field as `null`, and encoders write `null` unless
+     * `JsonEncodingConfig.explicitNulls` is off. Add `.default(null)` so `JsonEncodingConfig.omitDefaults`
+     * leaves just this field out when it is `null`.
+     */
     fun optional(): Schema<A?> = Optional(this)
-    fun default(default: A): Schema<A> = Default(this, default)
     fun description(description: String) = Metadata(this, FieldMetadata(description = description))
     fun format(format: String) = Metadata(this, FieldMetadata(format = format))
 
@@ -1212,3 +1217,19 @@ inline fun <A, reified B> Schema<A>.transform(noinline decode: (A) -> B, noinlin
 
 inline fun <A, reified B> Schema<A>.orElse(fallback: Schema<B>, crossinline decode: (B) -> A): Schema<A> =
     Schema.OrElse(this, fallback, metadataFromType<B>()) { runCatching { decode(it) } }
+
+/**
+ * Decoders read a missing or `null` field as [default], and `JsonEncodingConfig.omitDefaults` leaves the field out
+ * when it equals [default].
+ */
+fun <A : Any> Schema<A>.default(default: A): Schema<A> = Schema.Default(this, default)
+
+/** Makes `null` the default of an [Schema.optional] field, so `JsonEncodingConfig.omitDefaults` leaves it out when `null`. */
+fun <A : Any> Schema<A?>.default(default: Nothing?): Schema<A?> = Schema.Default(this, default)
+
+@Deprecated(
+    "A nullable schema encodes null, which decodes back as this default. Drop .optional(), or use .default(null).",
+    level = DeprecationLevel.ERROR
+)
+@JvmName("defaultNonNullOfNullable")
+fun <A : Any> Schema<A?>.default(default: A): Schema<A?> = Schema.Default(this, default)

@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.decodeFromJsonString
 import io.github.bbasinsk.validation.Validation
 import kotlinx.serialization.json.JsonElement
