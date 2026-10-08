@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.json
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.json.kotlinx.encodeToJsonElement
 import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test
@@ -15,6 +16,7 @@ class OmitDefaultsTest {
     }
 
     data class Doc(val title: String, val flag: Boolean, val entries: List<Entry>, val byName: Map<String, Entry>, val shape: Shape)
+    data class Reading(val point: Double?, val note: String?)
 
     private val entrySchema: Schema<Entry> = Schema.record(
         Schema.field(Schema.list(Schema.string()).default(emptyList()), "tags") { tags },
@@ -67,5 +69,15 @@ class OmitDefaultsTest {
     @Test
     fun `sparse encoding decodes back to the original value`() {
         assertEquals(Validation.valid(doc), docSchema.decodeFromJsonString(docSchema.encodeToJsonString(doc, sparse)))
+    }
+
+    @Test
+    fun `default null leaves out one null optional field while other nulls stay explicit`() {
+        val schema = Schema.record(
+            Schema.field(Schema.double().optional().default(null), "point") { point },
+            Schema.field(Schema.string().optional(), "note") { note },
+            ::Reading,
+        )
+        assertEquals("""{"note":null}""", schema.encodeToJsonString(Reading(null, null), JsonEncodingConfig(omitDefaults = true)))
     }
 }

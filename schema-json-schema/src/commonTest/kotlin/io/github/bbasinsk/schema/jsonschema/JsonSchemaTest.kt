@@ -1,6 +1,7 @@
 package io.github.bbasinsk.schema.jsonschema
 
 import io.github.bbasinsk.schema.Schema
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.kotlin.duration
 import io.github.bbasinsk.schema.kotlin.instant
 import io.github.bbasinsk.schema.kotlin.uuid

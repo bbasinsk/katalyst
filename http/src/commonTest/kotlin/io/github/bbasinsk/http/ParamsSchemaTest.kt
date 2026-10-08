@@ -2,6 +2,7 @@
 
 package io.github.bbasinsk.http
 
+import io.github.bbasinsk.schema.default
 import io.github.bbasinsk.schema.kotlin.uuid
 import io.github.bbasinsk.validation.Validation
 import kotlin.test.Test
