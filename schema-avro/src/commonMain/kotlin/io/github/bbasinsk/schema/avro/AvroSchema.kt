@@ -52,10 +52,9 @@ fun Schema<*>.toAvroSchema(): AvroSchema =
             )
     }
 
-private fun Field<*, *>.toAvroField(): AvroField =
-    AvroField(
-        name,
-        schema.toAvroSchema(),
-        null,
-        if (schema is Schema.Optional) AvroField.NULL_DEFAULT_VALUE else null
-    )
+private fun Field<*, *>.toAvroField(): AvroField {
+    val type = schema.toAvroSchema()
+    // `.optional()` under any wrapper renders as a union led by null, the only shape Avro accepts a null default for.
+    val optional = type.type == AvroType.UNION && type.types.first().type == AvroType.NULL
+    return AvroField(name, type, null, if (optional) AvroField.NULL_DEFAULT_VALUE else null)
+}

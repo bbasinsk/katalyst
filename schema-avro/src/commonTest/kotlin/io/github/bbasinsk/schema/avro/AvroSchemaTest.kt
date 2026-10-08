@@ -42,6 +42,33 @@ class AvroSchemaTest {
     }
 
     @Test
+    fun `optional fields under description or default default to null`() {
+        val schema = with(Schema) {
+            record(
+                field(long().optional().description("A"), "a") { a },
+                field(string().optional().default(null), "b") { b },
+                ::RecordOptional
+            )
+        }
+        assertEquals(
+            Json.parseToJsonElement(
+                """
+                    {
+                        "type":"record",
+                        "name":"RecordOptional",
+                        "namespace":"io.github.bbasinsk.schema.avro",
+                        "fields":[
+                            {"name":"a","type":["null","long"],"default":null},
+                            {"name":"b","type":["null","string"],"default":null}
+                        ]
+                    }
+                """.trimIndent()
+            ),
+            Json.parseToJsonElement(schema.toAvroSchema().toString())
+        )
+    }
+
+    @Test
     fun `oneOf schema`() {
         assertEquals(
             Json.parseToJsonElement(
