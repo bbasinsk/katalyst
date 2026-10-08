@@ -533,13 +533,15 @@ private fun <A> Schema<A>.toSchemaObjectImpl(
                     ref = refPath(resolver.resolve(this, this.metadata))
                 )
             } else {
+                val properties = unsafeFields.associate {
+                    it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions, resolver, unrollState)
+                }
                 SchemaObject(
                     type = "object",
                     nullable = field.nullable,
-                    properties = unsafeFields.associate {
-                        it.name to it.schema.toSchemaObjectImpl(FieldOptions(ref = !outputOptions.inlineRefs), outputOptions, resolver, unrollState)
-                    },
-                    required = unsafeFields.filter { it.schema !is Schema.Optional<*> }.map { it.name },
+                    properties = properties,
+                    // Nullable means `.optional()` under any wrapper (description, default, transform), which decodes a missing field as null.
+                    required = properties.filterValues { it.nullable != true }.keys.toList(),
                     propertyOrdering = if (outputOptions.usePropertyOrdering) unsafeFields.map { it.name } else null
                 )
             }

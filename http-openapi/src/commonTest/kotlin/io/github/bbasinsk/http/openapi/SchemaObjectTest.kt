@@ -98,6 +98,16 @@ class SchemaObjectTest {
     }
 
     @Test
+    fun `optional fields under description or default are not required`() {
+        val schema: Schema<OptionalRecord> = record(
+            field(int().optional().description("Id"), "id") { id },
+            field(string().optional().default(null), "name") { name },
+            ::OptionalRecord
+        )
+        assertEquals(emptyList(), schema.toSchemaObject().required)
+    }
+
+    @Test
     fun `should convert descriptions to SchemaObject`() {
         val schema: Schema<Customer> = record(
             field(int().description("id int desc"), "id") { id },
