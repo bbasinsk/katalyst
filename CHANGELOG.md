@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.8.0](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.3...katalyst-v0.8.0) (2026-11-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* **openapi:** OpenAPI outputFile must stay inside layout.buildDirectory. Copy generated output in an explicit update task to maintain a committed spec.
+
+### Bug Fixes
+
+* **openapi:** keep generated specs inside the build directory ([#144](https://github.com/bbasinsk/katalyst/issues/144)) ([c09cbfd](https://github.com/bbasinsk/katalyst/commit/c09cbfd18f12c31d7df04cd585b443a1ac4b73c8))
+
 ## [0.7.3](https://github.com/bbasinsk/katalyst/compare/katalyst-v0.7.2...katalyst-v0.7.3) (2026-10-05)
 
 
