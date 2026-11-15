@@ -33,11 +33,16 @@ openApi {
     server("https://api.example.com")
     server("http://localhost:8080")
 
-    // Optional: customize output location
-    // default: `outputFile = project.layout.buildDirectory.file("generated/openapi.json")`
-    outputFile = project.file("src/main/resources/openapi.json")
+    // Optional: customize the path within the build directory.
+    // Default: build/generated/openapi/openapi.json
+    outputFile = layout.buildDirectory.file("openapi/openapi.json")
 }
 ```
+
+Output paths must stay inside `layout.buildDirectory`, including when you customize the build directory.
+The plugin validates and finalizes the output when the generation task is realized.
+To update a committed spec, copy the generated file in a separate, explicit update task.
+Do not point generation at `src/main/resources`: ordinary builds also run the generator.
 
 ## How It Works
 

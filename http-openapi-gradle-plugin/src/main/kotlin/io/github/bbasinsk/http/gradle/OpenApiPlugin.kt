@@ -36,6 +36,12 @@ class OpenApiPlugin : Plugin<Project> {
                 task.info.set(extension.info)
                 task.servers.set(extension.servers)
                 task.outputFile.set(extension.outputFile)
+                task.outputFile.finalizeValue()
+                val output = task.outputFile.get().asFile.toPath().normalize()
+                val build = project.layout.buildDirectory.get().asFile.toPath().normalize()
+                require(output.startsWith(build)) {
+                    "generateOpenApi must write inside $build, not $output. Copy generated output in a separate task to update a committed spec."
+                }
 
                 // Configure classpath from Kotlin compilation
                 project.extensions.findByType(KotlinJvmProjectExtension::class.java)?.let { kotlinExt ->
