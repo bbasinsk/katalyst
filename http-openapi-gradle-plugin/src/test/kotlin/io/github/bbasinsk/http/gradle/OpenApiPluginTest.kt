@@ -8,6 +8,7 @@ import kotlin.io.path.createTempDirectory
 import kotlin.io.path.readText
 import kotlin.io.path.writeText
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import org.gradle.testkit.runner.GradleRunner
@@ -95,7 +96,7 @@ class OpenApiPluginTest {
 
         val result = GradleRunner.create()
             .withProjectDir(root.toFile())
-            .withArguments(":app:generateOpenApi", "--stacktrace")
+            .withArguments(":app:generateOpenApi", "--no-configuration-cache", "--stacktrace")
             .withPluginClasspath()
             .build()
 
@@ -106,6 +107,109 @@ class OpenApiPluginTest {
         val spec = root.resolve("app/build/generated/openapi/openapi.json")
         assertTrue(spec.toFile().isFile)
         assertTrue(spec.readText().contains("\"/ping\""))
+    }
+
+    @Test
+    fun `build generates inside a custom build directory without overwriting the committed spec`() = withTempProject { root ->
+        root.write("src/main/resources/openapi.json", "committed spec")
+        root.writePluginProject(
+            """
+            layout.buildDirectory.set(layout.projectDirectory.dir("generated-build"))
+            openApi {
+                outputFile.set(layout.buildDirectory.file("api/openapi.json"))
+            }
+            """.trimIndent(),
+        )
+
+        GradleRunner.create()
+            .withProjectDir(root.toFile())
+            .withArguments("build", "--no-configuration-cache", "--stacktrace")
+            .withPluginClasspath()
+            .build()
+
+        assertEquals("committed spec", root.resolve("src/main/resources/openapi.json").readText())
+        assertTrue(root.resolve("generated-build/api/openapi.json").readText().contains("\"Fixture API\""))
+    }
+
+    @Test
+    fun `build rejects output paths outside the normalized build directory`() {
+        listOf(
+            """layout.projectDirectory.file("src/main/resources/openapi.json")""",
+            """layout.buildDirectory.file("../src/main/resources/openapi.json")""",
+            """layout.projectDirectory.file("build-sibling/openapi.json")""",
+        ).forEach { output ->
+            withTempProject { root ->
+                root.write("src/main/resources/openapi.json", "committed spec")
+                root.writePluginProject("openApi { outputFile.set($output) }")
+
+                val result = GradleRunner.create()
+                    .withProjectDir(root.toFile())
+                    .withArguments("build", "--no-configuration-cache", "--stacktrace")
+                    .withPluginClasspath()
+                    .buildAndFail()
+
+                assertTrue(result.output.contains("generateOpenApi must write inside"), result.output)
+                assertEquals("committed spec", root.resolve("src/main/resources/openapi.json").readText())
+            }
+        }
+    }
+
+    @Test
+    fun `a late task override cannot redirect generation into the committed spec`() = withTempProject { root ->
+        root.write("src/main/resources/openapi.json", "committed spec")
+        root.writePluginProject(
+            """
+            gradle.projectsEvaluated {
+                tasks.named<io.github.bbasinsk.http.gradle.GenerateOpenApiTask>("generateOpenApi") {
+                    outputFile.set(layout.projectDirectory.file("src/main/resources/openapi.json"))
+                }
+            }
+            """.trimIndent(),
+        )
+
+        val result = GradleRunner.create()
+            .withProjectDir(root.toFile())
+            .withArguments("generateOpenApi", "--no-configuration-cache", "--stacktrace")
+            .withPluginClasspath()
+            .buildAndFail()
+
+        assertTrue(result.output.contains("is final and cannot be changed"), result.output)
+        assertEquals("committed spec", root.resolve("src/main/resources/openapi.json").readText())
+    }
+
+    private fun Path.writePluginProject(configuration: String) {
+        val kotlinVersion = requireNotNull(System.getProperty("kotlinVersion"))
+        write(
+            "settings.gradle.kts",
+            """
+            pluginManagement {
+                repositories {
+                    gradlePluginPortal()
+                    mavenCentral()
+                }
+            }
+            dependencyResolutionManagement {
+                repositories { mavenCentral() }
+            }
+            rootProject.name = "openapi-output"
+            """.trimIndent(),
+        )
+        write(
+            "build.gradle.kts",
+            """
+            plugins {
+                kotlin("jvm") version "$kotlinVersion"
+                id("io.github.bbasinsk.http-openapi")
+            }
+            openApi {
+                info {
+                    title = "Fixture API"
+                    version = "1.0.0"
+                }
+            }
+            $configuration
+            """.trimIndent(),
+        )
     }
 
     private fun withTempProject(block: (Path) -> Unit) {
